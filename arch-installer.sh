@@ -352,8 +352,10 @@ arch-chroot /mnt systemctl enable avahi-daemon.service
 arch-chroot /mnt systemctl enable sshd.service
 arch-chroot /mnt systemctl enable rpc-statd.service
 
-# Grab my dot files.
+# Grab my dot files and populate /etc/skel
 git clone https://github.com/flexiondotorg/dot-files.git /tmp/dot-files
+cp /tmp/dot-files/dot-bashrc /mnt/etc/skel/.bashrc
+cp /tmp/dot-files/dot-bash_logout /mnt/etc/skel/.bash_logout
 
 # Create users and configure bash, if there a users file.
 if [ -f users.csv ]; then
@@ -372,13 +374,11 @@ if [ -f users.csv ]; then
             _GROUPS=${_BASIC_GROUPS}
         fi    
         arch-chroot /mnt useradd --password ${_CRYPTPASSWD} --comment "${_COMMENT}" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}
-        cp /tmp/dot-files/dot-bashrc /mnt/home/${_USERNAME}/.bashrc
-        cp /tmp/dot-files/dot-bash_logout /mnt/home/${_USERNAME}/.bash_logout       
         arch-chroot /mnt chown -R ${_USERNAME}:users /home/${_USERNAME}
     done
 fi
 
-# Change root password and configre bash.
+# Change root password and configure the dot files.
 PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
 arch-chroot /mnt usermod --password ${PASSWORD_CRYPT} root
 cp /tmp/dot-files/dot-bashrc /mnt/root/.bashrc
