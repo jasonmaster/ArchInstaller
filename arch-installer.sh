@@ -11,7 +11,7 @@ TIMEZONE="Europe/London"
 KEYMAP="uk"
 LANG="en_GB.UTF-8"
 PASSWORD=""
-FS="xfs" #or ext4 are the only supported options right now.
+FS="ext4" #or xfs are the only supported options right now.
 PARTITION_TYPE="msdos"
 PARTITION_LAYOUT=""
 

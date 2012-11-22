@@ -232,6 +232,16 @@ if [ ${INSTALL_VIDEO_PLAYER_APPS} -eq 1 ]; then
 
     pacman_install "devede handbrake vlc"
     packer_install "arista-transcoder makemkv"    
+        
+    addlinetofile "[archnetflix]" /etc/pacman.conf
+    addlinetofile "SigLevel = Required DatabaseOptional TrustedOnly" /etc/pacman.conf
+    addlinetofile 'Server = http://demizerone.com/$repo/$arch' /etc/pacman.conf
+    pacman-key -r 0EE7A126
+    pacman-key --lsign-key 0EE7A126
+    ncecho " [x] Syncing (arch) "
+    pacman -Syy >>"$log" 2>&1 &
+    pid=$!;progress $pid
+    pacman_install -S netflix-desktop
 fi
 
 if [ ${INSTALL_VIDEO_EDITOR_APPS} -eq 1 ]; then    
