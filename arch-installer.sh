@@ -267,16 +267,8 @@ elif [ "${PARTITION_LAYOUT}" == "br" ]; then
     ROOT_PARTITION="${DSK}2"    
 fi
 
-## Install base system
-if [ "${CPU}" == "i686" ]; then
-    DEVEL="base-devel"
-else
-    DEVEL="multilib-devel"
-    echo "[multilib]" >> /etc/pacman.conf
-    echo "SigLevel = PackageRequired" >> /etc/pacman.conf
-    echo "Include = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
-fi    
-pacstrap /mnt base ${DEVEL} openssh sudo syslinux wget
+# Base system
+pacstrap /mnt base base-devel openssh sudo syslinux wget
 
 # Configure the system
 sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /mnt/etc/sudoers
