@@ -162,7 +162,7 @@ if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
 
     parted /dev/${DSK} unit MiB mkpart primary     1 $boot
     parted /dev/${DSK} unit MiB mkpart primary $boot $root
-    parted /dev/${DSK} unit MiB mkpart primary $root $swap
+    parted /dev/${DSK} unit MiB mkpart primary linux-swap $root $swap
     parted /dev/${DSK} unit MiB mkpart primary $swap $max        
 
     # Set boot flags
@@ -201,7 +201,7 @@ elif [ "${PARTITION_LAYOUT}" == "bsr" ]; then
     max=$(( $(cat /sys/block/sda/size) * 512 / 1024 / 1024 - 1 ))
 
     parted /dev/${DSK} unit MiB mkpart primary     1 $boot
-    parted /dev/${DSK} unit MiB mkpart primary $boot $swap
+    parted /dev/${DSK} unit MiB mkpart primary linux-swap $boot $swap
     parted /dev/${DSK} unit MiB mkpart primary $swap $max        
 
     # Set boot flags
