@@ -156,7 +156,7 @@ if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
     # /dev/sda4:  remaining GB
 
     boot=$((   1   +   100    ))
-    root=$(( $boot + (1024*24) ))
+    root=$(( $boot + (1024*24) )) #FIXME - determine something sane for small disks
     swap=$(( $root + ${SWP} ))
     max=$(( $(cat /sys/block/sda/size) * 512 / 1024 / 1024 - 1 ))
 
