@@ -138,17 +138,8 @@ fi
 loadkeys -q ${KEYMAP}
 rmmod -s pcspkr
 
-# Detect WLAN and configure it.
-# - Disabled this because networking has to exist to grab this script.
-#WLAN=`ip addr | grep wlan`
-#if [ $? -eq 0 ]; then
-#    wifi-menu
-#fi    
-#dhcpcd
-
-# Calcualte a sane size for swap. 
-RAM=`cat /proc/meminfo | grep MemTotal | cut -d':' -f2 | sed -e 's/kB//' -e 's/ //g'`
-SWP=$(( ${RAM} / 2 ))
+# Calcualte a sane size for swap. Half RAM.
+SWP=`awk '/MemTotal/ {printf( "%.0f\n", $2 / 1000 / 2 )}' /proc/meminfo`
 
 # Partition the disk
 # References
@@ -165,7 +156,7 @@ if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
     # /dev/sda4:  remaining GB
 
     boot=$((   1   +   100    ))
-    root=$(( $boot + (1024*16) ))
+    root=$(( $boot + (1024*24) ))
     swap=$(( $root + ${SWP} ))
     max=$(( $(cat /sys/block/sda/size) * 512 / 1024 / 1024 - 1 ))
 
