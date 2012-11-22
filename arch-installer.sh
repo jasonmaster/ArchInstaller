@@ -139,7 +139,7 @@ loadkeys -q ${KEYMAP}
 rmmod -s pcspkr
 
 # Calcualte a sane size for swap. Half RAM.
-SWP=`awk '/MemTotal/ {printf( "%.0f\n", $2 / 1000 / 2 )}' /proc/meminfo`
+SWP=`awk '/MemTotal/ {printf( "%.0f\n", $2 / 1024 / 2 )}' /proc/meminfo`
 
 # Partition the disk
 # References
