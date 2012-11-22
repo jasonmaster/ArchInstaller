@@ -272,6 +272,9 @@ if [ "${CPU}" == "i686" ]; then
     DEVEL="base-devel"
 else
     DEVEL="multilib-devel"
+    echo "[multilib]" >> /etc/pacman.conf
+    echo "SigLevel = PackageRequired" >> /etc/pacman.conf
+    echo "Include = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
 fi    
 pacstrap /mnt base ${DEVEL} openssh sudo syslinux wget
 
