@@ -311,6 +311,49 @@ modprobe -q acpi-cpufreq
 if [ $? -eq 0 ]; then
     echo "acpi-cpufreq" > /mnt/etc/modules-load.d/cpufreq.conf
 fi
+
+# Create a list of package from the install ISO
+# This is used to install the base system.
+pacman -Qqe > /mnt/usr/local/etc/base-packages.txt
+cat >>/mnt/usr/local/etc/base-packages.txt<<'ENDMYPACKAGES'
+abs
+arj
+avahi
+bash-completion
+bzr
+cabextract
+cifs-utils
+chrony
+colordiff
+cvs
+dbus
+devtools
+dkms
+git
+htop
+lesspipe
+lsb-release
+lzop
+mercurial
+namcap
+nss-mdns
+p7zip
+powertop
+python2-paramiko
+rpmextract
+screen
+sharutils
+source-highlight
+subversion
+tree
+unace
+unrar
+unzip
+uudeview
+wpa_supplicant
+xz
+zip
+ENDMYPACKAGES
     
 # Enter the chroot and complete the install by adding `systemd` and `packer`
 # - pacman -S systemd systemd-sysvcompat systemd-arch-units # recently removed
@@ -323,18 +366,23 @@ tar zxvf packer.tar.gz
 cd packer
 makepkg --asroot -s --noconfirm
 pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`
-echo "Y
-Y
-Y
-" | pacman -S --noconfirm --needed bash-completion ddrescue dkms lsb-release rsync screen tree
-pacman -S --noconfirm --needed colordiff lesspipe source-highlight
-pacman -S --noconfirm --needed arj cabextract lzop p7zip rpmextract sharutils unace unrar unzip uudeview xz zip
-pacman -S --noconfirm --needed bzr cvs git mercurial subversion python2-paramiko
-pacman -S --noconfirm --needed abs devtools namcap
-pacman -S --noconfirm --needed cifs-utils dosfstools nfs-utils ntfsprogs
-pacman -S --noconfirm --needed dialog wpa_supplicant ipw2100-fw ipw-2200-fw
-pacman -S --noconfirm --needed ethtool powertop
-pacman -S --noconfirm --needed avahi dbus nss-mdns chrony
+# Install each of the packages in 
+for PACKAGE in $(sort /usr/local/etc/base-packages.txt)
+do
+    pacman -S --noconfirm --needed ${PACKAGE}
+done
+#echo "Y
+#Y
+#Y
+#" | pacman -S --noconfirm --needed    
+#pacman -S --noconfirm --needed 
+#pacman -S --noconfirm --needed 
+#pacman -S --noconfirm --needed 
+#pacman -S --noconfirm --needed 
+#pacman -S --noconfirm --needed 
+#pacman -S --noconfirm --needed 
+#pacman -S --noconfirm --needed 
+#pacman -S --noconfirm --needed 
 sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /etc/nsswitch.conf
 sed -i 's/! server ntp.public-server.org/server uk.pool.ntp.org/' /etc/chrony.conf
 #replaceinfile 'NEED_STATD=""' 'NEED_STATD="YES"' /etc/conf.d/nfs-common.conf
