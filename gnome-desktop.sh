@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# TODO
+#  - Unifiy changes to users home directory for all users.
+
 sp="/-\|"
 log="${PWD}/`basename ${0}`.log"
 rm $log 2>/dev/null
@@ -261,7 +264,7 @@ if [ ${INSTALL_VIDEO_RIPPER_APPS} -eq 1 ]; then
     packer_install "get_iplayer makemkv tsmuxer-gui"   
 fi
 
-if [ ${INSTALL_VIDEO_EDITOR_APPS} -eq 1 ]; then    
+if [ ${INSTALL_VIDEO_EDITOR_APPS} -eq 1 ]; then
     pacman_install "devede openshot"
     packer_install "arista-transcoder ttcut-svn"
     # TODO - Maybe project-x gopchop
