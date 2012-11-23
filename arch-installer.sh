@@ -3,11 +3,13 @@
 #TODO
 # - Consolidate the partitioning.
 # - Add option to enable NFS client
-# - Is the hostname correctly set everywhere?
 # - Detect SSD and add `discard`.
 #   /sys/block/sdX/queue/rotational # 0 = SSD
 #   /sys/block/sda/removable # 0 = not removable
 #   sudo hdparm -I /dev/sda | grep "TRIM supported"
+# - Some good stuuf below, check it out
+#   https://github.com/helmuthdu/aui
+#   https://github.com/helmuthdu/dotfiles
 
 DSK=""
 FQDN="arch.example.org"
@@ -267,7 +269,12 @@ pacstrap /mnt base base-devel openssh sudo syslinux wget
 
 # Configure the system
 sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /mnt/etc/sudoers
-genfstab -p /mnt >> /mnt/etc/fstab
+genfstab -L /mnt >> /mnt/etc/fstab
+
+# TODO - test this
+#sed -i '/127.0.0.1/s/$/ '${FQDN}'/' /mnt/etc/hosts
+#sed -i '/::1/s/$/ '${FQDN}'/' /mnt/etc/hosts
+
 echo "${FQDN}" > /mnt/etc/hostname
 echo "${TIMEZONE}" > /mnt/etc/timezone
 

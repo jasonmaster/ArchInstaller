@@ -24,6 +24,7 @@ pacman_sync
 INSTALL_BROWSERS=0
 INSTALL_LIBREOFFICE=1
 INSTALL_DEVELOPMENT=1
+INSTALL_GOOGLE_EARTH=1
 INSTALL_VIRTUALBOX=0
 INSTALL_CHAT_APPS=1
 INSTALL_GRAPHIC_APPS=1
@@ -130,10 +131,7 @@ pid=$!;progress $pid
 #For 64-bit machines, you'll need to install 
 if [ "${CPU}" == "x86_64" ]; then
     pacman_install "lib32-flashplugin"
-fi
-
-# Google Earth
-packer_install "google-earth"
+fi    
 
 # Browsers
 if [ ${INSTALL_BROWSERS} -eq 1 ]; then
@@ -172,6 +170,12 @@ if [ ${INSTALL_DEVELOPMENT} -eq 1 ]; then
     
     pacman_install "pgadmin3"
     packer_install "wingide"    
+fi
+
+# Google Earth
+if [ ${INSTALL_GOOGLE_EARTH} -eq 1 ]; then
+    pacman_install "ld-lsb"
+    packer_install "google-earth"
 fi
 
 if [ ${INSTALL_VIRTUALBOX} -eq 1 ]; then
