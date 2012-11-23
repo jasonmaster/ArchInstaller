@@ -100,7 +100,6 @@ T43=`dmidecode --type 1 | grep ThinkPad T43`
 if [ $? -eq 0 ]; then
     pacman_install "fprintd"
     packer_install "thinkfan"
-    systemctl enable thinkfan
     echo "options thinkpad_acpi fan_control=1" > /etc/modprobe.d/thinkfan.conf
     cat >/etc/thinkfan.conf<<ENDTHINKFAN
 (0,    0,    55)
@@ -111,6 +110,9 @@ if [ $? -eq 0 ]; then
 (5,    64,    66)
 (7,    65,    32767)
 ENDTHINKFAN
+    replaceinfile "-q" "-q -p 2" /usr/lib/systemd/system/thinkfan.service
+    systemctl --system daemon-reload
+    systemctl enable thinkfan
 fi
 
 # Fonts
