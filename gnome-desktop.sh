@@ -38,6 +38,7 @@ INSTALL_ZIMBRA_DESKTOP=0
 INSTALL_IPMIVIEW=0
 INSTALL_RAIDAR=0
 INSTALL_WINE=1
+INSTALL_CRYPTO_APPS=1
 INSTALL_BACKUP_APPS=0
 
 # Configure init things
@@ -183,7 +184,7 @@ fi
 # Chat
 if [ ${INSTALL_CHAT_APPS} -eq 1 ]; then
     # TODO - Skype notifications
-    pacman_install "skype"
+    pacman_install "skype xchat"
 fi    
 
 # Graphics
@@ -194,7 +195,7 @@ fi
 # 3D Graphics
 if [ ${INSTALL_3D_APPS} -eq 1 ]; then
     packer_install "sweethome3d"
-FI    
+fi
 
 # Photo Managers
 if [ ${INSTALL_PHOTO_APPS} -eq 1 ]; then
@@ -279,6 +280,12 @@ if [ ${INSTALL_WINE} -eq 1 ]; then
     pacman_install "wine winetricks"
 fi    
 
+# Crypto
+if [ ${INSTALL_WINE} -eq 1 ]; then
+    pacman_install "truecrypt"
+    packer_install "pocket"
+fi
+
 # IPMIView
 if [ ${INSTALL_IPMIVIEW} -eq 1 ]; then
     packer_install "ipmiview"
@@ -306,10 +313,6 @@ fi
 ncecho " [x] Removing 'wine' file associations "
 rm /home/${SUDO_USER}/.local/share/applications/wine-extension-*.desktop >>"$log" 2>&1
 cecho success
-
-ncecho " [x] Purging 'packer' builds "
-rm -rfv /tmp/packerbuild-* >>"$log" 2>&1 &
-pid=$!;progress $pid
 
 ncecho " [x] Updating font cache "
 fc-cache -f -v >>"$log" 2>&1 &

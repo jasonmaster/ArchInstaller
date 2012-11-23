@@ -337,6 +337,7 @@ dkms
 git
 hexedit
 htop
+hub
 lesspipe
 lsb-release
 lzop
