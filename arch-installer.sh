@@ -3,7 +3,9 @@
 #TODO
 # - Consolidate the partitioning.
 # - Add option to enable NFS client
-# - Make dot files optional, like users.csv.
+# - Is the hostname correctly set everywhere?
+# - Detect SSD and add `discard`.
+#   /sys/block/sdX/queue/rotational # 0 = SSD
 
 DSK=""
 FQDN="arch.example.org"
@@ -321,6 +323,7 @@ arj
 avahi
 bash-completion
 bzr
+ca-certificates
 cabextract
 cifs-utils
 chrony
@@ -351,7 +354,6 @@ unrar
 unzip
 uudeview
 wpa_supplicant
-xz
 zip
 ENDMYPACKAGES
     
@@ -366,11 +368,12 @@ tar zxvf packer.tar.gz
 cd packer
 makepkg --asroot -s --noconfirm
 pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`
+pacman -S --noconfirm --needed `sort /usr/local/etc/base-packages.txt`
 # Install each of the packages in 
-for PACKAGE in $(sort /usr/local/etc/base-packages.txt)
-do
-    pacman -S --noconfirm --needed ${PACKAGE}
-done
+#for PACKAGE in $(sort /usr/local/etc/base-packages.txt)
+#do
+#    pacman -S --noconfirm --needed ${PACKAGE}
+#done
 #echo "Y
 #Y
 #Y
