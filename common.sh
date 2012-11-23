@@ -271,8 +271,9 @@ packer_install() {
         fi
     done    
     
-    # Cleanup as '/tmp' is 'tmpfs' and during a first install can fill entirely.
-    rm -rf /tmp/packertmp-*    
+    # Cleanup as '/tmp' is 'tmpfs' and a big install can fill it entirely.
+    rm -rf /tmp/packertmp-*
+    rm -rf /tmp/packerbuild-*
 }
 
 pacman_upgrade() {

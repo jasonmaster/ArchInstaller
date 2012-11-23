@@ -6,6 +6,8 @@
 # - Is the hostname correctly set everywhere?
 # - Detect SSD and add `discard`.
 #   /sys/block/sdX/queue/rotational # 0 = SSD
+#   /sys/block/sda/removable # 0 = not removable
+#   sudo hdparm -I /dev/sda | grep "TRIM supported"
 
 DSK=""
 FQDN="arch.example.org"
@@ -333,6 +335,7 @@ dbus
 devtools
 dkms
 git
+hexedit
 htop
 lesspipe
 lsb-release

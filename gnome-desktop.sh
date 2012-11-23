@@ -141,7 +141,7 @@ if [ ${INSTALL_LIBREOFFICE} -eq 1 ]; then
     libreoffice-common libreoffice-draw libreoffice-gnome libreoffice-impress \
     libreoffice-math libreoffice-writer libreoffice-en-GB ttf-dejavu unoconv" "LibreOffice"
     pacman_install "hunspell-en hyphen-en mythes-en" "Spelling & Grammar"
-    packer_install "glabels"    
+    pacman_install "glabels"    
 fi
 
 # Development
@@ -159,14 +159,10 @@ if [ ${INSTALL_DEVELOPMENT} -eq 1 ]; then
     packer_install "gedit-advancedfind"
     packer_install "gedit-smart-highlighting-plugin"
     chmod 666 /usr/lib/gedit/plugins/smart_highlight/config.xml
-    packer_install "gdp"
-    packer_install "gedit-source-code-browser"
-    packer_install "gedit-django-project"
+    packer_install "gedit-source-code-browser gedit-django-project gdp"
 
     # Mine
-    # gedit-schemer-plugin
-    # gedit-imitation-plugin
-    # gedit-open-uri-context-menu-plugin    
+    packer_install "gedit-schemer-plugin gedit-imitation-plugin gedit-open-uri-context-menu-plugin"
     
     pacman_install "pgadmin3"
     packer_install "wingide"    
