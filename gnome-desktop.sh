@@ -124,6 +124,7 @@ nspluginwrapper -v -n -a -i
 #For 64-bit machines, you'll need to install 
 if [ "${CPU}" == "x86_64" ]; then
     pacman_install "lib32-flashplugin"
+fi
 
 # Google Earth
 packer_install "google_earth"
