@@ -91,8 +91,15 @@ EndSection
 ENDCALIB
     fi
 fi
-
 #xinput set-int-prop "eGalax Inc. Touch" "Evdev Axis Calibration" 32 3975 107 -147 3582
+
+# Thinkpad T43
+T43=`dmidecode --type 1 | grep ThinkPad T43`
+if [ $? -eq 0 ]; then
+    pacman_install "fprintd"
+    packer_install "thinkfan"
+    systemctl enable thinkfan
+fi
 
 # Fonts
 pacman_install "ttf-bitstream-vera ttf-liberation ttf-ubuntu-font-family"

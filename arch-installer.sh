@@ -343,6 +343,7 @@ dbus
 devtools
 dkms
 git
+dmidecode
 hexedit
 htop
 hub
