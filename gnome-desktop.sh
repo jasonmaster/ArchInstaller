@@ -2,6 +2,7 @@
 
 # TODO
 #  - Unifiy changes to users home directory for all users.
+#  - Detect locale
 
 sp="/-\|"
 log="${PWD}/`basename ${0}`.log"
@@ -179,6 +180,9 @@ fi
 if [ ${INSTALL_GOOGLE_EARTH} -eq 1 ]; then
     packer_install "ld-lsb"
     packer_install "google-earth"
+    if [ -f /etc/fonts/conf.d/65-fonts-persian.conf ]; then
+        mv /etc/fonts/conf.d/65-fonts-persian.conf /etc/fonts/conf.d/65-fonts-persian.conf.breaks-google-earth
+    fi        
 fi
 
 if [ ${INSTALL_VIRTUALBOX} -eq 1 ]; then

@@ -3,13 +3,14 @@
 #TODO
 # - Consolidate the partitioning.
 # - Add option to enable NFS client
-# - Detect SSD and add `discard`.
+# - Detect SSD and TRIM and add `discard` to `/etc/fstab`.
 #   /sys/block/sdX/queue/rotational # 0 = SSD
 #   /sys/block/sda/removable # 0 = not removable
 #   sudo hdparm -I /dev/sda | grep "TRIM supported"
-# - Some good stuuf below, check it out
+# - Some good stuff below, check it out
 #   https://github.com/helmuthdu/aui
 #   https://github.com/helmuthdu/dotfiles
+# - Hardware clock
 
 DSK=""
 FQDN="arch.example.org"
@@ -51,8 +52,8 @@ function usage() {
     echo
     echo "In the examples below, 'fred' is a sudo'er but 'barney' is not."
     echo
-    echo "fred,fl1nt5t0n3,\"Fred Flintstone\",wheel"
-    echo "barney,ru88l3,\"Barney Rubble\","    
+    echo "fred,fl1nt5t0n3,Fred Flintstone,wheel"
+    echo "barney,ru88l3,Barney Rubble,"    
     exit 1
 }
 
