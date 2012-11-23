@@ -32,6 +32,7 @@ INSTALL_PHOTO_APPS=1
 INSTALL_MUSIC_APPS=1
 INSTALL_VIDEO_PLAYER_APPS=1
 INSTALL_VIDEO_EDITOR_APPS=0
+INSTALL_VIDEO_RIPPER_APPS=0
 INSTALL_REMOTE_DESTOP_APPS=1
 INSTALL_DOWNLOAD_APPS=1
 INSTALL_ZIMBRA_DESKTOP=0
@@ -121,7 +122,11 @@ packer_install "dropbox"
 
 # Flash
 pacman_install "nspluginwrapper flashplugin"
-nspluginwrapper -v -n -a -i
+
+ncecho " [x] Configuring plugins "
+nspluginwrapper -v -n -a -i >>"$log" 2>&1 &
+pid=$!;progress $pid
+
 #For 64-bit machines, you'll need to install 
 if [ "${CPU}" == "x86_64" ]; then
     pacman_install "lib32-flashplugin"
@@ -220,16 +225,12 @@ fi
 
 # Video
 if [ ${INSTALL_VIDEO_PLAYER_APPS} -eq 1 ]; then    
-    pacman_install "mediainfo mkvtoolnix-cli" #mkvtoolnix-gtk
-    packer_install "get_iplayer tsmuxer-gui"
     # DVD & Blu-Ray
-    pacman_install "libbluray libdvdread libdvdcss libdvdnav"
+    pacman_install "libbluray libdvdread libdvdcss libdvdnav vlc"
     packer_install "libaacs"
+    # TODO - install KEYDB
     #mkdir /home/${SUDO_USER}   
     #cd ~/.config/aacs/ && wget http://vlc-bluray.whoknowsmy.name/files/KEYDB.cfg    
-
-    pacman_install "devede handbrake vlc"
-    packer_install "arista-transcoder makemkv"    
         
     addlinetofile "[archnetflix]" /etc/pacman.conf
     addlinetofile "SigLevel = Required DatabaseOptional TrustedOnly" /etc/pacman.conf
@@ -239,16 +240,23 @@ if [ ${INSTALL_VIDEO_PLAYER_APPS} -eq 1 ]; then
     ncecho " [x] Syncing (arch) "
     pacman -Syy >>"$log" 2>&1 &
     pid=$!;progress $pid
-    pacman_install -S netflix-desktop
+    pacman_install "netflix-desktop"
+fi
+
+if [ ${INSTALL_VIDEO_RIPPER_APPS} -eq 1 ]; then
+    pacman_install "handbrake mediainfo mkvtoolnix-cli" #mkvtoolnix-gtk
+    packer_install "get_iplayer makemkv tsmuxer-gui"   
 fi
 
 if [ ${INSTALL_VIDEO_EDITOR_APPS} -eq 1 ]; then    
-    pacman_install "openshot"
+    pacman_install "devede openshot"
+    packer_install "arista-transcoder ttcut-svn"
+    # TODO - Maybe project-x gopchop
 fi
 
 # Remote Desktop
 if [ ${INSTALL_REMOTE_DESKTOP_APPS} -eq 1 ]; then
-    #pacman_install "remmina freerdp nxproxy" # Becoming unstable
+    #pacman_install "remmina freerdp nxproxy" # vinagre does what I need for now
     pacman_install "nxclient rdesktop tigervnc"
 fi
 
