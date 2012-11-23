@@ -51,7 +51,7 @@ operates, but you can edit the script and toogle the following.
     INSTALL_VIDEO_PLAYER_APPS=1
     INSTALL_VIDEO_EDITOR_APPS=0
     INSTALL_VIDEO_RIPPER_APPS=0
-    INSTALL_REMOTE_DESTOP_APPS=1
+    INSTALL_REMOTE_DESKTOP_APPS=1
     INSTALL_DOWNLOAD_APPS=1
     INSTALL_ZIMBRA_DESKTOP=0
     INSTALL_IPMIVIEW=0
@@ -59,6 +59,9 @@ operates, but you can edit the script and toogle the following.
     INSTALL_WINE=1
     INSTALL_CRYPTO_APPS=1
     INSTALL_BACKUP_APPS=0
+
+`gnome-desktop.sh` can be run multiple times. It will not re-install anything
+that is already, so subsequent runs are quicker.
 
 # Limitations
 
