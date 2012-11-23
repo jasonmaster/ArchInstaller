@@ -133,7 +133,7 @@ if [ "${CPU}" == "x86_64" ]; then
 fi
 
 # Google Earth
-packer_install "google_earth"
+packer_install "google-earth"
 
 # Browsers
 if [ ${INSTALL_BROWSERS} -eq 1 ]; then
@@ -228,9 +228,9 @@ if [ ${INSTALL_VIDEO_PLAYER_APPS} -eq 1 ]; then
     # DVD & Blu-Ray
     pacman_install "libbluray libdvdread libdvdcss libdvdnav vlc"
     packer_install "libaacs"
-    # TODO - install KEYDB
-    #mkdir /home/${SUDO_USER}   
-    #cd ~/.config/aacs/ && wget http://vlc-bluray.whoknowsmy.name/files/KEYDB.cfg    
+    # TODO - do this for all users
+    wget_install_generic "http://vlc-bluray.whoknowsmy.name/files/KEYDB.cfg" "/home/${SUDO_USER}/.config/aacs/"
+    chown -R ${SUDO_USER}:users /home/${SUDO_USER}/.config
         
     addlinetofile "[archnetflix]" /etc/pacman.conf
     addlinetofile "SigLevel = Required DatabaseOptional TrustedOnly" /etc/pacman.conf
