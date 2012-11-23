@@ -265,7 +265,7 @@ if [ ${INSTALL_DOWNLOAD_APPS} -eq 1 ]; then
         replaceinfile "www\.example\.com\/blocklist" "list\.iblocklist\.com\/\?list=bt_level1&fileformat=p2p&archiveformat=gz" /home/${SUDO_USER}/.config/transmission/settings.json
     fi
 
-    packer_install "filezilla-faenza-icons filezilla-gnome-colors-icons filezilla-tango-icons pymazon"
+    packer_install "pymazon"
     wget_install_generic "http://aux.iconpedia.net/uploads/20468992281869356568.png" /usr/share/pixmaps
     system_application_menu "pymazon" "pymazon %f" "/usr/share/pixmaps/20468992281869356568.png" "Amazon MP3 Downloader" "Network;WebBrowser;"
     packer_install "torrent-search"    
