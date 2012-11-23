@@ -174,7 +174,7 @@ fi
 
 # Google Earth
 if [ ${INSTALL_GOOGLE_EARTH} -eq 1 ]; then
-    pacman_install "ld-lsb"
+    packer_install "ld-lsb"
     packer_install "google-earth"
 fi
 
@@ -239,8 +239,17 @@ if [ ${INSTALL_VIDEO_PLAYER_APPS} -eq 1 ]; then
     addlinetofile "[archnetflix]" /etc/pacman.conf
     addlinetofile "SigLevel = Required DatabaseOptional TrustedOnly" /etc/pacman.conf
     addlinetofile 'Server = http://demizerone.com/$repo/$arch' /etc/pacman.conf
-    pacman-key -r 0EE7A126
-    pacman-key --lsign-key 0EE7A126
+
+    # TODO - move to common.sh
+    ncecho " [x] Getting key 0EE7A126 "
+    pacman-key --recv-keys 0EE7A126 >>"$log" 2>&1 &
+    pid=$!;progress $pid
+    
+    # TODO - move to common.sh
+    ncecho " [x] Signing key 0EE7A126 "
+    pacman-key --lsign-key 0EE7A126 >>"$log" 2>&1 &
+    pid=$!;progress $pid
+    
     ncecho " [x] Syncing (arch) "
     pacman -Syy >>"$log" 2>&1 &
     pid=$!;progress $pid
