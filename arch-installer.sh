@@ -294,7 +294,7 @@ echo LC_COLLATE=C   >>  /mnt/etc/locale.conf
 #echo LANG=en_GB.utf8  >>  /mnt/etc/environment # NOT SURE IF REQUIRED
 
 # Configure SYSLINUX
-wget http://projects.archlinux.org/archiso.git/plain/configs/releng/syslinux/splash.png -O /mnt/boot/syslinux/splash.png
+wget --quiet http://projects.archlinux.org/archiso.git/plain/configs/releng/syslinux/splash.png -O /mnt/boot/syslinux/splash.png
 sed -i 's/UI menu.c32/#UI menu.c32/' /mnt/boot/syslinux/syslinux.cfg
 sed -i 's/#UI vesamenu.c32/UI vesamenu.c32/' /mnt/boot/syslinux/syslinux.cfg
 sed -i 's/#MENU BACKGROUND/MENU BACKGROUND/' /mnt/boot/syslinux/syslinux.cfg
@@ -380,27 +380,10 @@ cd packer
 makepkg --asroot -s --noconfirm
 pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`
 pacman -S --noconfirm --needed `sort /usr/local/etc/base-packages.txt`
-# Install each of the packages in 
-#for PACKAGE in $(sort /usr/local/etc/base-packages.txt)
-#do
-#    pacman -S --noconfirm --needed ${PACKAGE}
-#done
-#echo "Y
-#Y
-#Y
-#" | pacman -S --noconfirm --needed    
-#pacman -S --noconfirm --needed 
-#pacman -S --noconfirm --needed 
-#pacman -S --noconfirm --needed 
-#pacman -S --noconfirm --needed 
-#pacman -S --noconfirm --needed 
-#pacman -S --noconfirm --needed 
-#pacman -S --noconfirm --needed 
-#pacman -S --noconfirm --needed 
 sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /etc/nsswitch.conf
 sed -i 's/! server ntp.public-server.org/server uk.pool.ntp.org/' /etc/chrony.conf
-#replaceinfile 'NEED_STATD=""' 'NEED_STATD="YES"' /etc/conf.d/nfs-common.conf
 ENDOFSCRIPT
+
 chmod +x /mnt/usr/local/bin/installer.sh
 arch-chroot /mnt /usr/local/bin/installer.sh
 arch-chroot /mnt ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
