@@ -94,11 +94,23 @@ fi
 #xinput set-int-prop "eGalax Inc. Touch" "Evdev Axis Calibration" 32 3975 107 -147 3582
 
 # Thinkpad T43
+#  - https://communities.bmc.com/communities/blogs/linux/2010/03/16/ubuntu-1004-and-the-t43
+#  - http://pc-freak.net/blog/controlling-fan-with-thinkfan-on-lenovo-thinkpad-r61-on-debian-gnulinux-adjusting-proper-fan-cycling/
 T43=`dmidecode --type 1 | grep ThinkPad T43`
 if [ $? -eq 0 ]; then
     pacman_install "fprintd"
     packer_install "thinkfan"
     systemctl enable thinkfan
+    echo "options thinkpad_acpi fan_control=1" > /etc/modprobe.d/thinkfan.conf
+    cat >/etc/thinkfan.conf<<ENDTHINKFAN
+(0,    0,    55)
+(1,    50,    60)
+(2,    58,    62)
+(3,    60,    64)
+(4,    62,    66)
+(5,    64,    66)
+(7,    65,    32767)
+ENDTHINKFAN
 fi
 
 # Fonts
