@@ -27,7 +27,8 @@ pacman_sync
 
 INSTALL_BROWSERS=0
 INSTALL_LIBREOFFICE=1
-INSTALL_DEVELOPMENT=1
+INSTALL_GENERAL_DEVELOPMENT=1
+INSTALL_ANDROID_DEVELOPMENT=0
 INSTALL_GOOGLE_EARTH=1
 INSTALL_VIRTUALBOX=0
 INSTALL_CHAT_APPS=1
@@ -69,11 +70,11 @@ TOUCH_SCREEN=0
 EGALAX=`lsusb | grep -q 0eef:0001`
 if [ $? -eq 0 ]; then
     TOUCH_SCREEN=1
-    echo " [!] eGalax touch screen detected"           
-    if [ ! -f /etc/modprobe.d/egalax.conf ]; then    
+    echo " [!] eGalax touch screen detected"
+    if [ ! -f /etc/modprobe.d/egalax.conf ]; then
         packer_install "xinput_calibrator"
         rmmod usbtouchscreen 2>/dev/null
-        
+
         cat >/etc/modprobe.d/egalax.conf<<ENDEGALAX
 # Do not load the 'usbtouchscreen' module, as it conflicts with eGalax
 blacklist usbtouchscreen
@@ -138,7 +139,7 @@ systemctl enable NetworkManager.service
 pacman_install "gst-plugins-base gst-plugins-base-libs gst-plugins-good \
 gst-plugins-bad gst-plugins-ugly gst-ffmpeg" "GStreamer"
 
-# Printing 
+# Printing
 pacman_install "cups foomatic-db foomatic-db-engine foomatic-db-nonfree \
 foomatic-filters gutenprint"
 systemctl enable cups.service
@@ -146,17 +147,17 @@ systemctl enable cups.service
 # Dropbox
 packer_install "dropbox"
 
-# Flash
+# Flash & Java
 pacman_install "nspluginwrapper flashplugin"
+#For 64-bit machines, you'll need to install
+if [ "${CPU}" == "x86_64" ]; then
+    pacman_install "lib32-flashplugin"
+fi
+packer_install "jre6"
 
 ncecho " [x] Configuring plugins "
 nspluginwrapper -v -n -a -i >>"$log" 2>&1 &
 pid=$!;progress $pid
-
-#For 64-bit machines, you'll need to install 
-if [ "${CPU}" == "x86_64" ]; then
-    pacman_install "lib32-flashplugin"
-fi    
 
 # Browsers
 if [ ${INSTALL_BROWSERS} -eq 1 ]; then
@@ -170,18 +171,17 @@ if [ ${INSTALL_LIBREOFFICE} -eq 1 ]; then
     libreoffice-common libreoffice-draw libreoffice-gnome libreoffice-impress \
     libreoffice-math libreoffice-writer libreoffice-en-GB ttf-dejavu unoconv" "LibreOffice"
     pacman_install "hunspell-en hyphen-en mythes-en" "Spelling & Grammar"
-    pacman_install "glabels"    
+    pacman_install "glabels"
 fi
 
 # Development
-if [ ${INSTALL_DEVELOPMENT} -eq 1 ]; then
+if [ ${INSTALL_GENERAL_DEVELOPMENT} -eq 1 ]; then
     pacman_install "python-pip python-distribute python-virtualenv"
     pacman_install "python2-pip python2-distribute python2-virtualenv \
-    python-virtualenvwrapper"    
-    
+    python-virtualenvwrapper"
+
     pacman_install "meld poedit pygtksourceview2"
     packer_install "kiki-re retext sqlite-manager winpdb wxhexeditor"
-    packer_install "jre6 android-sdk-platform-tools"
     packer_install "upslug2"
 
     # Gedit
@@ -192,9 +192,13 @@ if [ ${INSTALL_DEVELOPMENT} -eq 1 ]; then
 
     # Mine
     packer_install "gedit-schemer-plugin gedit-imitation-plugin gedit-open-uri-context-menu-plugin"
-    
+
     pacman_install "pgadmin3"
-    packer_install "wingide"    
+    packer_install "wingide"
+fi
+
+if [ ${INSTALL_ANDROID_DEVELOPMENT} -eq 1 ]; then
+    packer_install "jdk6 android-sdk-platform-tools"
 fi
 
 # Google Earth
@@ -203,7 +207,7 @@ if [ ${INSTALL_GOOGLE_EARTH} -eq 1 ]; then
     packer_install "google-earth"
     if [ -f /etc/fonts/conf.d/65-fonts-persian.conf ]; then
         mv /etc/fonts/conf.d/65-fonts-persian.conf /etc/fonts/conf.d/65-fonts-persian.conf.breaks-google-earth
-    fi        
+    fi
 fi
 
 if [ ${INSTALL_VIRTUALBOX} -eq 1 ]; then
@@ -212,7 +216,7 @@ if [ ${INSTALL_VIRTUALBOX} -eq 1 ]; then
     packer_install "virtualbox-ext-oracle"
     # FIXME - do this for all users
     add_user_to_group ${SUDO_USER} vboxusers
-    
+
     echo "vboxdrv" >     /etc/modules-load.d/virtualbox.conf
     echo "vboxnetadp" >> /etc/modules-load.d/virtualbox.conf
     echo "vboxnetflt" >> /etc/modules-load.d/virtualbox.conf
@@ -222,12 +226,12 @@ fi
 if [ ${INSTALL_CHAT_APPS} -eq 1 ]; then
     # TODO - Skype notifications
     pacman_install "skype xchat"
-fi    
+fi
 
 # Graphics
 if [ ${INSTALL_GRAPHIC_APPS} -eq 1 ]; then
     pacman_install "gcolor2 gimp simple-scan"
-fi    
+fi
 
 # 3D Graphics
 if [ ${INSTALL_3D_APPS} -eq 1 ]; then
@@ -256,14 +260,14 @@ if [ ${INSTALL_MUSIC_APPS} -eq 1 ]; then
 fi
 
 # Video
-if [ ${INSTALL_VIDEO_PLAYER_APPS} -eq 1 ]; then    
+if [ ${INSTALL_VIDEO_PLAYER_APPS} -eq 1 ]; then
     # DVD & Blu-Ray
     pacman_install "libbluray libdvdread libdvdcss libdvdnav vlc"
     packer_install "libaacs"
     # TODO - do this for all users
     wget_install_generic "http://vlc-bluray.whoknowsmy.name/files/KEYDB.cfg" "/home/${SUDO_USER}/.config/aacs/"
     chown -R ${SUDO_USER}:users /home/${SUDO_USER}/.config
-        
+
     addlinetofile "[archnetflix]" /etc/pacman.conf
     addlinetofile "SigLevel = Required DatabaseOptional TrustedOnly" /etc/pacman.conf
     addlinetofile 'Server = http://demizerone.com/$repo/$arch' /etc/pacman.conf
@@ -272,12 +276,12 @@ if [ ${INSTALL_VIDEO_PLAYER_APPS} -eq 1 ]; then
     ncecho " [x] Getting key 0EE7A126 "
     pacman-key --recv-keys 0EE7A126 >>"$log" 2>&1 &
     pid=$!;progress $pid
-    
+
     # TODO - move to common.sh
     ncecho " [x] Signing key 0EE7A126 "
     pacman-key --lsign-key 0EE7A126 >>"$log" 2>&1 &
     pid=$!;progress $pid
-    
+
     ncecho " [x] Syncing (arch) "
     pacman -Syy >>"$log" 2>&1 &
     pid=$!;progress $pid

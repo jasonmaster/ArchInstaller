@@ -2,15 +2,37 @@
 
 #TODO
 # - Consolidate the partitioning.
-# - Add option to enable NFS client
 # - Detect SSD and TRIM and add `discard` to `/etc/fstab`.
 #   /sys/block/sdX/queue/rotational # 0 = SSD
 #   /sys/block/sda/removable # 0 = not removable
 #   sudo hdparm -I /dev/sda | grep "TRIM supported"
+#   Use noatime
 # - Some good stuff below, check it out
 #   https://github.com/helmuthdu/aui
 #   https://github.com/helmuthdu/dotfiles
-# - Hardware clock
+# - Get a handle on power management
+#   suspend hook for /dev/mmcblk0
+#     - ATI http://www.x.org/wiki/RadeonFeature#KMS_Power_Management_Options
+#           https://wiki.archlinux.org/index.php/ATI#Powersaving
+#           http://www.overclock.net/t/731469/how-to-power-saving-with-the-radeon-driver
+#           Battery
+#           #!/bin/sh
+#           echo profile > /sys/class/drm/card0/device/power_method
+#           echo mid > /sys/class/drm/card0/device/power_profile
+#           Power
+#           #!/bin/sh
+#           echo profile > /sys/class/drm/card0/device/power_method
+#           echo auto > /sys/class/drm/card0/device/power_profile
+#     - Nouveau http://nouveau.freedesktop.org/wiki/PowerManagement
+#     -         http://ubuntuforums.org/showthread.php?t=1718929
+#     -         http://www.phoronix.com/scan.php?page=article&item=nouveau_reclocking_one&num=1
+#     - Intel
+#     -         http://www.kubuntuforums.net/showthread.php?57279-How-to-Enable-power-management-features
+#     -         http://www.phoronix.com/scan.php?page=article&item=intel_i915_power&num=1
+#   http://blog.burntsushi.net/lenovo-thinkpad-t430-archlinux
+# - UEFI boot.
+#   I have no UEFI systems so VirtualBox will have to do a testing target.
+
 
 DSK=""
 FQDN="arch.example.org"
@@ -29,10 +51,10 @@ function usage() {
     echo
     echo "Required parameters"
     echo "  -d : The target device. For example, 'sda'."
-    echo "  -p : The partition layout to use. One of: "    
+    echo "  -p : The partition layout to use. One of: "
     echo "         'bsrh' : /boot, swap, /root and /home"
     echo "         'bsr'  : /boot, swap and /root"
-    echo "         'br'   : /boot and /root, no swap."    
+    echo "         'br'   : /boot and /root, no swap."
     echo "  -w : The root password."
     echo
     echo "Optional parameters"
@@ -40,7 +62,7 @@ function usage() {
     echo "  -f : The filesystem to use. Currently 'ext4' and 'xfs' are supported, defaults to '${FS}'."
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."            
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."        
-    echo "  -n : The hostname to use. Defaults to '${FQDN}'"            
+    echo "  -n : The hostname to use. Defaults to '${FQDN}'"
     echo "  -t : The timezone to use. Defaults to '${TIMEZONE}'. See '/usr/share/zoneinfo/' for options."    
     echo
     echo "User provisioning"
@@ -53,7 +75,7 @@ function usage() {
     echo "In the examples below, 'fred' is a sudo'er but 'barney' is not."
     echo
     echo "fred,fl1nt5t0n3,Fred Flintstone,wheel"
-    echo "barney,ru88l3,Barney Rubble,"    
+    echo "barney,ru88l3,Barney Rubble,"
     exit 1
 }
 
@@ -68,9 +90,9 @@ do
         k) KEYMAP=${OPTARG};;
         l) LANG=${OPTARG};;
         n) FQDN=${OPTARG};;
-        p) PARTITION_LAYOUT=${OPTARG};;        
-        t) TIMEZONE=${OPTARG};;                        
-        w) PASSWORD=${OPTARG};;        
+        p) PARTITION_LAYOUT=${OPTARG};;
+        t) TIMEZONE=${OPTARG};;
+        w) PASSWORD=${OPTARG};;
         *) usage;;
     esac
 done
@@ -78,7 +100,7 @@ done
 shift "$(( $OPTIND - 1 ))"
 
 if [ ! -b /dev/${DSK} ]; then
-    echo "ERROR! Target install disk not found."    
+    echo "ERROR! Target install disk not found."
     usage
 fi
 
@@ -156,7 +178,7 @@ SWP=`awk '/MemTotal/ {printf( "%.0f\n", $2 / 1024 / 2 )}' /proc/meminfo`
 # You may use "msdos" here instead of "gpt", if you want:
 parted -s /dev/${DSK} mktable ${PARTITION_TYPE}
 
-if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then    
+if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
     # /dev/sda1: 100 MB
     # /dev/sda2:  16 GB
     # /dev/sda3:  2 GB
@@ -170,35 +192,35 @@ if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
     parted /dev/${DSK} unit MiB mkpart primary     1 $boot
     parted /dev/${DSK} unit MiB mkpart primary $boot $root
     parted /dev/${DSK} unit MiB mkpart primary linux-swap $root $swap
-    parted /dev/${DSK} unit MiB mkpart primary $swap $max        
+    parted /dev/${DSK} unit MiB mkpart primary $swap $max
 
     # Set boot flags
     parted /dev/${DSK} toggle 1 boot
     if [ "${PARTITION_TYPE}" == "gpt" ]; then
         sgdisk /dev/${DSK} --attributes=1:set:2
     fi
-    
+
     mkfs.ext2 -F -L boot -m 0 /dev/${DSK}1
 
     if [ "${FS}" == "xfs" ]; then
         mkfs.xfs -f -L root /dev/${DSK}3
-        mkfs.xfs -f -L home /dev/${DSK}4        
+        mkfs.xfs -f -L home /dev/${DSK}4
     else
         mkfs.ext4 -F -L root -m 0 /dev/${DSK}3
-        mkfs.ext4 -F -L home -m 0 /dev/${DSK}4    
-    fi   
+        mkfs.ext4 -F -L home -m 0 /dev/${DSK}4
+    fi
 
     mkswap -L swap /dev/${DSK}2
-    swapon -L swap    
-    
-    # Mount 
+    swapon -L swap
+
+    # Mount
     mount /dev/${DSK}3 /mnt
     mkdir -p /mnt/{boot,home}
     mount /dev/${DSK}1 /mnt/boot
     mount /dev/${DSK}4 /mnt/home
     ROOT_PARTITION="${DSK}3"
-    
-elif [ "${PARTITION_LAYOUT}" == "bsr" ]; then    
+
+elif [ "${PARTITION_LAYOUT}" == "bsr" ]; then
     # /dev/sda1: 100 MB
     # /dev/sda2: swap
     # /dev/sda3: root - remaining GB
@@ -209,31 +231,31 @@ elif [ "${PARTITION_LAYOUT}" == "bsr" ]; then
 
     parted /dev/${DSK} unit MiB mkpart primary     1 $boot
     parted /dev/${DSK} unit MiB mkpart primary linux-swap $boot $swap
-    parted /dev/${DSK} unit MiB mkpart primary $swap $max        
+    parted /dev/${DSK} unit MiB mkpart primary $swap $max
 
     # Set boot flags
-    parted /dev/${DSK} toggle 1 boot    
+    parted /dev/${DSK} toggle 1 boot
     if [ "${PARTITION_TYPE}" == "gpt" ]; then
         sgdisk /dev/${DSK} --attributes=1:set:2
     fi
-    
+
     mkfs.ext2 -F -L boot -m 0 /dev/${DSK}1
 
     if [ "${FS}" == "xfs" ]; then
         mkfs.xfs -f -L root /dev/${DSK}3
     else
         mkfs.ext4 -F -L root -m 0 /dev/${DSK}3
-    fi   
+    fi
 
     mkswap -L swap /dev/${DSK}2
-    swapon -L swap    
-    
-    # Mount 
+    swapon -L swap
+
+    # Mount
     mount /dev/${DSK}3 /mnt
     mkdir -p /mnt/{boot,home}
     mount /dev/${DSK}1 /mnt/boot
-    ROOT_PARTITION="${DSK}3"        
-    
+    ROOT_PARTITION="${DSK}3"
+
 elif [ "${PARTITION_LAYOUT}" == "br" ]; then
     # /dev/sda1: 100 MB
     # /dev/sda2: remaining GB
@@ -247,52 +269,56 @@ elif [ "${PARTITION_LAYOUT}" == "br" ]; then
     # Set boot flags
     parted /dev/${DSK} toggle 1 boot
     if [ "${PARTITION_TYPE}" == "gpt" ]; then
-        sgdisk /dev/${DSK} --attributes=1:set:2    
+        sgdisk /dev/${DSK} --attributes=1:set:2
     fi
-    
+
     mkfs.ext2 -F -L boot -m 0 /dev/${DSK}1
-    
+
     if [ "${FS}" == "xfs" ]; then
         mkfs.xfs -f -L root /dev/${DSK}2
     else
         mkfs.ext4 -F -L root -m 0 /dev/${DSK}2
-    fi   
-    
-    # Mount 
+    fi
+
+    # Mount
     mount /dev/${DSK}2 /mnt
     mkdir -p /mnt/{boot,home}
     mount /dev/${DSK}1 /mnt/boot
-    ROOT_PARTITION="${DSK}2"    
+    ROOT_PARTITION="${DSK}2"
 fi
 
 # Base system
 pacstrap /mnt base base-devel openssh sudo syslinux wget
 
-# Configure the system
+# Members of the 'wheel' group are sudoers
 sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /mnt/etc/sudoers
+
+# Create the fstab, based on disk labels.
 genfstab -L /mnt >> /mnt/etc/fstab
 
-# TODO - test this
-#sed -i '/127.0.0.1/s/$/ '${FQDN}'/' /mnt/etc/hosts
-#sed -i '/::1/s/$/ '${FQDN}'/' /mnt/etc/hosts
-
-echo "${FQDN}" > /mnt/etc/hostname
-echo "${TIMEZONE}" > /mnt/etc/timezone
+# Configure the hostname.
+arch-chroot /mnt hostnamectl set-hostname --static ${FQDN}
 
 # Prevent unwanted cache purges
 #  - https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
 sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' /mnt/etc/pacman.conf
 
+# Configure timezone and hwclock
+echo "${TIMEZONE}" > /mnt/etc/timezone
+arch-chroot /mnt ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
+arch-chroot /mnt hwclock --systohc --utc
+
 # Configure console and keymap
-echo KEYMAP=${KEYMAP}        >  /mnt/etc/vconsole.conf
-echo FONT=iso01.16           >> /mnt/etc/vconsole.conf
-#echo FONT_MAP=8859-1_to_uni >> /mnt/etc/vconsole.conf
+echo KEYMAP=${KEYMAP} >  /mnt/etc/vconsole.conf
+echo 'FONT=""'        >> /mnt/etc/vconsole.conf
+echo 'FONT_MAP=""'    >> /mnt/etc/vconsole.conf
 
 # Configure locale
 sed -i "s/#${LANG}/${LANG}/" /mnt/etc/locale.gen
 echo LANG=${LANG}   >   /mnt/etc/locale.conf
 echo LC_COLLATE=C   >>  /mnt/etc/locale.conf
 #echo LANG=en_GB.utf8  >>  /mnt/etc/environment # NOT SURE IF REQUIRED
+arch-chroot /mnt locale-gen
 
 # Configure SYSLINUX
 wget --quiet http://projects.archlinux.org/archiso.git/plain/configs/releng/syslinux/splash.png -O /mnt/boot/syslinux/splash.png
@@ -301,15 +327,9 @@ sed -i 's/#UI vesamenu.c32/UI vesamenu.c32/' /mnt/boot/syslinux/syslinux.cfg
 sed -i 's/#MENU BACKGROUND/MENU BACKGROUND/' /mnt/boot/syslinux/syslinux.cfg
 # Correct the root parition configuration
 sed -i "s/sda3/${ROOT_PARTITION}/g" /mnt/boot/syslinux/syslinux.cfg
-    
+
 # Configure 'nano' as the system default
 echo "export EDITOR=nano" >> /mnt/etc/profile
-sed -i 's/# set const/set const/' /etc/nanorc
-sed -i 's/# set morespace/set morespace/' /etc/nanorc
-sed -i 's/# set nowrap/set nowrap/' /etc/nanorc
-sed -i 's/# set smarthome/set smarthome/' /etc/nanorc
-sed -i 's/# set tabsize 8/set tabsize 4/' /etc/nanorc
-sed -i 's/# set tabstospaces/set tabstospaces/' /etc/nanorc    
 
 # Disable pcspeaker
 cat >/mnt/etc/modprobe.d/nobeep.conf<<ENDNOBEEP
@@ -369,7 +389,7 @@ uudeview
 wpa_supplicant
 zip
 ENDMYPACKAGES
-    
+
 # Enter the chroot and complete the install by adding `systemd` and `packer`
 # - pacman -S systemd systemd-sysvcompat systemd-arch-units # recently removed
 cat >/mnt/usr/local/bin/installer.sh<<'ENDOFSCRIPT'
@@ -388,8 +408,6 @@ ENDOFSCRIPT
 
 chmod +x /mnt/usr/local/bin/installer.sh
 arch-chroot /mnt /usr/local/bin/installer.sh
-arch-chroot /mnt ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
-arch-chroot /mnt locale-gen
 arch-chroot /mnt mkinitcpio -p linux
 arch-chroot /mnt /usr/sbin/syslinux-install_update -iam
 arch-chroot /mnt systemctl start sshdgenkeys.service
@@ -401,8 +419,8 @@ arch-chroot /mnt systemctl enable rpc-statd.service
 
 # Grab my dot files and populate /etc/skel
 git clone https://github.com/flexiondotorg/dot-files.git /tmp/dot-files
-cp /tmp/dot-files/dot-bashrc /mnt/etc/skel/.bashrc
-cp /tmp/dot-files/dot-bash_logout /mnt/etc/skel/.bash_logout
+cp /tmp/dot-files/.bashrc /mnt/etc/skel/.bashrc
+cp /tmp/dot-files/.bash_logout /mnt/etc/skel/.bash_logout
 
 # Create users and configure bash, if there a users file.
 if [ -f users.csv ]; then
@@ -419,7 +437,7 @@ if [ -f users.csv ]; then
             _GROUPS=${_BASIC_GROUPS},${_EXTRA_GROUPS}
         else
             _GROUPS=${_BASIC_GROUPS}
-        fi    
+        fi
         arch-chroot /mnt useradd --password ${_CRYPTPASSWD} --comment "${_COMMENT}" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}
         arch-chroot /mnt chown -R ${_USERNAME}:users /home/${_USERNAME}
     done
@@ -428,12 +446,12 @@ fi
 # Change root password and configure the dot files.
 PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
 arch-chroot /mnt usermod --password ${PASSWORD_CRYPT} root
-cp /tmp/dot-files/dot-bashrc /mnt/root/.bashrc
-cp /tmp/dot-files/dot-bash_logout /mnt/root/.bash_logout
+cp /tmp/dot-files/.bashrc /mnt/root/.bashrc
+cp /tmp/dot-files/.bash_logout /mnt/root/.bash_logout
 
 # Unmount
 sync
-if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then    
+if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
     umount /mnt/home
 fi
 umount /mnt/{boot,}
