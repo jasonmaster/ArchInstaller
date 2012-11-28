@@ -60,10 +60,10 @@ function usage() {
     echo "Optional parameters"
     echo "  -b : The partition type to use. Defaults to '${PARTITION_TYPE}'. Can be 'msdos' or 'gpt'."
     echo "  -f : The filesystem to use. Currently 'ext4' and 'xfs' are supported, defaults to '${FS}'."
-    echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."            
-    echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."        
+    echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
+    echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
     echo "  -n : The hostname to use. Defaults to '${FQDN}'"
-    echo "  -t : The timezone to use. Defaults to '${TIMEZONE}'. See '/usr/share/zoneinfo/' for options."    
+    echo "  -t : The timezone to use. Defaults to '${TIMEZONE}'. See '/usr/share/zoneinfo/' for options."
     echo
     echo "User provisioning"
     echo
@@ -289,12 +289,6 @@ fi
 
 # Base system
 pacstrap /mnt base base-devel openssh sudo syslinux wget
-if [ "${CPU}" == "x86_64" ]; then
-    echo "[multilib]" >> /mnt/etc/pacman.conf
-    echo "SigLevel = PackageRequired" >> /mnt/etc/pacman.conf
-    echo "Include = /etc/pacman.d/mirrorlist" >> /mnt/etc/pacman.conf
-    pacstrap /mnt multilib-devel
-fi
 
 # Members of the 'wheel' group are sudoers
 sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /mnt/etc/sudoers

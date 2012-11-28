@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # TODO
-#  - Unifiy changes to users home directory for all users.
-#  - Detect locale
+#  - Unify changes to users home directory for all users.
+#  - Detect locale for spelling etc.
 
 sp="/-\|"
 log="${PWD}/`basename ${0}`.log"
@@ -10,7 +10,7 @@ rm $log 2>/dev/null
 
 if [ -f common.sh ]; then
     source common.sh
-else    
+else
     echo "ERROR! Could not source 'common.sh'"
     exit 1
 fi
@@ -50,6 +50,14 @@ INSTALL_BACKUP_APPS=0
 
 # Configure init things
 update_early_modules ${VIDEO_KERNEL}
+
+# Multilib
+if [ "${CPU}" == "x86_64" ]; then
+    echo "
+    Y
+    Y
+    Y" | pacman -S --needed --noconfirm multilib-devel"
+fi
 
 # Xorg
 pacman_install_group "xorg"
