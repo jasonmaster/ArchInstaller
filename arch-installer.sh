@@ -288,12 +288,13 @@ elif [ "${PARTITION_LAYOUT}" == "br" ]; then
 fi
 
 # Base system
+pacstrap /mnt base base-devel openssh sudo syslinux wget
 if [ "${CPU}" == "x86_64" ]; then
-    DEVEL="multilib-devel"
-else
-    DEVEL="base-devel"
+    echo "[multilib]" >> /mnt/etc/pacman.conf
+    echo "SigLevel = PackageRequired" >> /mnt/etc/pacman.conf
+    echo "Include = /etc/pacman.d/mirrorlist" >> /mnt/etc/pacman.conf
+    pacstrap /mnt multilib-devel
 fi
-pacstrap /mnt base ${DEVEL} openssh sudo syslinux wget
 
 # Members of the 'wheel' group are sudoers
 sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /mnt/etc/sudoers
