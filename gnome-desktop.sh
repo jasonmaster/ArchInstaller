@@ -51,14 +51,6 @@ INSTALL_BACKUP_APPS=0
 # Configure init things
 update_early_modules ${VIDEO_KERNEL}
 
-# Install multilib-devel on x64_64. Required by other stuff.
-if [ "${CPU}" == "x86_64" ]; then
-    echo "
-Y
-Y
-Y" | sudo pacman -S --needed multilib-devel
-fi
-
 # Xorg
 pacman_install_group "xorg"
 pacman_install_group "xorg-apps"
