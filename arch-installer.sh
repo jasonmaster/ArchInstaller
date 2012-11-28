@@ -436,9 +436,11 @@ pacman -S --noconfirm --needed `sort /usr/local/etc/base-packages.txt`
 # Install multilib-devel
 if [ `uname -m` == "x86_64" ]; then
     echo "
-    Y
-    Y
-    Y" | pacman -S --needed multilib-devel
+Y
+Y
+Y
+Y
+Y" | pacman -S --needed multilib-devel
 fi
 
 sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /etc/nsswitch.conf
