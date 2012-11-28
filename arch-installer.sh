@@ -33,12 +33,14 @@
 # - UEFI boot.
 #   I have no UEFI systems so VirtualBox will have to do a testing target.
 
-
 DSK=""
 FQDN="arch.example.org"
 TIMEZONE="Europe/London"
 KEYMAP="uk"
 LANG="en_GB.UTF-8"
+LC_COLLATE="C"
+FONT="alt-8x14"
+FONTMAP="8859-14_to_uni"
 PASSWORD=""
 FS="ext4" #or xfs are the only supported options right now.
 PARTITION_TYPE="msdos"
@@ -318,14 +320,14 @@ arch-chroot /mnt ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
 arch-chroot /mnt hwclock --systohc --utc
 
 # Configure console and keymap
-echo KEYMAP=${KEYMAP} >  /mnt/etc/vconsole.conf
-echo 'FONT=""'        >> /mnt/etc/vconsole.conf
-echo 'FONT_MAP=""'    >> /mnt/etc/vconsole.conf
+echo KEYMAP=${KEYMAP}     >  /mnt/etc/vconsole.conf
+echo FONT=${FONT}         >> /mnt/etc/vconsole.conf
+echo FONT_MAP=${FONT_MAP} >> /mnt/etc/vconsole.conf
 
 # Configure locale
 sed -i "s/#${LANG}/${LANG}/" /mnt/etc/locale.gen
-echo LANG=${LANG}   >   /mnt/etc/locale.conf
-echo LC_COLLATE=C   >>  /mnt/etc/locale.conf
+echo LANG=${LANG}             >   /mnt/etc/locale.conf
+echo LC_COLLATE=${LC_COLLATE} >>  /mnt/etc/locale.conf
 arch-chroot /mnt locale-gen
 
 # Configure SYSLINUX
