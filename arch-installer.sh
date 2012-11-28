@@ -421,6 +421,12 @@ cd packer
 makepkg --asroot -s --noconfirm
 pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`
 pacman -S --noconfirm --needed `sort /usr/local/etc/base-packages.txt`
+if [ `uname -m` == "x86_64" ]; then
+    echo "
+    Y
+    Y
+    Y" | pacman -S --needed multilib-devel
+fi
 sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /etc/nsswitch.conf
 sed -i 's/! server ntp.public-server.org/server uk.pool.ntp.org/' /etc/chrony.conf
 ENDOFSCRIPT
