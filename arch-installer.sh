@@ -43,6 +43,7 @@ PASSWORD=""
 FS="ext4" #or xfs are the only supported options right now.
 PARTITION_TYPE="msdos"
 PARTITION_LAYOUT=""
+MINIMAL=0
 
 function usage() {
     echo
@@ -62,6 +63,7 @@ function usage() {
     echo "  -f : The filesystem to use. Currently 'ext4' and 'xfs' are supported, defaults to '${FS}'."
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
+    echo "  -m : Install a minimal system."
     echo "  -n : The hostname to use. Defaults to '${FQDN}'"
     echo "  -t : The timezone to use. Defaults to '${TIMEZONE}'. See '/usr/share/zoneinfo/' for options."
     echo
@@ -79,7 +81,7 @@ function usage() {
     exit 1
 }
 
-OPTSTRING=b:d:f:hk:l:n:p:t:w:
+OPTSTRING=b:d:f:hk:l:mn:p:t:w:
 while getopts ${OPTSTRING} OPT
 do
     case ${OPT} in
@@ -89,6 +91,7 @@ do
         h) usage;;
         k) KEYMAP=${OPTARG};;
         l) LANG=${OPTARG};;
+        m) MINIMAL=1;;
         n) FQDN=${OPTARG};;
         p) PARTITION_LAYOUT=${OPTARG};;
         t) TIMEZONE=${OPTARG};;
@@ -145,7 +148,7 @@ fi
 if [ ! -f users.csv ]; then
     echo "################################################################################"
     echo "# WARNING! There is no 'users.csv' file. Exit now if you meant to provide one. #"
-    echo "################################################################################"    
+    echo "################################################################################"
     sleep 5
 fi
 
@@ -165,7 +168,7 @@ fi
 
 # Load the keymap, remove the PC speaker module.
 loadkeys -q ${KEYMAP}
-rmmod -s pcspkr
+rmmod -s pcspkr 2>/dev/null
 
 # Calcualte a sane size for swap. Half RAM.
 SWP=`awk '/MemTotal/ {printf( "%.0f\n", $2 / 1024 / 2 )}' /proc/meminfo`
@@ -288,7 +291,12 @@ elif [ "${PARTITION_LAYOUT}" == "br" ]; then
 fi
 
 # Base system
-pacstrap /mnt base base-devel openssh sudo syslinux wget
+BASE_SYSTEM="base sudo syslinux wget"
+if [ ${MINIMAL} -eq 0 ]; then
+    BASE_SYSTEM="${BASE_SYSTEM} base-devel openssh"
+fi
+echo ${BASE_SYSTEM}
+pacstrap /mnt ${BASE_SYSTEM}
 
 # Members of the 'wheel' group are sudoers
 sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /mnt/etc/sudoers
@@ -297,7 +305,8 @@ sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /mnt/etc/sudoers
 genfstab -L /mnt >> /mnt/etc/fstab
 
 # Configure the hostname.
-arch-chroot /mnt hostnamectl set-hostname --static ${FQDN}
+#arch-chroot /mnt hostnamectl set-hostname --static ${FQDN}
+echo "${FQDN}" > /mnt/etc/hostname
 
 # Prevent unwanted cache purges
 #  - https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
@@ -317,7 +326,6 @@ echo 'FONT_MAP=""'    >> /mnt/etc/vconsole.conf
 sed -i "s/#${LANG}/${LANG}/" /mnt/etc/locale.gen
 echo LANG=${LANG}   >   /mnt/etc/locale.conf
 echo LC_COLLATE=C   >>  /mnt/etc/locale.conf
-#echo LANG=en_GB.utf8  >>  /mnt/etc/environment # NOT SURE IF REQUIRED
 arch-chroot /mnt locale-gen
 
 # Configure SYSLINUX
@@ -327,6 +335,18 @@ sed -i 's/#UI vesamenu.c32/UI vesamenu.c32/' /mnt/boot/syslinux/syslinux.cfg
 sed -i 's/#MENU BACKGROUND/MENU BACKGROUND/' /mnt/boot/syslinux/syslinux.cfg
 # Correct the root parition configuration
 sed -i "s/sda3/${ROOT_PARTITION}/g" /mnt/boot/syslinux/syslinux.cfg
+
+# Make the menu look pretty
+cat >>/mnt/boot/syslinux/syslinux.cfg<<ENDSYSMENU
+MENU WIDTH 78
+MENU MARGIN 4
+MENU ROWS 6
+MENU VSHIFT 10
+MENU TABMSGROW 14
+MENU CMDLINEROW 14
+MENU HELPMSGROW 16
+MENU HELPMSGENDROW 29
+ENDSYSMENU
 
 # Configure 'nano' as the system default
 echo "export EDITOR=nano" >> /mnt/etc/profile
@@ -346,8 +366,9 @@ fi
 
 # Create a list of package from the install ISO
 # This is used to install the base system.
-pacman -Qqe > /mnt/usr/local/etc/base-packages.txt
-cat >>/mnt/usr/local/etc/base-packages.txt<<'ENDMYPACKAGES'
+if [ ${MINIMAL} -eq 0 ]; then
+    pacman -Qqe > /mnt/usr/local/etc/base-packages.txt
+    cat >>/mnt/usr/local/etc/base-packages.txt<<'ENDMYPACKAGES'
 abs
 arj
 avahi
@@ -390,12 +411,10 @@ wpa_supplicant
 zip
 ENDMYPACKAGES
 
-# Enter the chroot and complete the install by adding `systemd` and `packer`
-# - pacman -S systemd systemd-sysvcompat systemd-arch-units # recently removed
-cat >/mnt/usr/local/bin/installer.sh<<'ENDOFSCRIPT'
+    cat >/mnt/usr/local/bin/installer.sh<<'ENDOFSCRIPT'
 #!/bin/bash
 pacman -Syy
-wget https://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz   
+wget https://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz
 cd /usr/local/src
 tar zxvf packer.tar.gz
 cd packer
@@ -406,16 +425,20 @@ sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns
 sed -i 's/! server ntp.public-server.org/server uk.pool.ntp.org/' /etc/chrony.conf
 ENDOFSCRIPT
 
-chmod +x /mnt/usr/local/bin/installer.sh
-arch-chroot /mnt /usr/local/bin/installer.sh
+    # Enter the chroot and complete the install.
+    chmod +x /mnt/usr/local/bin/installer.sh
+    arch-chroot /mnt /usr/local/bin/installer.sh
+    arch-chroot /mnt systemctl start sshdgenkeys.service
+    arch-chroot /mnt systemctl enable cronie.service
+    arch-chroot /mnt systemctl enable chrony.service
+    arch-chroot /mnt systemctl enable avahi-daemon.service
+    arch-chroot /mnt systemctl enable sshd.service
+    arch-chroot /mnt systemctl enable rpc-statd.service
+fi
+
+# Rebuild init and enable SYSLINUX
 arch-chroot /mnt mkinitcpio -p linux
 arch-chroot /mnt /usr/sbin/syslinux-install_update -iam
-arch-chroot /mnt systemctl start sshdgenkeys.service
-arch-chroot /mnt systemctl enable cronie.service
-arch-chroot /mnt systemctl enable chrony.service
-arch-chroot /mnt systemctl enable avahi-daemon.service
-arch-chroot /mnt systemctl enable sshd.service
-arch-chroot /mnt systemctl enable rpc-statd.service
 
 # Grab my dot files and populate /etc/skel
 git clone https://github.com/flexiondotorg/dot-files.git /tmp/dot-files
