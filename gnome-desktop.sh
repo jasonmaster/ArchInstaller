@@ -3,6 +3,8 @@
 # TODO
 #  - Unify changes to users home directory for all users.
 #  - Detect locale for spelling etc.
+#  - Detect AGP radeon and add the kernel options.
+#  - radeon.agpmode=x where x is -1 = Enable PCI mode on the GPU, disable all AGP. 1, 2, 4, 8 = Enable AGP speed.
 
 sp="/-\|"
 log="${PWD}/`basename ${0}`.log"
@@ -25,12 +27,12 @@ check_cpu
 check_vga
 pacman_sync
 
-INSTALL_BROWSERS=0
+INSTALL_BROWSERS=1
 INSTALL_LIBREOFFICE=1
 INSTALL_GENERAL_DEVELOPMENT=1
-INSTALL_ANDROID_DEVELOPMENT=0
+INSTALL_ANDROID_DEVELOPMENT=1
 INSTALL_GOOGLE_EARTH=1
-INSTALL_VIRTUALBOX=0
+INSTALL_VIRTUALBOX=1
 INSTALL_CHAT_APPS=1
 INSTALL_GRAPHIC_APPS=1
 INSTALL_3D_APPS=0
@@ -41,8 +43,8 @@ INSTALL_VIDEO_EDITOR_APPS=0
 INSTALL_VIDEO_RIPPER_APPS=0
 INSTALL_REMOTE_DESKTOP_APPS=1
 INSTALL_DOWNLOAD_APPS=1
-INSTALL_ZIMBRA_DESKTOP=0
-INSTALL_IPMIVIEW=0
+INSTALL_ZIMBRA_DESKTOP=1
+INSTALL_IPMIVIEW=1
 INSTALL_RAIDAR=0
 INSTALL_WINE=1
 INSTALL_CRYPTO_APPS=1
@@ -52,15 +54,33 @@ INSTALL_BACKUP_APPS=0
 update_early_modules ${VIDEO_KERNEL}
 
 # Xorg
-pacman_install_group "xorg"
-pacman_install_group "xorg-apps"
+#pacman_install_group "xorg"
+#pacman_install_group "xorg-apps"
 
 if [ -n "${VIDEO_DRIVER}" ]; then
-    pacman_install "xf86-video-${VIDEO_DRIVER} ${VIDEO_DRIVER}-dri ${VIDEO_ACCEL}" "${VIDEO_DRIVER}"
+    echo
+    #pacman_install "xf86-video-${VIDEO_DRIVER} ${VIDEO_DRIVER}-dri ${VIDEO_ACCEL}" "${VIDEO_DRIVER}"
     if [ "${CPU}" == "x86_64" ]; then
-        pacman_install "lib32-${VIDEO_DRIVER}-dri"
+        #pacman_install "lib32-${VIDEO_DRIVER}-dri"
+    echo
     fi
 fi
+
+#TODO - create /etc/X11/xorg.conf.d/20-radeon.conf
+#Section "Device"
+#    Identifier  "My Graphics Card"
+#        Option  "AGPMode"               "8"   #not used when KMS is on
+#        Option  "AGPFastWrite"          "off" #could cause instabilities enable it at your own risk
+#        Option  "RenderAccel"           "on"  #enabled by default on all radeon hardware
+#        Option  "ColorTiling"           "on"  #enabled by default on RV300 and later radeon cards.
+#        Option  "EXAVSync"              "off" #default is off, otherwise on
+#        Option  "EXAPixmaps"            "on"  #when on icreases 2D performance, but may also cause artifacts on some old cards
+#        Option  "AccelDFS"              "on"  #default is off, read the radeon manpage for more information
+#EndSection
+
+# TODO - create /etc/modprobe.d/radeon.conf
+#echo "options radeon gartsize=32" >  /etc/modprobe.d/radeon.conf
+#echo "options radeon agpmode=8"   >> /etc/modprobe.d/radeon.conf
 
 #Touch Screen
 # - http://www.x.org/archive/X11R7.5/doc/man/man4/evdev.4.html
@@ -116,7 +136,7 @@ ENDTHINKFAN
     systemctl enable thinkfan
 fi
 
-VIRTUALBOX-GUEST=`dmidecode --type 1 | grep VirtualBox`
+VIRTUALBOX_GUEST=`dmidecode --type 1 | grep VirtualBox`
 if [ $? -eq 0 ]; then
     pacman_install "virtualbox-guest-utils"
     echo "vboxguest" >  /etc/modules-load.d/virtualbox-guest.conf
