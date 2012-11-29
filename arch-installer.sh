@@ -305,17 +305,10 @@ fi
 # Uncomment the multilib repo on the install ISO
 if [ `uname -m` == "x86_64" ]; then
     sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
-    BASE_DEVEL="multilib-devel"
-else
-    BASE_DEVEL="base-devel"
 fi
 
 # Base system
-BASE_SYSTEM="base ${BASE_DEVEL} sudo syslinux wget"
-echo
-echo "About to install : ${BASE_SYSTEM}"
-echo
-sleep 2
+BASE_SYSTEM="base base-devel sudo syslinux wget"
 pacstrap /mnt ${BASE_SYSTEM}
 
 # Members of the 'wheel' group are sudoers
@@ -443,7 +436,6 @@ ENDMYPACKAGES
 
     cat >/mnt/usr/local/bin/base-installer.sh<<'ENDOFSCRIPT'
 #!/bin/bash
-#pacman -Syy
 
 # Install packer
 wget https://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz
@@ -455,6 +447,16 @@ pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`
 
 # Install base packages
 pacman -Syy --noconfirm --needed `sort /usr/local/etc/base-packages.txt`
+
+# Install multilib-devel
+if [ `uname -m` == "x86_64" ]; then
+    echo "
+Y
+Y
+Y
+Y
+Y" | pacman -S --needed multilib-devel
+fi
 ENDOFSCRIPT
 
     # Enter the chroot and complete the install.

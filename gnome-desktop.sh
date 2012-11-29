@@ -97,7 +97,7 @@ fi
 # Thinkpad T43
 #  - https://communities.bmc.com/communities/blogs/linux/2010/03/16/ubuntu-1004-and-the-t43
 #  - http://pc-freak.net/blog/controlling-fan-with-thinkfan-on-lenovo-thinkpad-r61-on-debian-gnulinux-adjusting-proper-fan-cycling/
-T43=`dmidecode --type 1 | grep ThinkPad T43`
+T43=`dmidecode --type 1 | grep "ThinkPad T43"`
 if [ $? -eq 0 ]; then
     pacman_install "fprintd"
     packer_install "thinkfan"
@@ -143,20 +143,23 @@ packer_install "ttf-fixedsys-excelsior-linux ttf-ms-fonts ttf-source-code-pro"
 pacman_install_group "gnome"
 pacman_install_group "gnome-extra"
 pacman_install_group "telepathy"
-pacman_install "epiphany-extensions gedit-plugins gnome-tweak-tool terminator"
-packer_install "gip gufw"
-if [ ${TOUCH_SCREEN} -eq 1 ]; then
-    pacman_install "xournal"
-fi
-systemctl enable gdm.service
-
-# Network Manager
-pacman_install "networkmanager-pptp"
-systemctl enable NetworkManager.service
-
+pacman_install "epiphany-extensions gedit-plugins gnome-tweak-tool networkmanager-pptp"
+packer_install "gip gnome-packagekit gnome-settings-daemon-updates gufw polkit-gnome terminator"
 # Gstreamer
 pacman_install "gst-plugins-base gst-plugins-base-libs gst-plugins-good \
 gst-plugins-bad gst-plugins-ugly gst-ffmpeg" "GStreamer"
+if [ ${TOUCH_SCREEN} -eq 1 ]; then
+    pacman_install "xournal"
+fi
+
+# Gnome Display Manager
+systemctl enable gdm.service
+# D-Bus interface for user account query and manipulation
+systemctl enable accounts-daemon.service
+# Enumerates power devices, listens to device events and querys history and statistics
+systemctl enable upower.service
+# Network Manager
+systemctl enable NetworkManager.service
 
 # Printing
 pacman_install "cups foomatic-db foomatic-db-engine foomatic-db-nonfree \
