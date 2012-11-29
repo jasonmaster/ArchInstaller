@@ -10,21 +10,20 @@ Boot the install ISO and clone this repository.
 
     loadkeys uk
     wifi-menu
-    dhcpcd    
-    pacman -Syy
-    pacman -S git
+    dhcpcd
+    pacman -Syy git
     git clone https://github.com/flexiondotorg/ArchInstaller.git
     cd ArchInstaller
-    
+
 Edit the `users.csv` files to suite your requirements. Run the installer script,
 for example.
 
     ./arch-installer.sh -d sda -p bsrh -w pA55w0rd -n myhost.example.org
-    
+
 You can get help with the following.
 
     ./arch-instaler.sh -h
-    
+
 The `arch-installer.sh` will install a base system with some essential tools. It
 doesn't install X11 or any desktop environment.
 
@@ -34,13 +33,14 @@ Once the system has been installed using `arch-installer.sh` clone this reposito
 again and run:
 
     ./gnome-desktop.sh
-    
-Currently, there are no command line switched to control how `gnome-desktop.sh`
-operates, but you can edit the script and toogle the following.
+
+There are no command line switches to control how `gnome-desktop.sh` operates,
+but you can edit the script and toogle the following.
 
     INSTALL_BROWSERS=0
     INSTALL_LIBREOFFICE=1
-    INSTALL_DEVELOPMENT=1
+    INSTALL_GENERAL_DEVELOPMENT=1
+    INSTALL_ANDROID_DEVELOPMENT=0
     INSTALL_GOOGLE_EARTH=1
     INSTALL_VIRTUALBOX=0
     INSTALL_CHAT_APPS=1
@@ -61,7 +61,7 @@ operates, but you can edit the script and toogle the following.
     INSTALL_BACKUP_APPS=0
 
 `gnome-desktop.sh` can be run multiple times. It will not re-install anything
-that is already, so subsequent runs are quicker.
+that is already present, so subsequent runs are quicker.
 
 # Limitations
 
