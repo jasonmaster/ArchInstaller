@@ -312,15 +312,10 @@ fi
 
 # Base system
 BASE_SYSTEM="base ${BASE_DEVEL} sudo syslinux wget"
-if [ ${MINIMAL} -eq 0 ]; then
-    BASE_SYSTEM="${BASE_SYSTEM} openssh"
-fi
-
 echo
 echo "About to install : ${BASE_SYSTEM}"
 echo
 sleep 2
-
 pacstrap /mnt ${BASE_SYSTEM}
 
 # Members of the 'wheel' group are sudoers
@@ -394,11 +389,12 @@ if [ `uname -m` == "x86_64" ]; then
     sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /mnt/etc/pacman.conf
 fi
 
-# If a full install is selected build the base packages list
-# and install them.
+# If a full install is selected build the list of packages and install them.
 if [ ${MINIMAL} -eq 0 ]; then
     # Create a list of package from the install ISO
-    pacman -Qqe > /mnt/usr/local/etc/base-packages.txt
+    # Exclude `gcc-libs` because it is either already installed or will break
+    # `multilib-devel`.
+    pacman -Qqe | grep -v gcc-libs > /mnt/usr/local/etc/base-packages.txt
 
     #Add my essential packages to the base-packages.
     cat >>/mnt/usr/local/etc/base-packages.txt<<'ENDMYPACKAGES'
@@ -427,6 +423,7 @@ lzop
 mercurial
 namcap
 nss-mdns
+openssh
 p7zip
 powertop
 python2-paramiko
@@ -444,9 +441,9 @@ wpa_supplicant
 zip
 ENDMYPACKAGES
 
-    cat >/mnt/usr/local/bin/installer.sh<<'ENDOFSCRIPT'
+    cat >/mnt/usr/local/bin/base-installer.sh<<'ENDOFSCRIPT'
 #!/bin/bash
-pacman -Syy
+#pacman -Syy
 
 # Install packer
 wget https://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz
@@ -457,22 +454,12 @@ makepkg --asroot -s --noconfirm
 pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`
 
 # Install base packages
-pacman -S --noconfirm --needed `sort /usr/local/etc/base-packages.txt`
-
-# Install multilib-devel
-#if [ `uname -m` == "x86_64" ]; then
-#    echo "
-#Y
-#Y
-#Y
-#Y
-#Y" | pacman -S --needed multilib-devel
-#fi
+pacman -Syy --noconfirm --needed `sort /usr/local/etc/base-packages.txt`
 ENDOFSCRIPT
 
     # Enter the chroot and complete the install.
-    chmod +x /mnt/usr/local/bin/installer.sh
-    arch-chroot /mnt /usr/local/bin/installer.sh
+    chmod +x /mnt/usr/local/bin/base-installer.sh
+    arch-chroot /mnt /usr/local/bin/base-installer.sh
     sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /mnt/etc/nsswitch.conf
     sed -i 's/! server ntp.public-server.org/server uk.pool.ntp.org/' /mnt/etc/chrony.conf
     arch-chroot /mnt systemctl start sshdgenkeys.service
@@ -481,6 +468,9 @@ ENDOFSCRIPT
     arch-chroot /mnt systemctl enable avahi-daemon.service
     arch-chroot /mnt systemctl enable sshd.service
     arch-chroot /mnt systemctl enable rpc-statd.service
+    # Enable these removals when everything is stable.
+    #rm /mnt/usr/local/bin/base-installer.sh
+    #rm /mnt/usr/local/etc/base-packages.txt
 fi
 
 # Rebuild init and enable SYSLINUX
@@ -488,11 +478,13 @@ arch-chroot /mnt mkinitcpio -p linux
 arch-chroot /mnt /usr/sbin/syslinux-install_update -iam
 
 # Grab my dot files and populate /etc/skel
-git clone https://github.com/flexiondotorg/dot-files.git /tmp/dot-files
-cp /tmp/dot-files/.bashrc /mnt/etc/skel/.bashrc
-cp /tmp/dot-files/.bash_logout /mnt/etc/skel/.bash_logout
+if [ ${MINIMAL} -eq 0 ]; then
+    git clone https://github.com/flexiondotorg/dot-files.git /tmp/dot-files
+    cp /tmp/dot-files/.bashrc /mnt/etc/skel/.bashrc
+    cp /tmp/dot-files/.bash_logout /mnt/etc/skel/.bash_logout
+fi
 
-# Create users and configure bash, if there a users file.
+# Provision accounts if there is a `users.csv` file.
 if [ -f users.csv ]; then
     IFS=$'\n';
     for USER in `cat users.csv`
@@ -516,8 +508,10 @@ fi
 # Change root password and configure the dot files.
 PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
 arch-chroot /mnt usermod --password ${PASSWORD_CRYPT} root
-cp /tmp/dot-files/.bashrc /mnt/root/.bashrc
-cp /tmp/dot-files/.bash_logout /mnt/root/.bash_logout
+if [ ${MINIMAL} -eq 0 ]; then
+    cp /tmp/dot-files/.bashrc /mnt/root/.bashrc
+    cp /tmp/dot-files/.bash_logout /mnt/root/.bash_logout
+fi
 
 # Unmount
 sync

@@ -51,14 +51,6 @@ INSTALL_BACKUP_APPS=0
 # Configure init things
 update_early_modules ${VIDEO_KERNEL}
 
-# Multilib
-if [ "${CPU}" == "x86_64" ]; then
-    echo "
-    Y
-    Y
-    Y" | pacman -S --needed --noconfirm multilib-devel"
-fi
-
 # Xorg
 pacman_install_group "xorg"
 pacman_install_group "xorg-apps"
@@ -124,7 +116,24 @@ ENDTHINKFAN
     systemctl enable thinkfan
 fi
 
-#TODO: Detect VirtualBox and install drivers here
+VIRTUALBOX-GUEST=`dmidecode --type 1 | grep VirtualBox`
+if [ $? -eq 0 ]; then
+    pacman_install "virtualbox-guest-utils"
+    echo "vboxguest" >  /etc/modules-load.d/virtualbox-guest.conf
+    echo "vboxsf"    >> /etc/modules-load.d/virtualbox-guest.conf
+    echo "vboxvideo" >> /etc/modules-load.d/virtualbox-guest.conf
+    modprobe -a vboxguest vboxsf vboxvideo
+
+    # Enable access to Shared Folders
+    groupadd vboxsf
+    gpasswd -a ${SUDO_USER} vboxsf
+
+    # Synchronise date/time to the host
+    systemctl stop chrony.service
+    systemctl disable chrony.service
+    systemctl enable vboxservice
+    systemctl start vboxservice
+fi
 
 # Fonts
 pacman_install "ttf-bitstream-vera ttf-liberation ttf-ubuntu-font-family"
@@ -221,15 +230,22 @@ if [ ${INSTALL_GOOGLE_EARTH} -eq 1 ]; then
 fi
 
 if [ ${INSTALL_VIRTUALBOX} -eq 1 ]; then
-    # Virtualbox
-    pacman_install "virtualbox virtualbox-additions virtualbox-modules virtualbox-source"
-    packer_install "virtualbox-ext-oracle"
-    # FIXME - do this for all users
-    add_user_to_group ${SUDO_USER} vboxusers
-
-    echo "vboxdrv" >     /etc/modules-load.d/virtualbox.conf
-    echo "vboxnetadp" >> /etc/modules-load.d/virtualbox.conf
-    echo "vboxnetflt" >> /etc/modules-load.d/virtualbox.conf
+    # Make sure we are not a VirtualBox Guest
+    VIRTUALBOX-GUEST=`dmidecode --type 1 | grep VirtualBox`
+    if [ $? -eq 1 ]; then
+        # Virtualbox
+        pacman_install "virtualbox virtualbox-host-modules virtualbox-guest-iso"
+        packer_install "virtualbox-ext-oracle"
+        # FIXME - do this for all users
+        add_user_to_group ${SUDO_USER} vboxusers
+        echo "vboxdrv"    >  /etc/modules-load.d/virtualbox-host.conf
+        echo "vboxnetadp" >> /etc/modules-load.d/virtualbox-host.conf
+        echo "vboxnetflt" >> /etc/modules-load.d/virtualbox-host.conf
+        modeprobe -a vboxdrv vboxnetadp vboxnetflt
+    else
+        echo "WARNING! VirtualBox was not installed as we are a VirtualBox guest."
+        sleep 2
+    fi
 fi
 
 # Chat
