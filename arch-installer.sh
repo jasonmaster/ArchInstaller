@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 #TODO
+# - Add an option for pacstrap to use a local package cache.
+# - Maybe create an LVM and lob everything in it except for `/boot`.
 # - Consolidate the partitioning.
 # - Detect SSD and TRIM and add `discard` to `/etc/fstab`.
 #   /sys/block/sdX/queue/rotational # 0 = SSD
@@ -10,6 +12,7 @@
 # - Some good stuff below, check it out
 #   https://github.com/helmuthdu/aui
 #   https://github.com/helmuthdu/dotfiles
+#   http://www.winpe.com/page04.html
 # - Get a handle on power management
 #   suspend hook for /dev/mmcblk0
 #     - ATI http://www.x.org/wiki/RadeonFeature#KMS_Power_Management_Options
@@ -32,7 +35,9 @@
 #   http://blog.burntsushi.net/lenovo-thinkpad-t430-archlinux
 # - UEFI boot.
 #   I have no UEFI systems so VirtualBox will have to do a testing target.
+#   UEFI is not supported by SYSLINUX so GRUB2 will be required.
 
+BASE_GROUPS="adm,audio,disk,lp,optical,storage,video,games,power,scanner"
 DSK=""
 FQDN="arch.example.org"
 TIMEZONE="Europe/London"
@@ -74,12 +79,17 @@ function usage() {
     echo "Optionally you can create a file that defines user accounts that should be provisioned."
     echo "The format is:"
     echo
-    echo "username,password,comment,groups"
+    echo "username,password,comment,extra_groups"
     echo
     echo "In the examples below, 'fred' is a sudo'er but 'barney' is not."
     echo
     echo "fred,fl1nt5t0n3,Fred Flintstone,wheel"
     echo "barney,ru88l3,Barney Rubble,"
+    echo
+    echo "All users are added to the following groups:"
+    echo
+    echo " - ${GROUPS}"
+    echo
     exit 1
 }
 
@@ -366,10 +376,18 @@ if [ $? -eq 0 ]; then
     echo "acpi-cpufreq" > /mnt/etc/modules-load.d/cpufreq.conf
 fi
 
-# Create a list of package from the install ISO
-# This is used to install the base system.
+# Uncomment the multilib repo
+if [ `uname -m` == "x86_64" ]; then
+    sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /mnt/etc/pacman.conf
+fi
+
+# If a full install is selected build the base packages list
+# and install them.
 if [ ${MINIMAL} -eq 0 ]; then
+    # Create a list of package from the install ISO
     pacman -Qqe > /mnt/usr/local/etc/base-packages.txt
+
+    #Add my essential packages to the base-packages.
     cat >>/mnt/usr/local/etc/base-packages.txt<<'ENDMYPACKAGES'
 abs
 arj
@@ -415,11 +433,6 @@ ENDMYPACKAGES
 
     cat >/mnt/usr/local/bin/installer.sh<<'ENDOFSCRIPT'
 #!/bin/bash
-
-# Uncomment the multilib repo
-if [ `uname -m` == "x86_64" ]; then
-    sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
-fi
 pacman -Syy
 
 # Install packer
@@ -442,14 +455,13 @@ Y
 Y
 Y" | pacman -S --needed multilib-devel
 fi
-
-sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /etc/nsswitch.conf
-sed -i 's/! server ntp.public-server.org/server uk.pool.ntp.org/' /etc/chrony.conf
 ENDOFSCRIPT
 
     # Enter the chroot and complete the install.
     chmod +x /mnt/usr/local/bin/installer.sh
     arch-chroot /mnt /usr/local/bin/installer.sh
+    sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /mnt/etc/nsswitch.conf
+    sed -i 's/! server ntp.public-server.org/server uk.pool.ntp.org/' /mnt/etc/chrony.conf
     arch-chroot /mnt systemctl start sshdgenkeys.service
     arch-chroot /mnt systemctl enable cronie.service
     arch-chroot /mnt systemctl enable chrony.service
@@ -477,11 +489,11 @@ if [ -f users.csv ]; then
         _CRYPTPASSWD=`openssl passwd -crypt ${_PLAINPASSWD}`
         _COMMENT=`echo ${USER} | cut -d',' -f3`
         _EXTRA_GROUPS=`echo ${USER} | cut -d',' -f4`
-        _BASIC_GROUPS="adm,audio,disk,lp,optical,storage,video,games,power,scanner"
+        _BASE_GROUPS=${BASE_GROUPS}
         if [ "${_EXTRA_GROUPS}" != "" ]; then
-            _GROUPS=${_BASIC_GROUPS},${_EXTRA_GROUPS}
+            _GROUPS=${_BASE_GROUPS},${_EXTRA_GROUPS}
         else
-            _GROUPS=${_BASIC_GROUPS}
+            _GROUPS=${_BASE_GROUPS}
         fi
         arch-chroot /mnt useradd --password ${_CRYPTPASSWD} --comment "${_COMMENT}" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}
         arch-chroot /mnt chown -R ${_USERNAME}:users /home/${_USERNAME}

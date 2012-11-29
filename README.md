@@ -15,7 +15,7 @@ Boot the install ISO and clone this repository.
     git clone https://github.com/flexiondotorg/ArchInstaller.git
     cd ArchInstaller
 
-Edit the `users.csv` files to suite your requirements. Run the installer script,
+Edit the `users.csv` file to suite your requirements. Run the installer script,
 for example.
 
     ./arch-installer.sh -d sda -p bsrh -w pA55w0rd -n myhost.example.org
