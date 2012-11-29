@@ -119,10 +119,12 @@ if [ $? -eq 0 ]; then
 (5,    64,    66)
 (7,    65,    32767)
 ENDTHINKFAN
-    replaceinfile "-q" "-q -p 2" /usr/lib/systemd/system/thinkfan.service
+    #replaceinfile "-q" "-q -p 2" /usr/lib/systemd/system/thinkfan.service
     systemctl --system daemon-reload
     systemctl enable thinkfan
 fi
+
+#TODO: Detect VirtualBox and install drivers here
 
 # Fonts
 pacman_install "ttf-bitstream-vera ttf-liberation ttf-ubuntu-font-family"

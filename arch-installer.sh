@@ -302,12 +302,25 @@ elif [ "${PARTITION_LAYOUT}" == "br" ]; then
     ROOT_PARTITION="${DSK}2"
 fi
 
-# Base system
-BASE_SYSTEM="base sudo syslinux wget"
-if [ ${MINIMAL} -eq 0 ]; then
-    BASE_SYSTEM="${BASE_SYSTEM} base-devel openssh"
+# Uncomment the multilib repo on the install ISO
+if [ `uname -m` == "x86_64" ]; then
+    sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
+    BASE_DEVEL="multilib-devel"
+else
+    BASE_DEVEL="base-devel"
 fi
-echo ${BASE_SYSTEM}
+
+# Base system
+BASE_SYSTEM="base ${BASE_DEVEL} sudo syslinux wget"
+if [ ${MINIMAL} -eq 0 ]; then
+    BASE_SYSTEM="${BASE_SYSTEM} openssh"
+fi
+
+echo
+echo "About to install : ${BASE_SYSTEM}"
+echo
+sleep 2
+
 pacstrap /mnt ${BASE_SYSTEM}
 
 # Members of the 'wheel' group are sudoers
@@ -376,7 +389,7 @@ if [ $? -eq 0 ]; then
     echo "acpi-cpufreq" > /mnt/etc/modules-load.d/cpufreq.conf
 fi
 
-# Uncomment the multilib repo
+# Uncomment the multilib repo in the target
 if [ `uname -m` == "x86_64" ]; then
     sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /mnt/etc/pacman.conf
 fi
@@ -447,14 +460,14 @@ pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`
 pacman -S --noconfirm --needed `sort /usr/local/etc/base-packages.txt`
 
 # Install multilib-devel
-if [ `uname -m` == "x86_64" ]; then
-    echo "
-Y
-Y
-Y
-Y
-Y" | pacman -S --needed multilib-devel
-fi
+#if [ `uname -m` == "x86_64" ]; then
+#    echo "
+#Y
+#Y
+#Y
+#Y
+#Y" | pacman -S --needed multilib-devel
+#fi
 ENDOFSCRIPT
 
     # Enter the chroot and complete the install.
