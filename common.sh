@@ -397,7 +397,7 @@ update_early_modules() {
     fi
 }
 
-systemd_ctl () {
+system_ctl () {
     local ACTION=${1}
     local OBJECT=${2}
     ncecho " [x] systemdctl ${ACTION} ${OBJECT} "
