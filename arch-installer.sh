@@ -404,14 +404,12 @@ colordiff
 cvs
 dbus
 devtools
-dkms
 git
 dmidecode
 hexedit
 htop
 hub
 lesspipe
-lsb-release
 lzop
 mercurial
 namcap

@@ -131,8 +131,8 @@ if [ $? -eq 0 ]; then
 (7,    65,    32767)
 ENDTHINKFAN
     #replaceinfile "-q" "-q -p 2" /usr/lib/systemd/system/thinkfan.service
-    systemctl --system daemon-reload
-    systemctl enable thinkfan
+    system_ctl --system daemon-reload
+    system_ctl enable thinkfan
 fi
 
 VIRTUALBOX_GUEST=`dmidecode --type 1 | grep VirtualBox`
@@ -144,14 +144,14 @@ if [ $? -eq 0 ]; then
     modprobe -a vboxguest vboxsf vboxvideo
 
     # Enable access to Shared Folders
-    groupadd vboxsf
-    gpasswd -a ${SUDO_USER} vboxsf
+    #groupadd vboxsf
+    add_user_to_group ${SUDO_USER} vboxsf
 
     # Synchronise date/time to the host
-    systemctl stop chrony.service
-    systemctl disable chrony.service
-    systemctl enable vboxservice
-    systemctl start vboxservice
+    system_ctl stop chrony.service
+    system_ctl disable chrony.service
+    system_ctl enable vboxservice
+    system_ctl start vboxservice
 fi
 
 # Fonts
@@ -172,18 +172,18 @@ if [ ${TOUCH_SCREEN} -eq 1 ]; then
 fi
 
 # Gnome Display Manager
-systemctl enable gdm.service
+system_ctl enable gdm.service
 # D-Bus interface for user account query and manipulation
-systemctl enable accounts-daemon.service
+system_ctl enable accounts-daemon.service
 # Enumerates power devices, listens to device events and querys history and statistics
-systemctl enable upower.service
+system_ctl enable upower.service
 # Network Manager
-systemctl enable NetworkManager.service
+system_ctl enable NetworkManager.service
 
 # Printing
 pacman_install "cups foomatic-db foomatic-db-engine foomatic-db-nonfree \
 foomatic-filters gutenprint"
-systemctl enable cups.service
+system_ctl enable cups.service
 
 # Dropbox
 packer_install "dropbox"

@@ -53,7 +53,7 @@ check_root() {
 
 check_user() {
     if [ "$(id -u)" == "0" ]; then
-	    error_msg "ERROR! You must execute the script as a normal user."
+        error_msg "ERROR! You must execute the script as a normal user."
     fi
 }
 
@@ -240,7 +240,6 @@ pacman_remove() {
 # $1 - group to install
 # $2 - packages to exlcude from group
 pacman_install_group() {
-
     # Loop through any excluded packages and remove them
     if [ -n "${2}" ]; then
         local GROUP_PKGS=`pacman -Sqg ${1}`
@@ -279,32 +278,33 @@ packer_install() {
 }
 
 pacman_upgrade() {
-    :
+    ncecho " [x] Upgrading packages (pacman) "
+    pacman -Syu --noconfirm >>"$log" 2>&1 &
+    pid=$!;progress $pid
 }
 
-packer_upgrade_all() {
-    #TMPDIR=/home/${SUDO_USER}/Packer
-    #mkdir -p ${TMPDIR} >>"$log" 2>&1
-    packer -Syu --auronly --noconfirm --noedit --quiet
+packer_upgrade() {
+    ncecho " [x] Upgrading packages (packer) "
+    packer -Syu --auronly --noconfirm --noedit >>"$log" 2>&1 &
+    pid=$!;progress $pid
 }
 
 packer_upgrade_devel() {
-    #TMPDIR=/home/${SUDO_USER}/Packer
-    #mkdir -p ${TMPDIR} >>"$log" 2>&1
-    sudo -u ${SUDO_USER} packer -Syu --auronly --noconfirm --noedit --quiet --devel
-    
+    ncecho " [x] Upgrading dev packages (packer) "
+    packer -Syu --auronly --noconfirm --noedit --devel >>"$log" 2>&1 &
+    pid=$!;progress $pid
 }
 
 makepkg_install() {
     local _PKG="${1}"
     wget_tarball ${_PKG}
-            
-    cd /tmp/${TARBALL_DIR}    
-    sudo -u ${SUDO_USER} makepkg -s --noconfirm    
-    
+
+    cd /tmp/${TARBALL_DIR}
+    sudo -u ${SUDO_USER} makepkg -s --noconfirm
+
     NEW_PKG=`ls -1t ${TARBALL_DIR}*.pkg.tar.xz | head -1`
 
-    ncecho " [x] Installing (aur)  ${NEW_PKG} "
+    ncecho " [x] Installing (makepkg) ${NEW_PKG} "
     pacman -U --noconfirm ${NEW_PKG} >>"$log" 2>&1 &
     pid=$!;progress $pid
 }
@@ -312,13 +312,13 @@ makepkg_install() {
 cpan_install() {
     ncecho " [x] Installing (cpan) ${1} "
     cpan ${1} >>"$log" 2>&1 &
-    pid=$!;progress $pid    
+    pid=$!;progress $pid
 }
 
 pip_install() {
     ncecho " [x] Installing (pip)  ${1} "
     pip install ${1} >>"$log" 2>&1 &
-    pid=$!;progress $pid    
+    pid=$!;progress $pid
 }
 
 rc_d() {
@@ -375,19 +375,29 @@ update_early_modules() {
     local NEW_MODULE=${1}
     local OLD_ARRAY=`egrep ^MODULES= /etc/mkinitcpio.conf`
 
-    # Determine if the new module is already listed.
-    _EXISTS=`echo ${OLD_ARRAY} | grep ${NEW_MODULE}`
-    if [ $? -eq 1 ]; then
-        
-        source /etc/mkinitcpio.conf
-        if [ -z "${MODULES}" ]; then
-            NEW_MODULES="${NEW_MODULE}"        
-        else
-            NEW_MODULES="${MODULES} ${NEW_MODULE}"
-        fi              
-        replaceinfile "MODULES=\"${MODULES}\"" "MODULES=\"${NEW_MODULES}\"" /etc/mkinitcpio.conf
-        ncecho " [x] Rebuilding init "
-        mkinitcpio -p linux >>"$log" 2>&1 &
-        pid=$!;progress $pid        
-    fi        
+    if [ -n "${NEW_MODULE}" ]; then
+        # Determine if the new module is already listed.
+        _EXISTS=`echo ${OLD_ARRAY} | grep ${NEW_MODULE}`
+        if [ $? -eq 1 ]; then
+
+            source /etc/mkinitcpio.conf
+            if [ -z "${MODULES}" ]; then
+                NEW_MODULES="${NEW_MODULE}"
+            else
+                NEW_MODULES="${MODULES} ${NEW_MODULE}"
+            fi
+            replaceinfile "MODULES=\"${MODULES}\"" "MODULES=\"${NEW_MODULES}\"" /etc/mkinitcpio.conf
+            ncecho " [x] Rebuilding init "
+            mkinitcpio -p linux >>"$log" 2>&1 &
+            pid=$!;progress $pid
+        fi
+    fi
+}
+
+systemd_ctl () {
+    local ACTION=${1}
+    local OBJECT=${2}
+    ncecho " [x] systemdctl ${ACTION} ${OBJECT} "
+    systemdctl ${ACTION} ${OBJECT} >>"$log" 2>&1 &
+    pid=$!;progress $pid
 }
