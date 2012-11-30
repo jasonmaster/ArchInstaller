@@ -457,6 +457,9 @@ Y
 Y
 Y" | pacman -S --needed multilib-devel
 fi
+
+# Install pacman-color
+packer -S --noconfirm --noedit pacman-color
 ENDOFSCRIPT
 
     # Enter the chroot and complete the install.
