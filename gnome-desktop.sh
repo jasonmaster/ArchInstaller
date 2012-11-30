@@ -269,7 +269,7 @@ if [ $? -eq 1 ]; then
         packer_install "gnome-boxes"
     fi
 else
-    echo "WARNING! VirtualBox was not installed as we are a VirtualBox guest."
+    cecho " [!] VirtualBox was not installed as we are a VirtualBox guest."
     sleep 2
 fi
 

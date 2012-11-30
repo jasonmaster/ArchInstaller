@@ -257,6 +257,15 @@ pacman_install_group() {
     fi
 }
 
+packer_clean() {
+    # Cleanup as packer leftovers
+    for DIR in /tmp /var/tmp ${TMPDIR}
+    do
+        rm -rf ${DIR}/packertmp-*
+        rm -rf ${DIR}/packerbuild-*
+    done
+}
+
 packer_install() {
     export TMPDIR=/var/tmp
     local _OPTS="${2}"
@@ -272,10 +281,6 @@ packer_install() {
             cecho " [x] Installing (packer) ${PKG} success "
         fi
     done
-
-    # Cleanup as '/tmp' is 'tmpfs' and a big install can fill it entirely.
-    #rm -rf /tmp/packertmp-*
-    #rm -rf /tmp/packerbuild-*
 }
 
 pacman_upgrade() {
