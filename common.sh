@@ -258,7 +258,7 @@ pacman_install_group() {
 }
 
 packer_install() {
-    TMPDIR=/var/tmp
+    export TMPDIR=/var/tmp
     local _OPTS="${2}"
     for PKG in ${1}
     do
@@ -285,14 +285,14 @@ pacman_upgrade() {
 }
 
 packer_upgrade() {
-    TMPDIR=/var/tmp
+    export TMPDIR=/var/tmp
     ncecho " [x] Upgrading packages (packer) "
     packer -Syu --auronly --noconfirm --noedit >>"$log" 2>&1 &
     pid=$!;progress $pid
 }
 
 packer_upgrade_devel() {
-    TMPDIR=/var/tmp
+    export TMPDIR=/var/tmp
     ncecho " [x] Upgrading dev packages (packer) "
     packer -Syu --auronly --noconfirm --noedit --devel >>"$log" 2>&1 &
     pid=$!;progress $pid
