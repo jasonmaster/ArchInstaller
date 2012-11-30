@@ -258,6 +258,7 @@ pacman_install_group() {
 }
 
 packer_install() {
+    TMPDIR=/var/tmp
     local _OPTS="${2}"
     for PKG in ${1}
     do
@@ -273,8 +274,8 @@ packer_install() {
     done
 
     # Cleanup as '/tmp' is 'tmpfs' and a big install can fill it entirely.
-    rm -rf /tmp/packertmp-*
-    rm -rf /tmp/packerbuild-*
+    #rm -rf /tmp/packertmp-*
+    #rm -rf /tmp/packerbuild-*
 }
 
 pacman_upgrade() {
@@ -284,12 +285,14 @@ pacman_upgrade() {
 }
 
 packer_upgrade() {
+    TMPDIR=/var/tmp
     ncecho " [x] Upgrading packages (packer) "
     packer -Syu --auronly --noconfirm --noedit >>"$log" 2>&1 &
     pid=$!;progress $pid
 }
 
 packer_upgrade_devel() {
+    TMPDIR=/var/tmp
     ncecho " [x] Upgrading dev packages (packer) "
     packer -Syu --auronly --noconfirm --noedit --devel >>"$log" 2>&1 &
     pid=$!;progress $pid
