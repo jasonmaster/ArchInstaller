@@ -59,9 +59,9 @@ check_user() {
 
 check_sudo() {
     if [ ! -e /usr/bin/sudo ]; then
-        error_msg "ERROR! You must install 'sudo'."        
+        error_msg "ERROR! You must install 'sudo'."
     fi
-    
+
     if [ ! -n ${SUDO_USER} ]; then
         error_msg "ERROR! You must invoke the script using 'sudo'."
     fi
@@ -118,24 +118,24 @@ check_vga() {
         echo ${VGA} | tr "[:upper:]" "[:lower:]" | grep -q "intel corporation"
         if [ $? -eq 0 ]; then
             cecho Intel
-            VIDEO_DRIVER="intel"                    
-            VIDEO_KERNEL="i915"  
+            VIDEO_DRIVER="intel"
+            VIDEO_KERNEL="i915"
             VIDEO_ACCEL="libva-intel-driver"
         else
             echo ${VGA} | tr "[:upper:]" "[:lower:]" | grep -q "advanced micro devices"
             if [ $? -eq 0 ]; then
                 cecho AMD/ATI
                 VIDEO_DRIVER="ati"
-                VIDEO_KERNEL="radeon"                    
-                VIDEO_ACCEL=""                
+                VIDEO_KERNEL="radeon"
+                VIDEO_ACCEL=""
             else
                 cecho unknown
                 VIDEO_DRIVER=""
                 VIDEO_KERNEL=""
-                VIDEO_ACCEL=""                
+                VIDEO_ACCEL=""
             fi
         fi
-    fi                    
+    fi
 }
 
 check_wireless() {
@@ -176,11 +176,11 @@ addlinetofile() {
 add_user_to_group() {
     local _USER=${1}
     local _GROUP=${2}
-    
+
     if [ -z "${_GROUP}" ]; then
         error_msg "ERROR! 'add_user_to_group' was not given enough parameters."
-    fi    
-    
+    fi
+
     ncecho " [x] Adding ${_USER} to ${_GROUP} "
     gpasswd -a ${_USER} ${_GROUP} >>"$log" 2>&1 &
     pid=$!;progress $pid
@@ -208,20 +208,19 @@ pacman_sync() {
         ncecho " [x] Syncing (arch) "
         pacman -Syy >>"$log" 2>&1 &
         pid=$!;progress $pid
-    fi    
+    fi
 }
 
 pacman_install() {
     for PKG in ${1}
     do
         PKG_INSTALLED=`pacman -Q ${PKG} 2>/dev/null`
-        if [ $? -eq 1 ]; then            
-            ncecho " [x] Installing (arch) ${PKG} "
+        if [ $? -eq 1 ]; then
+            ncecho " [x] Installing (pacman) ${PKG} "
             pacman -S --noconfirm --needed ${PKG} >>"$log" 2>&1 &
-            #sleep 2 >>"$log" 2>&1 &
             pid=$!;progress $pid
         else
-            cecho " [x] Installing (arch) ${PKG} exists " 
+            cecho " [x] Installing (pacman) ${PKG} exists "
         fi
     done
 }
@@ -230,10 +229,10 @@ pacman_remove() {
     for PKG in ${1}
     do
         PKG_INSTALLED=`pacman -Q ${PKG} 2>/dev/null`
-        if [ $? -eq 0 ]; then            
-            ncecho " [x] Removing (arch) ${PKG} "
+        if [ $? -eq 0 ]; then
+            ncecho " [x] Removing (pacman) ${PKG} "
             pacman -R --noconfirm ${PKG} >>"$log" 2>&1 &
-            pid=$!;progress $pid                   
+            pid=$!;progress $pid
         fi
     done
 }
@@ -244,18 +243,18 @@ pacman_install_group() {
 
     # Loop through any excluded packages and remove them
     if [ -n "${2}" ]; then
-        local GROUP_PKGS=`pacman -Sqg ${1}`        
+        local GROUP_PKGS=`pacman -Sqg ${1}`
         for EXCLUDE in ${2}
-        do                        
-            local GROUP_PKGS=`echo "${GROUP_PKGS}" | grep -x -v ${EXCLUDE}`           
+        do
+            local GROUP_PKGS=`echo "${GROUP_PKGS}" | grep -x -v ${EXCLUDE}`
         done
-        
-        # pacman requires all packages in one line.    
-        local GROUP_PKGS=`echo "${GROUP_PKGS}" | tr '\n' ' '`                           
-        pacman_install "${GROUP_PKGS}"        
+
+        # pacman requires all packages in one line.
+        local GROUP_PKGS=`echo "${GROUP_PKGS}" | tr '\n' ' '`
+        pacman_install "${GROUP_PKGS}"
     else
         local GROUP_PKG=${1}
-        pacman_install "${GROUP_PKG}"    
+        pacman_install "${GROUP_PKG}"
     fi
 }
 
@@ -264,13 +263,16 @@ packer_install() {
     for PKG in ${1}
     do
         PKG_INSTALLED=`pacman -Q ${PKG} 2>/dev/null`
-        if [ $? -eq 1 ]; then            
-            sudo -u ${SUDO_USER} packer -S ${_OPTS} --noconfirm --noedit --quiet ${PKG}
+        if [ $? -eq 1 ]; then
+            #sudo -u ${SUDO_USER} packer -S ${_OPTS} --noconfirm --noedit ${PKG}
+            ncecho " [x] Installing (packer) ${PKG} "
+            packer -S ${_OPTS} --noconfirm --noedit ${PKG} >>"$log" 2>&1 &
+            pid=$!;progress $pid
         else
-            cecho " [x] Installing (aur)  ${PKG} success "                    
+            cecho " [x] Installing (packer) ${PKG} success "
         fi
-    done    
-    
+    done
+
     # Cleanup as '/tmp' is 'tmpfs' and a big install can fill it entirely.
     rm -rf /tmp/packertmp-*
     rm -rf /tmp/packerbuild-*
@@ -281,14 +283,14 @@ pacman_upgrade() {
 }
 
 packer_upgrade_all() {
-    TMPDIR=/home/${SUDO_USER}/Packer
-    mkdir -p ${TMPDIR} >>"$log" 2>&1
-    sudo -u ${SUDO_USER} packer -Syu --auronly --noconfirm --noedit --quiet
+    #TMPDIR=/home/${SUDO_USER}/Packer
+    #mkdir -p ${TMPDIR} >>"$log" 2>&1
+    packer -Syu --auronly --noconfirm --noedit --quiet
 }
 
 packer_upgrade_devel() {
-    TMPDIR=/home/${SUDO_USER}/Packer
-    mkdir -p ${TMPDIR} >>"$log" 2>&1
+    #TMPDIR=/home/${SUDO_USER}/Packer
+    #mkdir -p ${TMPDIR} >>"$log" 2>&1
     sudo -u ${SUDO_USER} packer -Syu --auronly --noconfirm --noedit --quiet --devel
     
 }

@@ -27,42 +27,41 @@ check_cpu
 check_vga
 pacman_sync
 
-INSTALL_BROWSERS=1
-INSTALL_LIBREOFFICE=1
-INSTALL_GENERAL_DEVELOPMENT=1
-INSTALL_ANDROID_DEVELOPMENT=1
-INSTALL_GOOGLE_EARTH=1
-INSTALL_VIRTUALBOX=1
-INSTALL_CHAT_APPS=1
-INSTALL_GRAPHIC_APPS=1
+INSTALL_BROWSERS=0
+INSTALL_LIBREOFFICE=0
+INSTALL_GENERAL_DEVELOPMENT=0
+INSTALL_ANDROID_DEVELOPMENT=0
+INSTALL_GOOGLE_EARTH=0
+INSTALL_VIRTUALBOX=0
+INSTALL_BOXES=0
+INSTALL_CHAT_APPS=0
+INSTALL_GRAPHIC_APPS=0
 INSTALL_3D_APPS=0
-INSTALL_PHOTO_APPS=1
-INSTALL_MUSIC_APPS=1
-INSTALL_VIDEO_PLAYER_APPS=1
+INSTALL_PHOTO_APPS=0
+INSTALL_MUSIC_APPS=0
+INSTALL_VIDEO_PLAYER_APPS=0
 INSTALL_VIDEO_EDITOR_APPS=0
 INSTALL_VIDEO_RIPPER_APPS=0
-INSTALL_REMOTE_DESKTOP_APPS=1
-INSTALL_DOWNLOAD_APPS=1
-INSTALL_ZIMBRA_DESKTOP=1
-INSTALL_IPMIVIEW=1
+INSTALL_REMOTE_DESKTOP_APPS=0
+INSTALL_DOWNLOAD_APPS=0
+INSTALL_ZIMBRA_DESKTOP=0
+INSTALL_IPMIVIEW=0
 INSTALL_RAIDAR=0
-INSTALL_WINE=1
-INSTALL_CRYPTO_APPS=1
+INSTALL_WINE=0
+INSTALL_CRYPTO_APPS=0
 INSTALL_BACKUP_APPS=0
 
 # Configure init things
 update_early_modules ${VIDEO_KERNEL}
 
 # Xorg
-#pacman_install_group "xorg"
-#pacman_install_group "xorg-apps"
+pacman_install_group "xorg"
+pacman_install_group "xorg-apps"
 
 if [ -n "${VIDEO_DRIVER}" ]; then
-    echo
-    #pacman_install "xf86-video-${VIDEO_DRIVER} ${VIDEO_DRIVER}-dri ${VIDEO_ACCEL}" "${VIDEO_DRIVER}"
+    pacman_install "xf86-video-${VIDEO_DRIVER} ${VIDEO_DRIVER}-dri ${VIDEO_ACCEL}" "${VIDEO_DRIVER}"
     if [ "${CPU}" == "x86_64" ]; then
-        #pacman_install "lib32-${VIDEO_DRIVER}-dri"
-    echo
+        pacman_install "lib32-${VIDEO_DRIVER}-dri"
     fi
 fi
 
@@ -163,7 +162,7 @@ packer_install "ttf-fixedsys-excelsior-linux ttf-ms-fonts ttf-source-code-pro"
 pacman_install_group "gnome"
 pacman_install_group "gnome-extra"
 pacman_install_group "telepathy"
-pacman_install "epiphany-extensions gedit-plugins gnome-tweak-tool networkmanager-pptp"
+pacman_install "eog-plugins epiphany-extensions gedit-plugins gnome-tweak-tool networkmanager-pptp"
 packer_install "gip gnome-packagekit gnome-settings-daemon-updates gufw polkit-gnome terminator"
 # Gstreamer
 pacman_install "gst-plugins-base gst-plugins-base-libs gst-plugins-good \
@@ -252,11 +251,11 @@ if [ ${INSTALL_GOOGLE_EARTH} -eq 1 ]; then
     fi
 fi
 
-if [ ${INSTALL_VIRTUALBOX} -eq 1 ]; then
-    # Make sure we are not a VirtualBox Guest
-    VIRTUALBOX-GUEST=`dmidecode --type 1 | grep VirtualBox`
-    if [ $? -eq 1 ]; then
-        # Virtualbox
+# Make sure we are not a VirtualBox Guest
+VIRTUALBOX_GUEST=`dmidecode --type 1 | grep VirtualBox`
+if [ $? -eq 1 ]; then
+    # Virtualbox
+    if [ ${INSTALL_VIRTUALBOX} -eq 1 ]; then
         pacman_install "virtualbox virtualbox-host-modules virtualbox-guest-iso"
         packer_install "virtualbox-ext-oracle"
         # FIXME - do this for all users
@@ -264,11 +263,14 @@ if [ ${INSTALL_VIRTUALBOX} -eq 1 ]; then
         echo "vboxdrv"    >  /etc/modules-load.d/virtualbox-host.conf
         echo "vboxnetadp" >> /etc/modules-load.d/virtualbox-host.conf
         echo "vboxnetflt" >> /etc/modules-load.d/virtualbox-host.conf
-        modeprobe -a vboxdrv vboxnetadp vboxnetflt
-    else
-        echo "WARNING! VirtualBox was not installed as we are a VirtualBox guest."
-        sleep 2
+        modprobe -a vboxdrv vboxnetadp vboxnetflt
     fi
+    if [ ${INSTALL_BOXES} -eq 1 ]; then
+        packer_install "gnome-boxes"
+    fi
+else
+    echo "WARNING! VirtualBox was not installed as we are a VirtualBox guest."
+    sleep 2
 fi
 
 # Chat
@@ -338,8 +340,8 @@ if [ ${INSTALL_VIDEO_PLAYER_APPS} -eq 1 ]; then
 fi
 
 if [ ${INSTALL_VIDEO_RIPPER_APPS} -eq 1 ]; then
-    pacman_install "handbrake mediainfo mkvtoolnix-cli" #mkvtoolnix-gtk
-    packer_install "get_iplayer makemkv tsmuxer-gui"   
+    pacman_install "handbrake mediainfo mkvtoolnix-cli mkvtoolnix-gtk"
+    packer_install "get_iplayer makemkv tsmuxer-gui"
 fi
 
 if [ ${INSTALL_VIDEO_EDITOR_APPS} -eq 1 ]; then
@@ -368,8 +370,8 @@ if [ ${INSTALL_DOWNLOAD_APPS} -eq 1 ]; then
     packer_install "pymazon"
     wget_install_generic "http://aux.iconpedia.net/uploads/20468992281869356568.png" /usr/share/pixmaps
     system_application_menu "pymazon" "pymazon %f" "/usr/share/pixmaps/20468992281869356568.png" "Amazon MP3 Downloader" "Network;WebBrowser;"
-    packer_install "torrent-search"    
-    packer_install "steadyflow"    
+    packer_install "torrent-search"
+    packer_install "steadyflow"
 fi
 
 # Backup
@@ -377,10 +379,10 @@ if [ ${INSTALL_BACKUP_APPS} -eq 1 ]; then
     pacman_install "deja-dup rsnapshot"
 fi
 
-# Wine 
+# Wine
 if [ ${INSTALL_WINE} -eq 1 ]; then
     pacman_install "wine winetricks"
-fi    
+fi
 
 # Crypto
 if [ ${INSTALL_WINE} -eq 1 ]; then
@@ -394,7 +396,7 @@ if [ ${INSTALL_IPMIVIEW} -eq 1 ]; then
     if [ ! -f /opt/SUPERMICRO/IPMIView/smcc.ico ]; then
         wget_install_generic "ftp://ftp.supermicro.com/CDR-0010_2.10_IPMI_Server_Managment/res/smcc.ico" /opt/SUPERMICRO/IPMIView/
         system_application_menu "ipmiview" "/opt/IPMIView/IPMIView20.sh" "/opt/SUPERMICRO/IPMIView/smcc.ico" "IPMI View" "System;"
-    fi        
+    fi
 fi
 
 # ReadyNAS RAIDar
@@ -405,12 +407,12 @@ if [ ${INSTALL_RAIDAR} -eq 1 ]; then
         bash ./RAIDar_Linux.sh -c
         replaceinfile "Categories=Application;" "Categories=System;" /usr/share/applications/RAIDar-0.desktop
     fi
-fi    
+fi
 
 # Zimbra
 if [ ${INSTALL_ZIMBRA_DESKTOP} -eq 1 ]; then
     packer_install "zdesktop"
-fi    
+fi
 
 ncecho " [x] Removing 'wine' file associations "
 rm /home/${SUDO_USER}/.local/share/applications/wine-extension-*.desktop >>"$log" 2>&1
