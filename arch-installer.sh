@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 #TODO
-# - Add an option for pacstrap to use a local package cache.
 # - Maybe create an LVM and lob everything in it except for `/boot`.
 # - Consolidate the partitioning.
 # - Detect SSD and TRIM and add `discard` to `/etc/fstab`.
@@ -94,7 +93,7 @@ function usage() {
     exit 1
 }
 
-OPTSTRING=b:d:f:hk:l:mn:p:t:w:
+OPTSTRING=b:c:d:f:hk:l:mn:p:t:w:
 while getopts ${OPTSTRING} OPT
 do
     case ${OPT} in
