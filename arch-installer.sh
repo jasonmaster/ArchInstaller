@@ -34,11 +34,11 @@
 #     -         http://www.phoronix.com/scan.php?page=article&item=intel_i915_power&num=1
 #   http://blog.burntsushi.net/lenovo-thinkpad-t430-archlinux
 # - UEFI boot.
-#   I have no UEFI systems so VirtualBox will have to do a testing target.
-#   UEFI is not supported by SYSLINUX so GRUB2 will be required.
+#   I have no UEFI systems to test this.
 
 BASE_GROUPS="adm,audio,disk,lp,optical,storage,video,games,power,scanner"
 DSK=""
+NFS_CACHE=""
 FQDN="arch.example.org"
 TIMEZONE="Europe/London"
 KEYMAP="uk"
@@ -67,6 +67,7 @@ function usage() {
     echo
     echo "Optional parameters"
     echo "  -b : The partition type to use. Defaults to '${PARTITION_TYPE}'. Can be 'msdos' or 'gpt'."
+    echo "  -c : The NFS export to mount and use as the pacman cache."
     echo "  -f : The filesystem to use. Currently 'ext4' and 'xfs' are supported, defaults to '${FS}'."
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
@@ -98,6 +99,7 @@ while getopts ${OPTSTRING} OPT
 do
     case ${OPT} in
         b) PARTITION_TYPE=${OPTARG};;
+        c) NFS_CACHE=${OPTARG};;
         d) DSK=${OPTARG};;
         f) FS=${OPTARG};;
         h) usage;;
@@ -116,31 +118,48 @@ shift "$(( $OPTIND - 1 ))"
 
 if [ ! -b /dev/${DSK} ]; then
     echo "ERROR! Target install disk not found."
-    usage
+    echo " - See `basename` -h"
+    exit 1
 fi
 
 if [ "${FS}" != "ext4" ] && [ "${FS}" != "xfs" ]; then
     echo "ERROR! Filesystem ${FS} is not supported."
-    usage
+    echo " - See `basename` -h"
+    exit 1
 fi
 
 if [ "${PARTITION_TYPE}" != "msdos" ] && [ "${PARTITION_TYPE}" != "gpt" ]; then
     echo "ERROR! Partition type ${PARTITION_TYPE} is not supported."
+    echo " - See `basename` -h"
+    exit 1
 fi
 
 if [ -z "${PASSWORD}" ]; then
     echo "ERROR! The 'root' password has not been set."
-    usage
+    echo " - See `basename` -h"
+    exit 1
 fi
 
 if [ "${PARTITION_LAYOUT}" != "bsrh" ] && [ "${PARTITION_LAYOUT}" != "bsr" ] && [ "${PARTITION_LAYOUT}" != "br" ]; then
     echo "ERROR! I don't know what to do with '${PARTITION_LAYOUT}' partition layout."
-    usage
+    echo " - See `basename` -h"
+    exit 1
 fi
 
 if [ ! -f /usr/share/zoneinfo/${TIMEZONE} ]; then
     echo "ERROR! I can't find the zone info for '${TIMEZONE}'."
-    usage
+    echo " - See `basename` -h"
+    exit 1
+fi
+
+if [ -n "${NFS_CACHE}" ]; then
+    systemctl start rpc-statd.service
+    mount -t nfs ${NFS_CACHE} /var/cache/pacman/pkg
+    if [ $? -ne 0 ]; then
+        echo "ERROR! Unable to mount ${NFS_CACHE}"
+        echo " - See `basename` -h"
+        exit 1
+    fi
 fi
 
 LANG_TEST=`grep ${LANG} /etc/locale.gen`
@@ -309,7 +328,7 @@ fi
 
 # Base system
 BASE_SYSTEM="base base-devel sudo syslinux wget"
-pacstrap /mnt ${BASE_SYSTEM}
+pacstrap -c /mnt ${BASE_SYSTEM}
 
 # Members of the 'wheel' group are sudoers
 sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /mnt/etc/sudoers
