@@ -152,13 +152,16 @@ if [ ! -f /usr/share/zoneinfo/${TIMEZONE} ]; then
 fi
 
 if [ -n "${NFS_CACHE}" ]; then
+    echo "Starting rpc.statd..."
     systemctl start rpc-statd.service
+    echo "Mounting ${NFS_CACHE}..."
     mount -t nfs ${NFS_CACHE} /var/cache/pacman/pkg
     if [ $? -ne 0 ]; then
         echo "ERROR! Unable to mount ${NFS_CACHE}"
         echo " - See `basename` -h"
         exit 1
     fi
+    echo "NFS cache active."
 fi
 
 LANG_TEST=`grep ${LANG} /etc/locale.gen`
