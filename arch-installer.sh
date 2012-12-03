@@ -7,7 +7,6 @@
 #   /sys/block/sdX/queue/rotational # 0 = SSD
 #   /sys/block/sda/removable # 0 = not removable
 #   sudo hdparm -I /dev/sda | grep "TRIM supported"
-#   Use noatime
 # - Some good stuff below, check it out
 #   https://github.com/helmuthdu/aui
 #   https://github.com/helmuthdu/dotfiles
@@ -117,37 +116,37 @@ shift "$(( $OPTIND - 1 ))"
 
 if [ ! -b /dev/${DSK} ]; then
     echo "ERROR! Target install disk not found."
-    echo " - See `basename` -h"
+    echo " - See `basename ${0}` -h"
     exit 1
 fi
 
 if [ "${FS}" != "ext4" ] && [ "${FS}" != "xfs" ]; then
     echo "ERROR! Filesystem ${FS} is not supported."
-    echo " - See `basename` -h"
+    echo " - See `basename ${0}` -h"
     exit 1
 fi
 
 if [ "${PARTITION_TYPE}" != "msdos" ] && [ "${PARTITION_TYPE}" != "gpt" ]; then
     echo "ERROR! Partition type ${PARTITION_TYPE} is not supported."
-    echo " - See `basename` -h"
+    echo " - See `basename ${0}` -h"
     exit 1
 fi
 
 if [ -z "${PASSWORD}" ]; then
     echo "ERROR! The 'root' password has not been set."
-    echo " - See `basename` -h"
+    echo " - See `basename ${0}` -h"
     exit 1
 fi
 
 if [ "${PARTITION_LAYOUT}" != "bsrh" ] && [ "${PARTITION_LAYOUT}" != "bsr" ] && [ "${PARTITION_LAYOUT}" != "br" ]; then
     echo "ERROR! I don't know what to do with '${PARTITION_LAYOUT}' partition layout."
-    echo " - See `basename` -h"
+    echo " - See `basename ${0}` -h"
     exit 1
 fi
 
 if [ ! -f /usr/share/zoneinfo/${TIMEZONE} ]; then
     echo "ERROR! I can't find the zone info for '${TIMEZONE}'."
-    echo " - See `basename` -h"
+    echo " - See `basename ${0}` -h"
     exit 1
 fi
 
@@ -158,10 +157,17 @@ if [ -n "${NFS_CACHE}" ]; then
     mount -t nfs ${NFS_CACHE} /var/cache/pacman/pkg
     if [ $? -ne 0 ]; then
         echo "ERROR! Unable to mount ${NFS_CACHE}"
-        echo " - See `basename` -h"
+        echo " - See `basename ${0}` -h"
         exit 1
     fi
-    echo "NFS cache active."
+    
+    touch /var/cache/pacman/pkg/cache.test 2>/dev/null
+    if [ $? -ne 0 ]; then
+        echo "ERROR! The NFS cache you have choosen, ${NFS_CACHE}, is read-only."
+        exit 1
+    else
+        rm /var/cache/pacman/pkg/cache.test 2>/dev/null     
+    fi
 fi
 
 LANG_TEST=`grep ${LANG} /etc/locale.gen`
@@ -210,7 +216,6 @@ SWP=`awk '/MemTotal/ {printf( "%.0f\n", $2 / 1024 / 2 )}' /proc/meminfo`
 # References
 # - https://bbs.archlinux.org/viewtopic.php?id=145678
 # - http://sprunge.us/WATU
-
 # You may use "msdos" here instead of "gpt", if you want:
 parted -s /dev/${DSK} mktable ${PARTITION_TYPE}
 
@@ -323,28 +328,52 @@ elif [ "${PARTITION_LAYOUT}" == "br" ]; then
     ROOT_PARTITION="${DSK}2"
 fi
 
-# Uncomment the multilib repo on the install ISO
-if [ `uname -m` == "x86_64" ]; then
-    sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
-fi
-
 # Base system
 BASE_SYSTEM="base base-devel sudo syslinux wget"
 pacstrap -c /mnt ${BASE_SYSTEM}
+
+# Prevent unwanted cache purges
+#  - https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
+sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' /mnt/etc/pacman.conf
+
+# Uncomment the multilib repo on the install ISO and the target
+if [ `uname -m` == "x86_64" ]; then
+    sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
+    sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /mnt/etc/pacman.conf
+fi
+
+# Install multilib-devel
+if [ `uname -m` == "x86_64" ]; then
+    echo "
+Y
+Y
+Y
+Y
+Y" | pacstrap -c -i /mnt multilib-devel
+fi
+
+# Install extra packages
+if [ ${MINIMAL} -eq 0 ]; then
+    pacstrap -c /mnt `cat extra-packages.txt`
+fi
+
+# Unmount /sys in the target
+umount /mnt/sys/fs/cgroup/{systemd,}
+umount /mnt/sys
 
 # Members of the 'wheel' group are sudoers
 sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /mnt/etc/sudoers
 
 # Create the fstab, based on disk labels.
 genfstab -L /mnt >> /mnt/etc/fstab
+sed -i 's/relatime/noatime/' /mnt/etc/fstab
+if [ -n "${NFS_CACHE}" ]; then
+    echo "${NFS_CACHE} /var/cache/pacman/pkg nfs noauto,x-systemd.automount 0 0" >> /mnt/etc/fstab
+fi
 
 # Configure the hostname.
 #arch-chroot /mnt hostnamectl set-hostname --static ${FQDN}
 echo "${FQDN}" > /mnt/etc/hostname
-
-# Prevent unwanted cache purges
-#  - https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
-sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' /mnt/etc/pacman.conf
 
 # Configure timezone and hwclock
 echo "${TIMEZONE}" > /mnt/etc/timezone
@@ -362,6 +391,12 @@ echo LANG=${LANG}             >   /mnt/etc/locale.conf
 echo LC_COLLATE=${LC_COLLATE} >>  /mnt/etc/locale.conf
 arch-chroot /mnt locale-gen
 
+# Configure mDNS
+sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /mnt/etc/nsswitch.conf
+
+# Configure Chrony
+sed -i 's/! server ntp.public-server.org/server uk.pool.ntp.org/' /mnt/etc/chrony.conf
+
 # Configure SYSLINUX
 wget --quiet http://projects.archlinux.org/archiso.git/plain/configs/releng/syslinux/splash.png -O /mnt/boot/syslinux/splash.png
 sed -i 's/UI menu.c32/#UI menu.c32/' /mnt/boot/syslinux/syslinux.cfg
@@ -369,7 +404,6 @@ sed -i 's/#UI vesamenu.c32/UI vesamenu.c32/' /mnt/boot/syslinux/syslinux.cfg
 sed -i 's/#MENU BACKGROUND/MENU BACKGROUND/' /mnt/boot/syslinux/syslinux.cfg
 # Correct the root parition configuration
 sed -i "s/sda3/${ROOT_PARTITION}/g" /mnt/boot/syslinux/syslinux.cfg
-
 # Make the menu look pretty
 cat >>/mnt/boot/syslinux/syslinux.cfg<<ENDSYSMENU
 MENU WIDTH 78
@@ -398,62 +432,7 @@ if [ $? -eq 0 ]; then
     echo "acpi-cpufreq" > /mnt/etc/modules-load.d/cpufreq.conf
 fi
 
-# Uncomment the multilib repo in the target
-if [ `uname -m` == "x86_64" ]; then
-    sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /mnt/etc/pacman.conf
-fi
-
-# If a full install is selected build the list of packages and install them.
-if [ ${MINIMAL} -eq 0 ]; then
-    # Create a list of package from the install ISO
-    # Exclude `gcc-libs` because it is either already installed or will break
-    # `multilib-devel`.
-    pacman -Qqe | grep -v gcc-libs > /mnt/usr/local/etc/base-packages.txt
-
-    #Add my essential packages to the base-packages.
-    cat >>/mnt/usr/local/etc/base-packages.txt<<'ENDMYPACKAGES'
-abs
-arj
-avahi
-bash-completion
-bzr
-ca-certificates
-cabextract
-cifs-utils
-chrony
-colordiff
-cvs
-dbus
-devtools
-git
-dmidecode
-hexedit
-htop
-hub
-lesspipe
-lzop
-mercurial
-namcap
-nss-mdns
-openssh
-p7zip
-powertop
-python2-paramiko
-rpmextract
-screen
-sharutils
-source-highlight
-subversion
-tree
-unace
-unrar
-unzip
-uudeview
-wpa_supplicant
-zip
-ENDMYPACKAGES
-
-    cat >/mnt/usr/local/bin/base-installer.sh<<'ENDOFSCRIPT'
+cat >/mnt/usr/local/bin/base-installer.sh<<'ENDOFSCRIPT'
 #!/bin/bash
 
 # Install packer
@@ -464,38 +443,22 @@ cd packer
 makepkg --asroot -s --noconfirm
 pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`
 
-# Install base packages
-pacman -Syy --noconfirm --needed `sort /usr/local/etc/base-packages.txt`
-
-# Install multilib-devel
-if [ `uname -m` == "x86_64" ]; then
-    echo "
-Y
-Y
-Y
-Y
-Y" | pacman -S --needed multilib-devel
-fi
-
 # Install pacman-color
 packer -S --noconfirm --noedit pacman-color
 ENDOFSCRIPT
 
-    # Enter the chroot and complete the install.
-    chmod +x /mnt/usr/local/bin/base-installer.sh
-    arch-chroot /mnt /usr/local/bin/base-installer.sh
-    sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /mnt/etc/nsswitch.conf
-    sed -i 's/! server ntp.public-server.org/server uk.pool.ntp.org/' /mnt/etc/chrony.conf
-    arch-chroot /mnt systemctl start sshdgenkeys.service
-    arch-chroot /mnt systemctl enable cronie.service
-    arch-chroot /mnt systemctl enable chrony.service
-    arch-chroot /mnt systemctl enable avahi-daemon.service
-    arch-chroot /mnt systemctl enable sshd.service
-    arch-chroot /mnt systemctl enable rpc-statd.service
-    # Enable these removals when everything is stable.
-    #rm /mnt/usr/local/bin/base-installer.sh
-    #rm /mnt/usr/local/etc/base-packages.txt
-fi
+# Enter the chroot and complete the install.
+chmod +x /mnt/usr/local/bin/base-installer.sh
+arch-chroot /mnt /usr/local/bin/base-installer.sh
+arch-chroot /mnt systemctl start sshdgenkeys.service
+arch-chroot /mnt systemctl enable cronie.service
+arch-chroot /mnt systemctl enable chrony.service
+arch-chroot /mnt systemctl enable avahi-daemon.service
+arch-chroot /mnt systemctl enable sshd.service
+arch-chroot /mnt systemctl enable rpc-statd.service
+# Enable these removals when everything is stable.
+#rm /mnt/usr/local/bin/base-installer.sh
+#rm /mnt/usr/local/etc/base-packages.txt
 
 # Rebuild init and enable SYSLINUX
 arch-chroot /mnt mkinitcpio -p linux
@@ -537,9 +500,17 @@ if [ ${MINIMAL} -eq 0 ]; then
     cp /tmp/dot-files/.bash_logout /mnt/root/.bash_logout
 fi
 
+if [ -n "${NFS_CACHE}" ]; then
+    umount /var/cache/pacman/pkg
+fi
+
 # Unmount
 sync
 if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
     umount /mnt/home
 fi
+umount /mnt/sys/fs/cgroup/{systemd,}
+umount /mnt/sys
 umount /mnt/{boot,}
+
+echo "All done!"
