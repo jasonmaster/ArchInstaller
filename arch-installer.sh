@@ -31,8 +31,7 @@
 #     -         http://www.kubuntuforums.net/showthread.php?57279-How-to-Enable-power-management-features
 #     -         http://www.phoronix.com/scan.php?page=article&item=intel_i915_power&num=1
 #   http://blog.burntsushi.net/lenovo-thinkpad-t430-archlinux
-# - UEFI boot.
-#   I have no UEFI systems to test this.
+# - UEFI boot - I have no UEFI systems to test this.
 
 BASE_GROUPS="adm,audio,disk,lp,optical,storage,video,games,power,scanner"
 DSK=""
@@ -87,7 +86,7 @@ function usage() {
     echo
     echo "All users are added to the following groups:"
     echo
-    echo " - ${GROUPS}"
+    echo " - ${BASE_GROUPS}"
     echo
     exit 1
 }
@@ -133,7 +132,7 @@ if [ "${PARTITION_TYPE}" != "msdos" ] && [ "${PARTITION_TYPE}" != "gpt" ]; then
 fi
 
 if [ -z "${PASSWORD}" ]; then
-    echo "ERROR! The 'root' password has not been set."
+    echo "ERROR! The 'root' password has not been provided."
     echo " - See `basename ${0}` -h"
     exit 1
 fi
@@ -150,45 +149,18 @@ if [ ! -f /usr/share/zoneinfo/${TIMEZONE} ]; then
     exit 1
 fi
 
-if [ -n "${NFS_CACHE}" ]; then
-    echo "Starting rpc.statd..."
-    systemctl start rpc-statd.service
-    echo "Mounting ${NFS_CACHE}..."
-    mount -t nfs ${NFS_CACHE} /var/cache/pacman/pkg
-    if [ $? -ne 0 ]; then
-        echo "ERROR! Unable to mount ${NFS_CACHE}"
-        echo " - See `basename ${0}` -h"
-        exit 1
-    fi
-    
-    touch /var/cache/pacman/pkg/cache.test 2>/dev/null
-    if [ $? -ne 0 ]; then
-        echo "ERROR! The NFS cache you have choosen, ${NFS_CACHE}, is read-only."
-        exit 1
-    else
-        rm /var/cache/pacman/pkg/cache.test 2>/dev/null     
-    fi
-fi
-
 LANG_TEST=`grep ${LANG} /etc/locale.gen`
 if [ $? -ne 0 ]; then
     echo "ERROR! The language you specified, '${LANG}', is not recognised."
-    echo " * https://wiki.archlinux.org/index.php/Locale"
-    usage
+    echo " - See https://wiki.archlinux.org/index.php/Locale"
+    exit 1
 fi
 
 KEYMAP_TEST=`ls -1 /usr/share/kbd/keymaps/*/*/*${KEYMAP}*`
 if [ $? -ne 0 ]; then
     echo "ERROR! The keyboard mapping you specified, '${KEYMAP}', is not recognised."
-    echo "  * https://wiki.archlinux.org/index.php/KEYMAP"
-    usage
-fi
-
-if [ ! -f users.csv ]; then
-    echo "################################################################################"
-    echo "# WARNING! There is no 'users.csv' file. Exit now if you meant to provide one. #"
-    echo "################################################################################"
-    sleep 5
+    echo " - See https://wiki.archlinux.org/index.php/KEYMAP"
+    exit 1
 fi
 
 # Detect the CPU
@@ -199,13 +171,34 @@ if [ "${CPU}" != "i686" ] && [ "${CPU}" != "x86_64" ]; then
     exit 1
 fi
 
+if [ -n "${NFS_CACHE}" ]; then
+    echo "Starting rpc.statd..."
+    systemctl start rpc-statd.service
+    echo "Mounting ${NFS_CACHE}..."
+    mount -t nfs ${NFS_CACHE} /var/cache/pacman/pkg
+    if [ $? -ne 0 ]; then
+        echo "ERROR! Unable to mount ${NFS_CACHE}"
+        echo " - See `basename ${0}` -h"
+        exit 1
+    fi
+
+    # Make sure the cache is writeable
+    touch /var/cache/pacman/pkg/cache.test 2>/dev/null
+    if [ $? -ne 0 ]; then
+        echo "ERROR! The NFS cache, ${NFS_CACHE}, is read-only."
+        exit 1
+    else
+        rm /var/cache/pacman/pkg/cache.test 2>/dev/null
+    fi
+fi
+
 if [ "${HOSTNAME}" != "archiso" ]; then
     echo "PARACHUTE DEPLOYED! This script is not running from the Arch Linux install media."
     echo " * Exitting now to prevent untold chaos."
     exit 1
 fi
 
-# Load the keymap, remove the PC speaker module.
+# Load the keymap, remove the PC speaker module. Silence is golden.
 loadkeys -q ${KEYMAP}
 rmmod -s pcspkr 2>/dev/null
 
@@ -329,7 +322,7 @@ elif [ "${PARTITION_LAYOUT}" == "br" ]; then
 fi
 
 # Base system
-BASE_SYSTEM="base base-devel sudo syslinux wget"
+BASE_SYSTEM="base base-devel syslinux wget"
 pacstrap -c /mnt ${BASE_SYSTEM}
 
 # Prevent unwanted cache purges
@@ -342,34 +335,9 @@ if [ `uname -m` == "x86_64" ]; then
     sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /mnt/etc/pacman.conf
 fi
 
-# Install multilib-devel
-if [ `uname -m` == "x86_64" ]; then
-    echo "
-Y
-Y
-Y
-Y
-Y" | pacstrap -c -i /mnt multilib-devel
-fi
-
-# Install extra packages
-if [ ${MINIMAL} -eq 0 ]; then
-    pacstrap -c /mnt `cat extra-packages.txt`
-fi
-
-# Unmount /sys in the target
-umount /mnt/sys/fs/cgroup/{systemd,}
-umount /mnt/sys
-
-# Members of the 'wheel' group are sudoers
-sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /mnt/etc/sudoers
-
 # Create the fstab, based on disk labels.
 genfstab -L /mnt >> /mnt/etc/fstab
 sed -i 's/relatime/noatime/' /mnt/etc/fstab
-if [ -n "${NFS_CACHE}" ]; then
-    echo "${NFS_CACHE} /var/cache/pacman/pkg nfs noauto,x-systemd.automount 0 0" >> /mnt/etc/fstab
-fi
 
 # Configure the hostname.
 #arch-chroot /mnt hostnamectl set-hostname --static ${FQDN}
@@ -390,12 +358,6 @@ sed -i "s/#${LANG}/${LANG}/" /mnt/etc/locale.gen
 echo LANG=${LANG}             >   /mnt/etc/locale.conf
 echo LC_COLLATE=${LC_COLLATE} >>  /mnt/etc/locale.conf
 arch-chroot /mnt locale-gen
-
-# Configure mDNS
-sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /mnt/etc/nsswitch.conf
-
-# Configure Chrony
-sed -i 's/! server ntp.public-server.org/server uk.pool.ntp.org/' /mnt/etc/chrony.conf
 
 # Configure SYSLINUX
 wget --quiet http://projects.archlinux.org/archiso.git/plain/configs/releng/syslinux/splash.png -O /mnt/boot/syslinux/splash.png
@@ -432,44 +394,54 @@ if [ $? -eq 0 ]; then
     echo "acpi-cpufreq" > /mnt/etc/modules-load.d/cpufreq.conf
 fi
 
-cat >/mnt/usr/local/bin/base-installer.sh<<'ENDOFSCRIPT'
-#!/bin/bash
-
-# Install packer
-wget https://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz
-cd /usr/local/src
-tar zxvf packer.tar.gz
-cd packer
-makepkg --asroot -s --noconfirm
-pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`
-
-# Install pacman-color
-packer -S --noconfirm --noedit pacman-color
-ENDOFSCRIPT
-
-# Enter the chroot and complete the install.
-chmod +x /mnt/usr/local/bin/base-installer.sh
-arch-chroot /mnt /usr/local/bin/base-installer.sh
-arch-chroot /mnt systemctl start sshdgenkeys.service
-arch-chroot /mnt systemctl enable cronie.service
-arch-chroot /mnt systemctl enable chrony.service
-arch-chroot /mnt systemctl enable avahi-daemon.service
-arch-chroot /mnt systemctl enable sshd.service
-arch-chroot /mnt systemctl enable rpc-statd.service
-# Enable these removals when everything is stable.
-#rm /mnt/usr/local/bin/base-installer.sh
-#rm /mnt/usr/local/etc/base-packages.txt
-
-# Rebuild init and enable SYSLINUX
-arch-chroot /mnt mkinitcpio -p linux
-arch-chroot /mnt /usr/sbin/syslinux-install_update -iam
-
-# Grab my dot files and populate /etc/skel
+# Install and configure the extra packages
 if [ ${MINIMAL} -eq 0 ]; then
+    # Install multilib-devel
+    if [ `uname -m` == "x86_64" ]; then
+    echo "
+Y
+Y
+Y
+Y
+Y" | pacstrap -c -i /mnt multilib-devel
+    fi
+
+    pacstrap -c /mnt `cat extra-packages.txt`
+
+    # Unmount /sys in the target
+    umount /mnt/sys/fs/cgroup/{systemd,}
+    umount /mnt/sys
+
+    # Configure mDNS
+    sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /mnt/etc/nsswitch.conf
+    # Configure Chrony
+    sed -i 's/! server ntp.public-server.org/server uk.pool.ntp.org/' /mnt/etc/chrony.conf
+    # Members of the `wheel` group are sudoers.
+    sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /mnt/etc/sudoers
+    arch-chroot /mnt systemctl start sshdgenkeys.service
+    arch-chroot /mnt systemctl enable chrony.service
+    arch-chroot /mnt systemctl enable avahi-daemon.service
+    arch-chroot /mnt systemctl enable sshd.service
+    arch-chroot /mnt systemctl enable rpc-statd.service
+
+    # Install `packer` and `pacman-color`.
+    cp packer-installer.sh /mnt/usr/local/bin/packer-installer.sh
+    chmod +x /mnt/usr/local/bin/packer-installer.sh
+    arch-chroot /mnt /usr/local/bin/packer-installer.sh
+    rm /mnt/usr/local/bin/packer-installer.sh
+
+    # Grab my dot files, populate `/etc/skel` and configure the root user.
     git clone https://github.com/flexiondotorg/dot-files.git /tmp/dot-files
     cp /tmp/dot-files/.bashrc /mnt/etc/skel/.bashrc
     cp /tmp/dot-files/.bash_logout /mnt/etc/skel/.bash_logout
+    cp /tmp/dot-files/.bashrc /mnt/root/.bashrc
+    cp /tmp/dot-files/.bash_logout /mnt/root/.bash_logout
 fi
+
+# Rebuild init and update SYSLINUX
+arch-chroot /mnt systemctl enable cronie.service
+arch-chroot /mnt mkinitcpio -p linux
+arch-chroot /mnt /usr/sbin/syslinux-install_update -iam
 
 # Provision accounts if there is a `users.csv` file.
 if [ -f users.csv ]; then
@@ -492,20 +464,16 @@ if [ -f users.csv ]; then
     done
 fi
 
-# Change root password and configure the dot files.
+# Change root password.
 PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
 arch-chroot /mnt usermod --password ${PASSWORD_CRYPT} root
-if [ ${MINIMAL} -eq 0 ]; then
-    cp /tmp/dot-files/.bashrc /mnt/root/.bashrc
-    cp /tmp/dot-files/.bash_logout /mnt/root/.bash_logout
-fi
-
-if [ -n "${NFS_CACHE}" ]; then
-    umount /var/cache/pacman/pkg
-fi
 
 # Unmount
 sync
+if [ -n "${NFS_CACHE}" ]; then
+    echo "${NFS_CACHE} /var/cache/pacman/pkg nfs noauto,x-systemd.automount 0 0" >> /mnt/etc/fstab
+    umount /var/cache/pacman/pkg
+fi
 if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
     umount /mnt/home
 fi
