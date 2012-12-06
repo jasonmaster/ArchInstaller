@@ -129,8 +129,8 @@ check_vga() {
                 VIDEO_KERNEL="radeon"
                 VIDEO_ACCEL=""
             else
-                cecho unknown
-                VIDEO_DRIVER=""
+                cecho VESA
+                VIDEO_DRIVER="vesa"
                 VIDEO_KERNEL=""
                 VIDEO_ACCEL=""
             fi

@@ -382,10 +382,7 @@ ENDSYSMENU
 echo "export EDITOR=nano" >> /mnt/etc/profile
 
 # Disable pcspeaker
-cat >/mnt/etc/modprobe.d/nobeep.conf<<ENDNOBEEP
-# Do not load the pcspkr module on boot
-blacklist pcspkr
-ENDNOBEEP
+echo "blacklist pcspkr" > /mnt/etc/modprobe.d/nobeep.conf
 
 # CPU Frequency scaling
 # - https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling
