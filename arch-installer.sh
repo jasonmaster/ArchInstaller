@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 #TODO
-# - Maybe create an LVM and lob everything in it except for `/boot`.
+# - Add "do nothing" option for partitioning and filesystem creation.
+# - Review CPU detection. Should really just detect what the current kernel is running.
+# - Maybe create an LVM and lob everything in it except for `/boot`?
 # - Consolidate the partitioning.
 # - Detect SSD and TRIM and add `discard` to `/etc/fstab`.
 #   /sys/block/sdX/queue/rotational # 0 = SSD
@@ -11,25 +13,6 @@
 #   https://github.com/helmuthdu/aui
 #   https://github.com/helmuthdu/dotfiles
 #   http://www.winpe.com/page04.html
-# - Get a handle on power management
-#   suspend hook for /dev/mmcblk0
-#     - ATI http://www.x.org/wiki/RadeonFeature#KMS_Power_Management_Options
-#           https://wiki.archlinux.org/index.php/ATI#Powersaving
-#           http://www.overclock.net/t/731469/how-to-power-saving-with-the-radeon-driver
-#           Battery
-#           #!/bin/sh
-#           echo profile > /sys/class/drm/card0/device/power_method
-#           echo mid > /sys/class/drm/card0/device/power_profile
-#           Power
-#           #!/bin/sh
-#           echo profile > /sys/class/drm/card0/device/power_method
-#           echo auto > /sys/class/drm/card0/device/power_profile
-#     - Nouveau http://nouveau.freedesktop.org/wiki/PowerManagement
-#     -         http://ubuntuforums.org/showthread.php?t=1718929
-#     -         http://www.phoronix.com/scan.php?page=article&item=nouveau_reclocking_one&num=1
-#     - Intel
-#     -         http://www.kubuntuforums.net/showthread.php?57279-How-to-Enable-power-management-features
-#     -         http://www.phoronix.com/scan.php?page=article&item=intel_i915_power&num=1
 #   http://blog.burntsushi.net/lenovo-thinkpad-t430-archlinux
 # - UEFI boot - I have no UEFI systems to test this.
 
@@ -427,12 +410,10 @@ Y" | pacstrap -c -i /mnt multilib-devel
     arch-chroot /mnt /usr/local/bin/packer-installer.sh
     rm /mnt/usr/local/bin/packer-installer.sh
 
-    # Grab my dot files, populate `/etc/skel` and configure the root user.
+    # Install my dot files and configure the root user shell.
     git clone https://github.com/flexiondotorg/dot-files.git /tmp/dot-files
-    cp /tmp/dot-files/.bashrc /mnt/etc/skel/.bashrc
-    cp /tmp/dot-files/.bash_logout /mnt/etc/skel/.bash_logout
-    cp /tmp/dot-files/.bashrc /mnt/root/.bashrc
-    cp /tmp/dot-files/.bash_logout /mnt/root/.bash_logout
+    rsync -av /tmp/dot-files/ /mnt/
+    cp /tmp/dot-files/etc/skel/.bash* /mnt/root/
 fi
 
 # Rebuild init and update SYSLINUX
