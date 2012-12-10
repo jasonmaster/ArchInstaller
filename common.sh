@@ -402,6 +402,29 @@ update_early_modules() {
     fi
 }
 
+update_early_hooks() {
+    local NEW_HOOK=${1}
+    local OLD_ARRAY=`egrep ^HOOKS= /etc/mkinitcpio.conf`
+
+    if [ -n "${NEW_HOOK}" ]; then
+        # Determine if the new module is already listed.
+        _EXISTS=`echo ${OLD_ARRAY} | grep ${NEW_HOOK}`
+        if [ $? -eq 1 ]; then
+
+            source /etc/mkinitcpio.conf
+            if [ -z "${HOOKS}" ]; then
+                NEW_HOOKS="${NEW_HOOK}"
+            else
+                NEW_HOOKS="${HOOKS} ${NEW_HOOK}"
+            fi
+            replaceinfile "HOOKS=\"${HOOKS}\"" "MODULES=\"${NEW_HOOKS}\"" /etc/mkinitcpio.conf
+            ncecho " [x] Rebuilding init "
+            mkinitcpio -p linux >>"$log" 2>&1 &
+            pid=$!;progress $pid
+        fi
+    fi
+}
+
 system_ctl () {
     local ACTION=${1}
     local OBJECT=${2}

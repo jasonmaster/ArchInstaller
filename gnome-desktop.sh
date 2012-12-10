@@ -186,11 +186,10 @@ foomatic-filters gutenprint"
 system_ctl enable cups.service
 
 # Dropbox
-packer_install "dropbox"
+packer_install "dropbox dropbox-dark-panel-icons"
 
 # Flash & Java
 pacman_install "nspluginwrapper flashplugin"
-#For 64-bit machines, you'll need to install
 if [ "${CPU}" == "x86_64" ]; then
     packer_install "lib32-flashplugin"
 fi
