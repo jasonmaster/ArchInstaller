@@ -52,17 +52,24 @@ INSTALL_CRYPTO_APPS=0
 INSTALL_BACKUP_APPS=0
 
 # Configure init things
-update_early_modules ${VIDEO_KERNEL}
+update_early_modules ${VIDEO_KMS}
 
 # Xorg
 pacman_install_group "xorg"
 pacman_install_group "xorg-apps"
 
-if [ -n "${VIDEO_DRIVER}" ]; then
-    pacman_install "xf86-video-${VIDEO_DRIVER} ${VIDEO_DRIVER}-dri ${VIDEO_ACCEL}" "${VIDEO_DRIVER}"
+# Install video drivers (Xorg/DRI)
+pacman_install "${VIDEO_XORG}"
+if [ -n "${VIDEO_DRI}" ]; then
+    pacman_install "${VIDEO_DRI}"
     if [ "${CPU}" == "x86_64" ]; then
-        pacman_install "lib32-${VIDEO_DRIVER}-dri"
+        pacman_install "lib32-${VIDEO_DRI}"
     fi
+fi
+
+# Video decoder acceleration (VDPAU, libVA, etc)
+if [ -n "${VIDEO_DECODER}" ]; then
+    pacman_install "${VIDEO_DECODER}"
 fi
 
 #TODO - create /etc/X11/xorg.conf.d/20-radeon.conf

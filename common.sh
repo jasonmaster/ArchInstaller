@@ -108,31 +108,44 @@ check_vga() {
     # Determine video chipset - only Intel, ATI and nvidia are supported by this script"
     ncecho " [x] Detecting video chipset "
     local VGA=`lspci | grep VGA`
-    echo ${VGA} | tr "[:upper:]" "[:lower:]" | grep -q nvidia
+    echo ${VGA} | tr "[:upper:]" "[:lower:]" | grep -q "nvidia"
     if [ $? -eq 0 ]; then
         cecho Nvidia
-        VIDEO_DRIVER="nouveau"
-        VIDEO_KERNEL="nouveau"
-        VIDEO_ACCEL="vdpau-video"
+        VIDEO_DRI="nouveau-dri"
+        VIDEO_XORG="xf86-video-nouveau"
+        VIDEO_KMS="nouveau"
+        VIDEO_DECODER="libva-vdpau-driver"
     else
         echo ${VGA} | tr "[:upper:]" "[:lower:]" | grep -q "intel corporation"
         if [ $? -eq 0 ]; then
             cecho Intel
-            VIDEO_DRIVER="intel"
-            VIDEO_KERNEL="i915"
-            VIDEO_ACCEL="libva-intel-driver"
+            VIDEO_DRI="intel-dri"
+            VIDEO_XORG="xf86-video-intel"
+            VIDEO_KMS="i915"
+            VIDEO_DECODER="libva-intel-driver"
         else
             echo ${VGA} | tr "[:upper:]" "[:lower:]" | grep -q "advanced micro devices"
             if [ $? -eq 0 ]; then
                 cecho AMD/ATI
-                VIDEO_DRIVER="ati"
-                VIDEO_KERNEL="radeon"
-                VIDEO_ACCEL=""
+                VIDEO_DRI="ati-dri"
+                VIDEO_XORG="xf86-video-ati"
+                VIDEO_KMS="radeon"
+                VIDEO_DECODER="libva-vdpau-driver"
             else
-                cecho VESA
-                VIDEO_DRIVER="vesa"
-                VIDEO_KERNEL=""
-                VIDEO_ACCEL=""
+                echo ${VGA} | tr "[:upper:]" "[:lower:]" | grep -q "virtualbox"
+                if [ $? -eq 0 ]; then
+                    cecho VirtualBox
+                    VIDEO_DRI=""
+                    VIDEO_XORG="virtualbox-guest-modules"
+                    VIDEO_KMS="vboxvideo"
+                    VIDEO_DECODER=""
+                else
+                    cecho VESA
+                    VIDEO_DRI=""
+                    VIDEO_XORG="xf86-video-vesa"
+                    VIDEO_KMS=""
+                    VIDEO_DECODER=""                    
+                fi
             fi
         fi
     fi
@@ -379,6 +392,12 @@ wget_install_generic() {
     pid=$!;progress $pid
 }
 
+rebuild_init() {
+    ncecho " [x] Rebuilding init "
+    mkinitcpio -p linux >>"$log" 2>&1 &
+    pid=$!;progress $pid
+}
+
 update_early_modules() {
     local NEW_MODULE=${1}
     local OLD_ARRAY=`egrep ^MODULES= /etc/mkinitcpio.conf`
@@ -395,9 +414,7 @@ update_early_modules() {
                 NEW_MODULES="${MODULES} ${NEW_MODULE}"
             fi
             replaceinfile "MODULES=\"${MODULES}\"" "MODULES=\"${NEW_MODULES}\"" /etc/mkinitcpio.conf
-            ncecho " [x] Rebuilding init "
-            mkinitcpio -p linux >>"$log" 2>&1 &
-            pid=$!;progress $pid
+            rebuild_init            
         fi
     fi
 }
@@ -418,9 +435,7 @@ update_early_hooks() {
                 NEW_HOOKS="${HOOKS} ${NEW_HOOK}"
             fi
             replaceinfile "HOOKS=\"${HOOKS}\"" "MODULES=\"${NEW_HOOKS}\"" /etc/mkinitcpio.conf
-            ncecho " [x] Rebuilding init "
-            mkinitcpio -p linux >>"$log" 2>&1 &
-            pid=$!;progress $pid
+            rebuild_init
         fi
     fi
 }
