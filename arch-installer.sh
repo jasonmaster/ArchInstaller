@@ -24,8 +24,14 @@ TIMEZONE="Europe/London"
 KEYMAP="uk"
 LANG="en_GB.UTF-8"
 LC_COLLATE="C"
-FONT="alt-8x14"
-FONTMAP="8859-14_to_uni"
+
+# Read the following to understand how to tweak the FONT and FONTMAP settings.
+#  - https://wiki.archlinux.org/index.php/Fonts#Console_fonts
+#  - http://en.wikipedia.org/wiki/ISO/IEC_8859
+#  - http://alexandre.deverteuil.net/consolefonts/consolefonts.html
+FONT="ter-116b"
+FONT_MAP="8859-1_to_uni"
+
 PASSWORD=""
 FS="ext4" #or xfs are the only supported options right now.
 PARTITION_TYPE="msdos"
@@ -305,7 +311,7 @@ elif [ "${PARTITION_LAYOUT}" == "br" ]; then
 fi
 
 # Base system
-BASE_SYSTEM="base base-devel syslinux wget"
+BASE_SYSTEM="base base-devel syslinux terminus-font wget"
 pacstrap -c /mnt ${BASE_SYSTEM}
 
 # Prevent unwanted cache purges
@@ -335,6 +341,7 @@ arch-chroot /mnt hwclock --systohc --utc
 echo KEYMAP=${KEYMAP}     >  /mnt/etc/vconsole.conf
 echo FONT=${FONT}         >> /mnt/etc/vconsole.conf
 echo FONT_MAP=${FONT_MAP} >> /mnt/etc/vconsole.conf
+sed -i 's/filesystems usbinput fsck"/filesystems usbinput fsck consolefont keymap"/' /mnt/etc/mkinitcpio.conf
 
 # Configure locale
 sed -i "s/#${LANG}/${LANG}/" /mnt/etc/locale.gen
@@ -418,6 +425,7 @@ fi
 
 # Rebuild init and update SYSLINUX
 arch-chroot /mnt systemctl enable cronie.service
+
 arch-chroot /mnt mkinitcpio -p linux
 arch-chroot /mnt /usr/sbin/syslinux-install_update -iam
 
