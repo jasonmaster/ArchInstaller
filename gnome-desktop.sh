@@ -48,9 +48,12 @@ INSTALL_BACKUP_APPS=0
 # Configure init things
 update_early_modules ${VIDEO_KMS}
 
+# Make sure all the required packages are installed.
+pacman_install "`cat extra-packages.txt`"
+
 # pm-utils gets pulled in by `gnome` anyway. But I require it now so I can
 # disable the `power.d` scripts ;-)
-pacman_install "laptop-detect pm-utils"
+pacman_install "pm-utils"
 
 # Laptop Mode Tools
 #  - https://wiki.archlinux.org/index.php/Laptop_Mode_Tools

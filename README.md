@@ -79,7 +79,6 @@ that is already present, so subsequent runs are quicker.
   * Detect locale for dictionaries in `gnome-desktop.sh`.
   * Refactor `arch-installer.sh`  to use `common.sh`.
   * Add installation profiles to `gnome-desktop.sh`.
-  * `gnome-desktop.sh` should install `extra-packages.txt`.
   * Maybe add "do nothing" option for partitioning and filesystem creation.
   * Review CPU detection. Just detect what the current kernel is running.
   * Maybe create an LVM and lob everything in it except for `/boot`?

@@ -120,6 +120,7 @@ syslinux
 systemd-sysvcompat
 tar
 tcpdump
+terminus-font
 testdisk
 texinfo
 tree
