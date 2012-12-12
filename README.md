@@ -122,14 +122,24 @@ Power management is fairly complete right now, but the following still needs
 attention.
 
   * Suspend hook for `/dev/mmcblk0`
+  * SATA ALPM is disabled by `gnome-desktop.sh` due to the risk of data corruption.
+    * Maybe whitelist know safe SATA controller.
+    * https://bugs.launchpad.net/ubuntu/+source/linux/+bug/539467
+    * https://wiki.ubuntu.com/Kernel/PowerManagementALPM
+  * Install the `tp_smapi` module on the Thinkpad.
+    * https://wiki.archlinux.org/index.php/Tp_smapi
   * Investigate `acpi_backlight=vendor` on the Thinkpad.
-  * Test `tlp` on the Thinkpad.
+  * Disable CRT, DVI and S-video output on the Thinkpad.
+    * `echo crt_disable > /proc/acpi/ibm/video`
+    * `echo dvi_disable > /proc/acpi/ibm/video`
   * Active State Power Management - fixed since kernel 3.4.
-    * Still requires the `pcie_aspm=force` kernel option is set before the
-`pcie_aspm` parameters can be tuned.
-    * `echo powersave > /sys/module/pcie_aspm/parameters/policy` On Battery.
-    * `echo default > /sys/module/pcie_aspm/parameters/policy` On AC.
+    * Still requires the `pcie_aspm=force` kernel option is set.
+    * https://bbs.archlinux.org/viewtopic.php?id=120640
+    * http://smackerelofopinion.blogspot.co.uk/2011/03/making-sense-of-pcie-aspm.html
     * http://crunchbang.org/forums/viewtopic.php?id=23445
+    * I've submitted a pull request to `laptop-mode-tools`.
+      * https://github.com/rickysarraf/laptop-mode-tools/pull/7
+    * `TLP` has this capability.
   * Intel i915 power management, see below.
   * Nouveau power management, see below.
   * Blacklist or unload `pcmcia` and `yenta_socket` kernel modules.
@@ -173,6 +183,9 @@ Also create a sensible `/etc/X11/xorg.conf.d/20-radeon.conf`. Options for consid
             Option  "AccelDFS"              "on"  #default is off, read the radeon manpage for more information
     EndSection
 
+Enable Hyper-Z. For the pre-R500 hardware, the support can be easily enabled
+at this time through setting the `RADEON_HYPERZ` environment variable.
+
 #### Nouveau
 
 Not done yet.
@@ -191,18 +204,28 @@ Not done yet.
 
     i915.i915_enable_rc6=1 i915.i915_enable_fbc=1 i915.lvds_downclock=1 i915.semaphores=1
 
-Use this to detect i915 capable cards.
+Use this to detect i915 capable cards?
 
     cat /sys/kernel/debug/dri/0/i915_capabilities
 
 ### Alternatives
 
-Evaluate [Powerdown](https://github.com/taylorchu/powerdown) to see if it is a
-viable alternative to `laptop-mode-tools`. Currently not keen as it replaces
-`pm-utils` which is required by GNOME and Powerdown doesn't have the depth of
-support for suspend/resume operation that `pm-utils` does. Still interesting
-though.
+[TLP](http://linrunner.de/en/tlp/tlp.html) looks like it could be a suitable
+alternaive to `laptop-mode-tools`. It appears to cover the same functionality
+as `laptop-mode-tools` but includes some additional features, such as Thinkpad
+specific stuff and Radeon power profiles.
 
+  * https://github.com/linrunner/TLP
+  * https://wiki.archlinux.org/index.php/TLP
+  * https://aur.archlinux.org/packages.php?ID=48464
+
+[Powerdown](https://github.com/taylorchu/powerdown) could be a viable
+alternative to `laptop-mode-tools`, but it replaces `pm-utils` when instaled
+from the AUR. `pm-utils` which is required by GNOME and Powerdown doesn't have
+the depth of support for suspend/resume operations that `pm-utils` does. Still
+interesting though.
+
+  * https://github.com/taylorchu/powerdown
   * https://wiki.archlinux.org/index.php/Powerdown
   * https://aur.archlinux.org/packages/powerdown/
 
