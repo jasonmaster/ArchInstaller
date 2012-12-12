@@ -10,7 +10,6 @@ bzip2
 bzr
 ca-certificates
 cabextract
-chrony
 cifs-utils
 colordiff
 coreutils
@@ -86,6 +85,7 @@ nss-mdns
 nss-myhostname
 ntfs-3g
 ntfsprogs
+ntp
 openssh
 openssh
 p7zip

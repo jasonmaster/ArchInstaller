@@ -181,8 +181,8 @@ if [ $? -eq 0 ]; then
     add_user_to_group ${SUDO_USER} vboxsf
 
     # Synchronise date/time to the host
-    system_ctl stop chrony.service
-    system_ctl disable chrony.service
+    system_ctl stop ntpd.service
+    system_ctl disable ntpd.service
     system_ctl enable vboxservice
     system_ctl start vboxservice
 fi

@@ -90,8 +90,6 @@ that is already present, so subsequent runs are quicker.
     * `sudo hdparm -I /dev/sda | grep "TRIM supported"`
   * Review the links below, see if there is anything I can re-use.
     * https://github.com/helmuthdu/aui
-    * https://github.com/helmuthdu/dotfiles
-    * https://github.com/taylorchu/sai
     * http://www.winpe.com/page04.html
     * http://blog.burntsushi.net/lenovo-thinkpad-t430-archlinux
   * UEFI boot - I don't have any UEFI systems to test.

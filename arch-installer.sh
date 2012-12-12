@@ -382,12 +382,10 @@ Y" | pacstrap -c -i /mnt multilib-devel
 
     # Configure mDNS
     sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /mnt/etc/nsswitch.conf
-    # Configure Chrony
-    sed -i 's/! server ntp.public-server.org/server uk.pool.ntp.org/' /mnt/etc/chrony.conf
     # Members of the `wheel` group are sudoers.
     sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /mnt/etc/sudoers
     arch-chroot /mnt systemctl start sshdgenkeys.service
-    arch-chroot /mnt systemctl enable chrony.service
+    arch-chroot /mnt systemctl enable ntpd.service
     arch-chroot /mnt systemctl enable avahi-daemon.service
     arch-chroot /mnt systemctl enable sshd.service
     arch-chroot /mnt systemctl enable rpc-statd.service
