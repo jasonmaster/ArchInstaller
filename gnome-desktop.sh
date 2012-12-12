@@ -257,7 +257,7 @@ if [ ${INSTALL_GENERAL_DEVELOPMENT} -eq 1 ]; then
     python-virtualenvwrapper"
 
     pacman_install "meld poedit pygtksourceview2"
-    packer_install "kiki-re retext sqlite-manager winpdb wxhexeditor"
+    packer_install "bzr-fastimport kiki-re retext sqlite-manager winpdb wxhexeditor"
     packer_install "upslug2"
 
     # Gedit
@@ -281,6 +281,7 @@ fi
 if [ ${INSTALL_GOOGLE_EARTH} -eq 1 ]; then
     packer_install "ld-lsb"
     packer_install "google-earth"
+    # TODO - Remove thsi work around when bugs in current version are fixed.
     if [ -f /etc/fonts/conf.d/65-fonts-persian.conf ]; then
         mv /etc/fonts/conf.d/65-fonts-persian.conf /etc/fonts/conf.d/65-fonts-persian.conf.breaks-google-earth
     fi
@@ -335,7 +336,7 @@ if [ ${INSTALL_MUSIC_APPS} -eq 1 ]; then
     pacman_install "picard chromaprint libdiscid"
     packer_install "picard-plugins google-musicmanager nuvolaplayer"
 
-    # FIXME
+    # TODO
     #  - Do this for all users
     # Use the 'standard' preset by default. This preset should generally be
     # transparent to most people on most music and is already quite high in quality.
@@ -394,7 +395,7 @@ fi
 if [ ${INSTALL_DOWNLOAD_APPS} -eq 1 ]; then
     pacman_install "clamz filezilla ncftp nfoview terminus-font transmission-gtk tucan"
 
-    # FIXME - do this for all users
+    # TODO - do this for all users
     # Update transmission config
     if [ -f /home/${SUDO_USER}/.config/transmission/settings.json ]; then
         replaceinfile '"blocklist-enabled": false' '"blocklist-enabled": true' /home/${SUDO_USER}/.config/transmission/settings.json
@@ -419,7 +420,7 @@ if [ ${INSTALL_WINE} -eq 1 ]; then
 fi
 
 # Crypto
-if [ ${INSTALL_WINE} -eq 1 ]; then
+if [ ${INSTALL_CRYPTO_APPS} -eq 1 ]; then
     pacman_install "truecrypt"
     packer_install "pocket"
 fi
