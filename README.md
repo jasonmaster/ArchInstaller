@@ -70,8 +70,13 @@ that is already present, so subsequent runs are quicker.
 
 # TODO
 
+  * Is it possible to *consistently* detect graphics cards via
+  `/sys/kernel/debug/dri/0/name`
+    * Fall back to `lspci` for VirtualBox.
   * Unify changes to users home directory for all users.
-  * Detect locale for spelling etc.
+  * Is `upowerd` the cause of resume problems on the Thinkpad? Should I be
+  using `acpid` as well?
+  * Detect locale for dictionaries in `gnome-desktop.sh`.
   * Refactor `arch-installer.sh`  to use `common.sh`.
   * Add installation profiles to `gnome-desktop.sh`.
   * `gnome-desktop.sh` should install `extra-packages.txt`.
@@ -86,32 +91,55 @@ that is already present, so subsequent runs are quicker.
   * Review the links below, see if there is anything I can re-use.
     * https://github.com/helmuthdu/aui
     * https://github.com/helmuthdu/dotfiles
+    * https://github.com/taylorchu/sai
     * http://www.winpe.com/page04.html
     * http://blog.burntsushi.net/lenovo-thinkpad-t430-archlinux
-  * UEFI boot - I have no UEFI systems to test this. Wait for UEFI dupport in SYSLINUX.
+  * UEFI boot - I don't have any UEFI systems to test.
+    * Wait for UEFI dupport in SYSLINUX.
 
 ## Power Management
+
+At some point I want these scripts to provision an Arch Linux system with a
+ready to run power management configuration.
 
 The following are useful sources of reference.
 
   * http://kernel.ubuntu.com/~cking/power-benchmarking/
   * http://crunchbang.org/forums/viewtopic.php?id=11954
   * http://crunchbang.org/forums/viewtopic.php?id=23456
-  * https://github.com/Unia/Powersave
+  * https://bbs.archlinux.org/viewtopic.php?id=134109
+  * http://www.thinkwiki.org/wiki/How_to_reduce_power_consumption
+  * http://linrunner.de/en/tlp/docs/tlp-faq.html
 
-I've opted to use `laptop-mode-tools` for power management as it provides a
-comprehensive collection of power management scripts. `pm-utils` is still being
-used for suspend/hibernate and resume functions, but its `power.d` scripts are
-disabled by `gnome-desktop.sh`.
+Currently I've opted to use `laptop-mode-tools` for power management as it
+provides a comprehensive collection of power management scripts. `pm-utils` is
+still being used for suspend/hibernate and resume functions, but its `power.d`
+scripts are disabled by `gnome-desktop.sh`.
+
+### Power Management TODO
 
 Power management is fairly complete right now, but the following still needs
 attention.
 
-  * suspend hook for `/dev/mmcblk0`
-  * Intel i915 power management.
-  * Nouveau power management.
+  * Suspend hook for `/dev/mmcblk0`
+  * Investigate `acpi_backlight=vendor` on the Thinkpad.
+  * Test `tlp` on the Thinkpad.
+  * Active State Power Management - fixed since kernel 3.4.
+    * Still requires the `pcie_aspm=force` kernel option is set before the
+`pcie_aspm` parameters can be tuned.
+    * `echo powersave > /sys/module/pcie_aspm/parameters/policy` On Battery.
+    * `echo default > /sys/module/pcie_aspm/parameters/policy` On AC.
+    * http://crunchbang.org/forums/viewtopic.php?id=23445
+  * Intel i915 power management, see below.
+  * Nouveau power management, see below.
+  * Blacklist or unload `pcmcia` and `yenta_socket` kernel modules.
+  * Check if kernel option `threadirqs` is available and if it helps reduce power.
+  * Add the following `udisk` rules.
 
-### Radeon
+    KERNEL=="sr0", SUBSYSTEM=="block", ENV{POWER_SUPPLY_ONLINE}=="0", ENV{UDISKS_DISABLE_POLLING}="1"
+    KERNEL=="sr0", SUBSYSTEM=="block", ENV{POWER_SUPPLY_ONLINE}=="1", ENV{UDISKS_DISABLE_POLLING}="0"
+
+#### Radeon
 
 I've implemented Radeon power management via `laptop-mode-tools`.
 
@@ -145,7 +173,7 @@ Also create a sensible `/etc/X11/xorg.conf.d/20-radeon.conf`. Options for consid
             Option  "AccelDFS"              "on"  #default is off, read the radeon manpage for more information
     EndSection
 
-### Nouveau
+#### Nouveau
 
 Not done yet.
 
@@ -153,11 +181,29 @@ Not done yet.
   * http://ubuntuforums.org/showthread.php?t=1718929
   * http://www.phoronix.com/scan.php?page=article&item=nouveau_reclocking_one&num=1
 
-### Intel
+#### Intel
 
 Not done yet.
 
   * http://www.kubuntuforums.net/showthread.php?57279-How-to-Enable-power-management-features
   * http://www.phoronix.com/scan.php?page=article&item=intel_i915_power&num=1
+  * http://www.scribd.com/doc/73071712/Intel-Linux-Graphics
 
-    pcie_aspm=force i915.i915_enable_rc6=1 i915.i915_enable_fbc=1 i915.lvds_downclock=1 i915.semaphores=1
+    i915.i915_enable_rc6=1 i915.i915_enable_fbc=1 i915.lvds_downclock=1 i915.semaphores=1
+
+Use this to detect i915 capable cards.
+
+    cat /sys/kernel/debug/dri/0/i915_capabilities
+
+### Alternatives
+
+Evaluate [Powerdown](https://github.com/taylorchu/powerdown) to see if it is a
+viable alternative to `laptop-mode-tools`. Currently not keen as it replaces
+`pm-utils` which is required by GNOME and Powerdown doesn't have the depth of
+support for suspend/resume operation that `pm-utils` does. Still interesting
+though.
+
+  * https://wiki.archlinux.org/index.php/Powerdown
+  * https://aur.archlinux.org/packages/powerdown/
+
+Take a look at [sysconf](https://bbs.archlinux.org/viewtopic.php?id=144507) too.
