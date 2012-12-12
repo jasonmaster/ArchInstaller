@@ -54,6 +54,54 @@ INSTALL_BACKUP_APPS=0
 # Configure init things
 update_early_modules ${VIDEO_KMS}
 
+# pm-utils gets pulled in by `gnome` anyway. But I require it now so I can
+# disable the `power.d` scripts ;-)
+pacman_install "laptop-detect pm-utils"
+
+# Laptop Mode Tools
+#  - https://wiki.archlinux.org/index.php/Laptop_Mode_Tools
+laptop-detect
+if [ $? -eq 0 ]; then
+    # Disable all the pm-utils power scripts, as I will use laptop-mode-tools to
+    # manage power events.
+    for FILE in /usr/lib/pm-utils/power.d/*
+    do
+         echo "#!/bin/sh"                                   >  /etc/pm/power.d/`basename ${FILE}`
+         echo "echo `basename ${FILE}` skipping && exit 0"  >> /etc/pm/power.d/`basename ${FILE}`
+         chmod +x /etc/pm/power.d/`basename ${FILE}`
+    done
+
+    pacman_install "laptop-mode-tools"
+    # Some SATA chipsets can corrupt data when ALPM is enabled.
+    replaceinfile 'CONTROL_INTEL_SATA_POWER="auto"' 'CONTROL_INTEL_SATA_POWER=0' /etc/laptop-mode/conf.d/intel-sata-powermgmt.conf
+    replaceinfile 'DISABLE_ETHERNET_ON_BATTERY=0' 'DISABLE_ETHERNET_ON_BATTERY=1' /etc/laptop-mode/conf.d/ethernet.conf
+
+    # Is this a Thinkpad? If so, enable brightness control. I can't get this to work
+    # via `lcd_bringhtness.conf` so I'm forcing it in `exec-commands.conf`
+    if [ -w /proc/acpi/ibm/brightness ]; then
+        replaceinfile 'BATT_EXEC_COMMAND_0=""' 'BATT_EXEC_COMMAND_0="echo level 0 > \/proc\/acpi\/ibm\/brightness"' /etc/laptop-mode/conf.d/exec-commands.conf
+        replaceinfile 'LM_AC_EXEC_COMMAND_0=""' 'LM_AC_EXEC_COMMAND_0="echo level 7 > \/proc\/acpi\/ibm\/brightness"' /etc/laptop-mode/conf.d/exec-commands.conf
+        replaceinfile 'NOLM_AC_EXEC_COMMAND_0=""' 'NOLM_AC_EXEC_COMMAND_0="echo level 7 > \/proc\/acpi\/ibm\/brightness"' /etc/laptop-mode/conf.d/exec-commands.conf
+        #replaceinfile 'CONTROL_BRIGHTNESS=0' 'CONTROL_BRIGHTNESS="auto"' /etc/laptop-mode/conf.d/lcd-brightness.conf
+        #replaceinfile 'BATT_BRIGHTNESS_COMMAND="echo \[value\]"' 'BATT_BRIGHTNESS_COMMAND="echo level 0"' /etc/laptop-mode/conf.d/lcd-brightness.conf   
+        #replaceinfile 'LM_AC_BRIGHTNESS_COMMAND="echo \[value\]"' 'LM_AC_BRIGHTNESS_COMMAND="echo level 7"' /etc/laptop-mode/conf.d/lcd-brightness.conf   
+        #replaceinfile 'NOLM_AC_BRIGHTNESS_COMMAND="echo \[value\]"' 'NOLM_AC_BRIGHTNESS_COMMAND="echo level 7"' /etc/laptop-mode/conf.d/lcd-brightness.conf   
+        #replaceinfile 'BRIGHTNESS_OUTPUT="\/proc\/acpi\/video\/VID\/LCD\/brightness"' 'BRIGHTNESS_OUTPUT="\/proc\/acpi\/ibm\/brightness"' /etc/laptop-mode/conf.d/lcd-brightness.conf                   
+    fi
+
+    # Is the radeon power management available?
+    if [ -w /sys/class/drm/card*/device/power_method ] && [ -w /sys/class/drm/card*/device/power_profile ]; then
+        replaceinfile 'BATT_EXEC_COMMAND_1=""' 'BATT_EXEC_COMMAND_1="echo profile > \/sys\/class\/drm\/card*\/device\/power_method"' /etc/laptop-mode/conf.d/exec-commands.conf
+        replaceinfile 'LM_AC_EXEC_COMMAND_1=""' 'LM_AC_EXEC_COMMAND_1="echo profile > \/sys\/class\/drm\/card*\/device\/power_method"' /etc/laptop-mode/conf.d/exec-commands.conf
+        replaceinfile 'NOLM_AC_EXEC_COMMAND_1=""' 'NOLM_AC_EXEC_COMMAND_1="echo profile > \/sys\/class\/drm\/card*\/device\/power_method"' /etc/laptop-mode/conf.d/exec-commands.conf
+        replaceinfile 'BATT_EXEC_COMMAND_2=""' 'BATT_EXEC_COMMAND_2="echo low > \/sys\/class\/drm\/card*\/device\/power_profile"' /etc/laptop-mode/conf.d/exec-commands.conf
+        replaceinfile 'LM_AC_EXEC_COMMAND_2=""' 'LM_AC_EXEC_COMMAND_2="echo auto > \/sys\/class\/drm\/card*\/device\/power_profile"' /etc/laptop-mode/conf.d/exec-commands.conf
+        replaceinfile 'NOLM_AC_EXEC_COMMAND_2=""' 'NOLM_AC_EXEC_COMMAND_2="echo auto > \/sys\/class\/drm\/card*\/device\/power_profile"' /etc/laptop-mode/conf.d/exec-commands.conf
+    fi
+
+    system_ctl enable laptop-mode
+fi
+
 # Xorg
 pacman_install_group "xorg"
 pacman_install_group "xorg-apps"
