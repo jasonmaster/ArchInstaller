@@ -1,21 +1,5 @@
 #!/usr/bin/env bash
 
-#TODO
-# - Add "do nothing" option for partitioning and filesystem creation.
-# - Review CPU detection. Should really just detect what the current kernel is running.
-# - Maybe create an LVM and lob everything in it except for `/boot`?
-# - Consolidate the partitioning.
-# - Detect SSD and TRIM and add `discard` to `/etc/fstab`.
-#   /sys/block/sdX/queue/rotational # 0 = SSD
-#   /sys/block/sda/removable # 0 = not removable
-#   sudo hdparm -I /dev/sda | grep "TRIM supported"
-# - Some good stuff below, check it out
-#   https://github.com/helmuthdu/aui
-#   https://github.com/helmuthdu/dotfiles
-#   http://www.winpe.com/page04.html
-#   http://blog.burntsushi.net/lenovo-thinkpad-t430-archlinux
-# - UEFI boot - I have no UEFI systems to test this.
-
 BASE_GROUPS="adm,audio,disk,lp,optical,storage,video,games,power,scanner"
 DSK=""
 NFS_CACHE=""
@@ -24,14 +8,12 @@ TIMEZONE="Europe/London"
 KEYMAP="uk"
 LANG="en_GB.UTF-8"
 LC_COLLATE="C"
-
 # Read the following to understand how to tweak the FONT and FONTMAP settings.
 #  - https://wiki.archlinux.org/index.php/Fonts#Console_fonts
 #  - http://en.wikipedia.org/wiki/ISO/IEC_8859
 #  - http://alexandre.deverteuil.net/consolefonts/consolefonts.html
 FONT="ter-116b"
 FONT_MAP="8859-1_to_uni"
-
 PASSWORD=""
 FS="ext4" #or xfs are the only supported options right now.
 PARTITION_TYPE="msdos"
@@ -326,7 +308,6 @@ fi
 
 # Create the fstab, based on disk labels.
 genfstab -L /mnt >> /mnt/etc/fstab
-sed -i 's/relatime/noatime/' /mnt/etc/fstab
 
 # Configure the hostname.
 #arch-chroot /mnt hostnamectl set-hostname --static ${FQDN}
@@ -337,7 +318,7 @@ echo "${TIMEZONE}" > /mnt/etc/timezone
 arch-chroot /mnt ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
 arch-chroot /mnt hwclock --systohc --utc
 
-# Configure console and keymap
+# Configure console font and keymap
 echo KEYMAP=${KEYMAP}     >  /mnt/etc/vconsole.conf
 echo FONT=${FONT}         >> /mnt/etc/vconsole.conf
 echo FONT_MAP=${FONT_MAP} >> /mnt/etc/vconsole.conf
@@ -371,8 +352,8 @@ ENDSYSMENU
 # Configure 'nano' as the system default
 echo "export EDITOR=nano" >> /mnt/etc/profile
 
-# Disable pcspeaker
-echo "blacklist pcspkr" > /mnt/etc/modprobe.d/nobeep.conf
+# Disable PC speaker - I hate that thing!
+echo "blacklist pcspkr" > /mnt/etc/modprobe.d/blacklist-pcspkr.conf
 
 # CPU Frequency scaling
 # - https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling

@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
 
-# TODO
-#  - Unify changes to users home directory for all users.
-#  - Detect locale for spelling etc.
-#  - Detect AGP radeon and add the kernel options.
-#  - radeon.agpmode=x where x is -1 = Enable PCI mode on the GPU, disable all AGP. 1, 2, 4, 8 = Enable AGP speed.
-
 sp="/-\|"
 log="${PWD}/`basename ${0}`.log"
 rm $log 2>/dev/null
@@ -119,22 +113,6 @@ fi
 if [ -n "${VIDEO_DECODER}" ]; then
     pacman_install "${VIDEO_DECODER}"
 fi
-
-#TODO - create /etc/X11/xorg.conf.d/20-radeon.conf
-#Section "Device"
-#    Identifier  "My Graphics Card"
-#        Option  "AGPMode"               "8"   #not used when KMS is on
-#        Option  "AGPFastWrite"          "off" #could cause instabilities enable it at your own risk
-#        Option  "RenderAccel"           "on"  #enabled by default on all radeon hardware
-#        Option  "ColorTiling"           "on"  #enabled by default on RV300 and later radeon cards.
-#        Option  "EXAVSync"              "off" #default is off, otherwise on
-#        Option  "EXAPixmaps"            "on"  #when on icreases 2D performance, but may also cause artifacts on some old cards
-#        Option  "AccelDFS"              "on"  #default is off, read the radeon manpage for more information
-#EndSection
-
-# TODO - create /etc/modprobe.d/radeon.conf
-#echo "options radeon gartsize=32" >  /etc/modprobe.d/radeon.conf
-#echo "options radeon agpmode=8"   >> /etc/modprobe.d/radeon.conf
 
 #Touch Screen
 # - http://www.x.org/archive/X11R7.5/doc/man/man4/evdev.4.html
@@ -349,7 +327,6 @@ if [ ${INSTALL_PHOTO_APPS} -eq 1 ]; then
 fi
 
 # Music
-#  - TODO : Choose between banshee or clementine
 if [ ${INSTALL_MUSIC_APPS} -eq 1 ]; then
     pacman_install "banshee mp3gain"
     pacman_install "picard chromaprint libdiscid"
