@@ -154,7 +154,7 @@ fi
 #  - http://pc-freak.net/blog/controlling-fan-with-thinkfan-on-lenovo-thinkpad-r61-on-debian-gnulinux-adjusting-proper-fan-cycling/
 T43=`dmidecode --type 1 | grep "ThinkPad T43"`
 if [ $? -eq 0 ]; then
-    pacman_install "fprintd"
+    pacman_install "fprintd tp_smapi"
     packer_install "thinkfan"
     echo "options thinkpad_acpi fan_control=1" > /etc/modprobe.d/thinkfan.conf
     cat >/etc/thinkfan.conf<<ENDTHINKFAN

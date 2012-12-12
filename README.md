@@ -123,8 +123,6 @@ attention.
     * Maybe whitelist know safe SATA controller.
     * https://bugs.launchpad.net/ubuntu/+source/linux/+bug/539467
     * https://wiki.ubuntu.com/Kernel/PowerManagementALPM
-  * Install the `tp_smapi` module on the Thinkpad.
-    * https://wiki.archlinux.org/index.php/Tp_smapi
   * Investigate `acpi_backlight=vendor` on the Thinkpad.
   * Disable CRT, DVI and S-video output on the Thinkpad.
     * `echo crt_disable > /proc/acpi/ibm/video`
@@ -140,7 +138,6 @@ attention.
   * Intel i915 power management, see below.
   * Nouveau power management, see below.
   * Blacklist or unload `pcmcia` and `yenta_socket` kernel modules.
-  * Check if kernel option `threadirqs` is available and if it helps reduce power.
   * Add the following `udisk` rules.
 
     KERNEL=="sr0", SUBSYSTEM=="block", ENV{POWER_SUPPLY_ONLINE}=="0", ENV{UDISKS_DISABLE_POLLING}="1"
@@ -171,13 +168,13 @@ Also create a sensible `/etc/X11/xorg.conf.d/20-radeon.conf`. Options for consid
 
     Section "Device"
         Identifier  "My Graphics Card"
-            Option  "AGPMode"               "8"   #not used when KMS is on
-            Option  "AGPFastWrite"          "off" #could cause instabilities enable it at your own risk
-            Option  "RenderAccel"           "on"  #enabled by default on all radeon hardware
-            Option  "ColorTiling"           "on"  #enabled by default on RV300 and later radeon cards.
-            Option  "EXAVSync"              "off" #default is off, otherwise on
-            Option  "EXAPixmaps"            "on"  #when on icreases 2D performance, but may also cause artifacts on some old cards
-            Option  "AccelDFS"              "on"  #default is off, read the radeon manpage for more information
+        Option  "AccelMethod"           "glamor" # default is EXA
+        Option  "AGPMode"               "8"   #not used when KMS is on
+        Option  "AGPFastWrite"          "off" #could cause instabilities enable it at your own risk
+        Option  "RenderAccel"           "on"  #enabled by default on all radeon hardware
+        Option  "EXAVSync"              "off" #default is off, otherwise on
+        Option  "EXAPixmaps"            "on"  #when on icreases 2D performance, but may also cause artifacts on some old cards
+        Option  "AccelDFS"              "on"  #default is off, read the radeon manpage for more information
     EndSection
 
 Enable Hyper-Z. For the pre-R500 hardware, the support can be easily enabled
