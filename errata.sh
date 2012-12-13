@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+sp="/-\|"
+log="${PWD}/`basename ${0}`.log"
+rm $log 2>/dev/null
+
+if [ -f common.sh ]; then
+    source common.sh
+else
+    echo "ERROR! Could not source 'common.sh'"
+    exit 1
+fi
+
+check_root
+check_sudo
+check_archlinux
+
+# Remove Chrony. It has been replaced by `ntpd`.
+HAS_CHRONYC=`which chronyc 2>/dev/null`
+if [ $? -eq 0 ]; then
+    system_ctl stop chrony
+    system_ctl disable chrony
+    pacman_remove "chrony"
+fi
+
+# Remove laptop-mode-tools. It has been replaced by TLP.
+if [ -f /usr/lib/systemd/system/laptop-mode.service ]; then
+    system_ctl stop laptop-mode
+    system_ctl disable laptop-mode
+    pacman_remove "laptop-mode-tools"
+fi
+
+# Migrate to the consistent naming scheme.
+if [ -f /etc/modprobe.d/nobeep.conf ]; then
+    mv -f /etc/modprobe.d/nobeep.conf /etc/modprobe.d/blacklist-pcspkr.conf
+fi
+
+if [ -f /etc/modprobe.d/egalax.conf ]; then
+    mv -f /etc/modprobe.d/egalax.conf /etc/modprobe.d/blacklist-usbtouchscreen.conf
+fi
+
+if [ -f /etc/modprobe.d/thinkfan.conf ]; then
+    mv -f /etc/modprobe.d/thinkfan.conf /etc/modprobe.d/thinkpad_acpi.conf
+fi
+
+if [ -f /etc/modules-load.d/cpufreq.conf ]; then
+    mv -f /etc/modules-load.d/cpufreq.conf /etc/modules-load.d/acpi-cpufreq.conf
+fi
