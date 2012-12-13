@@ -188,7 +188,7 @@ Use the `phc-mprime.sh` script in `contrib`.
     * `12:26 10:19 8:2  6:2`  - Tuned
   * IBM Thinkpad T43p
     * `17:43 14:37 12:32 10:28 8:23 6:18` - Default
-    * `17:21 14:14 12:10  10:6  8:2  6:2` - Tuned (Do NOT work)
+    * `17:29 14:22 12:15 10:12  8:6  6:4` - Tuned (Do NOT work)
 
  * https://wiki.archlinux.org/index.php/PHC
  * https://bbs.archlinux.org/viewtopic.php?id=146454
