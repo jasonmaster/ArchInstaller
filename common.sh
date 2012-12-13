@@ -112,34 +112,31 @@ check_vga() {
     #  - Unichrome (or whatever) support.
     #  - Query sysfs with `systool -m i915 -av`
     ncecho " [x] Detecting video chipset "
-    if [ -f /sys/kernel/debug/dri/0/name ]; then
-        VIDEO_KMS=`cat /sys/kernel/debug/dri/0/name | cut -f1 -d' '`
-        case ${VIDEO_KMS} in
-            "i915" )
-                cecho Intel
-                VIDEO_DRI="intel-dri"
-                VIDEO_DDX="xf86-video-intel"
-                VIDEO_DECODER="libva-intel-driver"
-                VIDEO_MODPROBE="options i915 modeset=1 i915_enable_rc6=1 i915_enable_fbc=1 i915.lvds_downclock=1 i915.semaphores=1"
-                #TODO - Check for fbc support.
-                ;;
-            "radeon" )
-                cecho AMD/ATI
-                VIDEO_DRI="ati-dri"
-                VIDEO_DDX="xf86-video-ati"
-                VIDEO_DECODER="libva-vdpau-driver"
-                VIDEO_MODPROBE="options radeon modeset=1"
-                # TODO - Add `radeon.pcie_gen2=1` is the card is PCIe.
-                # http://wiki.x.org/wiki/RadeonFeature#Linux_kernel_parameters
-                ;;
-            "nouveau" )
-                cecho Nvidia
-                VIDEO_DRI="nouveau-dri"
-                VIDEO_DDX="xf86-video-nouveau"
-                VIDEO_DECODER="libva-vdpau-driver"
-                VIDEO_MODPROBE="options nouveau modeset=1"
-                ;;
-        esac
+    if [ -f /sys/kernel/debug/dri/0/i915_capabilities ]; then
+        cecho Intel
+        VIDEO_KMS="i915"
+        VIDEO_DRI="intel-dri"
+        VIDEO_DDX="xf86-video-intel"
+        VIDEO_DECODER="libva-intel-driver"
+        VIDEO_MODPROBE="options i915 modeset=1 i915_enable_rc6=1 i915_enable_fbc=1 i915.lvds_downclock=1 i915.semaphores=1"
+        #TODO - Check for fbc support.
+    elif [ -f /sys/kernel/debug/dri/0/radeon_pm_info ]; then
+        cecho AMD/ATI
+        VIDEO_KMS="radeon"
+        VIDEO_DRI="ati-dri"
+        VIDEO_DDX="xf86-video-ati"
+        VIDEO_DECODER="libva-vdpau-driver"
+        VIDEO_MODPROBE="options radeon modeset=1"
+        # TODO - Add `radeon.pcie_gen2=1` if the card is PCIe.
+        # http://wiki.x.org/wiki/RadeonFeature#Linux_kernel_parameters
+    elif [ -f /sys/kernel/debug/dri/0/vbios.rom ]; then
+        # TODO - Check the above is correct.
+        cecho Nvidia
+        VIDEO_KMS="nouveau"
+        VIDEO_DRI="nouveau-dri"
+        VIDEO_DDX="xf86-video-nouveau"
+        VIDEO_DECODER="libva-vdpau-driver"
+        VIDEO_MODPROBE="options nouveau modeset=1"
     else
         local VGA=`lspci | grep VGA`
         echo ${VGA} | tr "[:upper:]" "[:lower:]" | grep -q "virtualbox"
