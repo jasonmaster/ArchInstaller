@@ -202,7 +202,7 @@ packer_install "ttf-fixedsys-excelsior-linux ttf-ms-fonts ttf-source-code-pro"
 pacman_install_group "gnome"
 pacman_install_group "gnome-extra"
 pacman_install_group "telepathy"
-pacman_install "eog-plugins epiphany-extensions gedit-plugins gnome-tweak-tool networkmanager-pptp"
+pacman_install "epiphany-extensions gedit-plugins gnome-tweak-tool networkmanager-pptp"
 packer_install "gip gnome-packagekit gnome-settings-daemon-updates gufw polkit-gnome terminator"
 # Gstreamer
 pacman_install "gst-plugins-base gst-plugins-base-libs gst-plugins-good \
@@ -233,7 +233,7 @@ pacman_install "nspluginwrapper flashplugin"
 if [ "${CPU}" == "x86_64" ]; then
     packer_install "lib32-flashplugin"
 fi
-packer_install "jre6"
+#packer_install "jre6"
 
 ncecho " [x] Configuring plugins "
 nspluginwrapper -v -n -a -i >>"$log" 2>&1 &
