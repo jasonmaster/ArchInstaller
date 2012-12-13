@@ -93,7 +93,6 @@ if [ -n "${BRIGHTNESS}" ]; then
     esac
 fi
 ENDBRIGHTNESS
-    fi
 
     chmod +x /etc/pm/power.d/display-brightness
     system_ctl enable tlp-init
