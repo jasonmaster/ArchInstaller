@@ -105,48 +105,57 @@ check_cpu() {
 }
 
 check_vga() {
-    # Determine video chipset - only Intel, ATI and nvidia are supported by this script"
+    # Determine video chipset.
+    # TODO 
+    #  - Detect proprietary nVidia and ATI/AMD.
+    #  - Unichrome (or whatever) support.
+    #  - Query sysfs with `systool -m i915 -av`
     ncecho " [x] Detecting video chipset "
-    local VGA=`lspci | grep VGA`
-    echo ${VGA} | tr "[:upper:]" "[:lower:]" | grep -q "nvidia"
-    if [ $? -eq 0 ]; then
-        cecho Nvidia
-        VIDEO_DRI="nouveau-dri"
-        VIDEO_XORG="xf86-video-nouveau"
-        VIDEO_KMS="nouveau"
-        VIDEO_DECODER="libva-vdpau-driver"
-    else
-        echo ${VGA} | tr "[:upper:]" "[:lower:]" | grep -q "intel corporation"
-        if [ $? -eq 0 ]; then
-            cecho Intel
-            VIDEO_DRI="intel-dri"
-            VIDEO_XORG="xf86-video-intel"
-            VIDEO_KMS="i915"
-            VIDEO_DECODER="libva-intel-driver"
-        else
-            echo ${VGA} | tr "[:upper:]" "[:lower:]" | grep -q "advanced micro devices"
-            if [ $? -eq 0 ]; then
+    if [ -f /sys/kernel/debug/dri/0/name ]; then
+        VIDEO_KMS=`cat /sys/kernel/debug/dri/0/name | cut -f1 -d' '`
+        case ${VIDEO_KMS} in
+            "i915" )
+                cecho Intel
+                VIDEO_DRI="intel-dri"
+                VIDEO_DDX="xf86-video-intel"
+                VIDEO_DECODER="libva-intel-driver"
+                VIDEO_MODPROBE="options i915 modeset=1 i915_enable_rc6=1 i915_enable_fbc=1 i915.lvds_downclock=1 i915.semaphores=1"
+                #TODO - Check for fbc support.
+                ;;
+            "radeon" )
                 cecho AMD/ATI
                 VIDEO_DRI="ati-dri"
-                VIDEO_XORG="xf86-video-ati"
-                VIDEO_KMS="radeon"
+                VIDEO_DDX="xf86-video-ati"
                 VIDEO_DECODER="libva-vdpau-driver"
-            else
-                echo ${VGA} | tr "[:upper:]" "[:lower:]" | grep -q "virtualbox"
-                if [ $? -eq 0 ]; then
-                    cecho VirtualBox
-                    VIDEO_DRI=""
-                    VIDEO_XORG="virtualbox-guest-modules"
-                    VIDEO_KMS="vboxvideo"
-                    VIDEO_DECODER=""
-                else
-                    cecho VESA
-                    VIDEO_DRI=""
-                    VIDEO_XORG="xf86-video-vesa"
-                    VIDEO_KMS=""
-                    VIDEO_DECODER=""                    
-                fi
-            fi
+                VIDEO_MODPROBE="options radeon modeset=1"
+                # TODO - Add `radeon.pcie_gen2=1` is the card is PCIe.
+                # http://wiki.x.org/wiki/RadeonFeature#Linux_kernel_parameters
+                ;;
+            "nouveau" )
+                cecho Nvidia
+                VIDEO_DRI="nouveau-dri"
+                VIDEO_DDX="xf86-video-nouveau"
+                VIDEO_DECODER="libva-vdpau-driver"
+                VIDEO_MODPROBE="options nouveau modeset=1"
+                ;;
+        esac
+    else
+        local VGA=`lspci | grep VGA`
+        echo ${VGA} | tr "[:upper:]" "[:lower:]" | grep -q "virtualbox"
+        if [ $? -eq 0 ]; then
+            cecho VirtualBox
+            VIDEO_DRI=""
+            VIDEO_DDX="virtualbox-guest-modules"
+            VIDEO_KMS="vboxvideo"
+            VIDEO_DECODER=""
+            VIDEO_MODPROBE=""
+        else
+            cecho VESA
+            VIDEO_DRI=""
+            VIDEO_DDX="xf86-video-vesa"
+            VIDEO_KMS=""
+            VIDEO_DECODER=""
+            VIDEO_MODPROBE=""
         fi
     fi
 }

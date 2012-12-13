@@ -8,10 +8,6 @@ TIMEZONE="Europe/London"
 KEYMAP="uk"
 LANG="en_GB.UTF-8"
 LC_COLLATE="C"
-# Read the following to understand how to tweak the FONT and FONT_MAP settings.
-#  - https://wiki.archlinux.org/index.php/Fonts#Console_fonts
-#  - http://en.wikipedia.org/wiki/ISO/IEC_8859
-#  - http://alexandre.deverteuil.net/consolefonts/consolefonts.html
 FONT="ter-116b"
 FONT_MAP="8859-1_to_uni"
 PASSWORD=""

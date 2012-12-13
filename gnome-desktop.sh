@@ -98,15 +98,15 @@ ENDBRIGHTNESS
     system_ctl enable tlp-init
 fi
 
-# Xorg
-pacman_install_group "xorg"
-pacman_install_group "xorg-apps"
-
 # Configure init things
 update_early_modules ${VIDEO_KMS}
 
-# Install video drivers (Xorg/DRI)
-pacman_install "${VIDEO_XORG}"
+# Configure kernel module options
+if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
+    echo "${VIDEO_MODPROBE}" > /etc/modprobe.d/${VIDEO_KMS}.conf
+fi
+
+# Install video driver (DRI)
 if [ -n "${VIDEO_DRI}" ]; then
     pacman_install "${VIDEO_DRI}"
     if [ "${CPU}" == "x86_64" ]; then
@@ -114,10 +114,19 @@ if [ -n "${VIDEO_DRI}" ]; then
     fi
 fi
 
+# Xorg
+pacman_install_group "xorg"
+pacman_install_group "xorg-apps"
+
+# Install video drivers (DDX)
+pacman_install "${VIDEO_DDX}"
+
 # Video decoder acceleration (VDPAU, libVA, etc)
 if [ -n "${VIDEO_DECODER}" ]; then
     pacman_install "${VIDEO_DECODER}"
 fi
+
+exit
 
 # Touch Screen
 # - http://www.x.org/archive/X11R7.5/doc/man/man4/evdev.4.html
