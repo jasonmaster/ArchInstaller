@@ -315,7 +315,7 @@ pacman_upgrade() {
 packer_upgrade() {
     export TMPDIR=/var/tmp
     ncecho " [x] Upgrading packages (packer) "
-    packer -Syu --auronly --noconfirm --noedit >>"$log" 2>&1 &
+    packer -Syu --noconfirm --noedit --auronly >>"$log" 2>&1 &
     pid=$!;progress $pid
 }
 

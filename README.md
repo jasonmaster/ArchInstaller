@@ -161,6 +161,42 @@ attention.
   * Experiment with PHC
     * <https://wiki.archlinux.org/index.php/PHC>
 
+#### PHC
+
+Some notes.
+
+    sudo packer -S --noedit --noconfirm phc-intel curl stress
+    sudo phc-intel setup
+
+Reboot the computer to ensure the `phc_intel` kernel module is loaded.
+
+On x86_64
+
+    sudo pacman -S --confirm --needed linux-headers
+    packer -S --noedit --noconfirm mprime
+
+On i686
+
+`mprime` has not build on any i686 computers I tried it on.
+
+    packer -S --noedit --noconfirm mprime-bin
+
+Use the `phc-mprime.sh` script in `contrib`.
+
+  * Dell Mini 9
+    * `12:39 10:31 8:23 6:15` - Defaults
+    * `12:26 10:19 8:2  6:2`  - Tuned
+  * IBM Thinkpad T43p
+    * `17:43 14:37 12:32 10:28 8:23 6:18` - Default
+    * `17:21 14:14 12:10  10:6  8:2  6:2` - Tuned (Do NOT work)
+
+ * https://wiki.archlinux.org/index.php/PHC
+ * https://bbs.archlinux.org/viewtopic.php?id=146454
+ * https://aur.archlinux.org/packages/linux-phc-optimize/
+ * http://openmindedbrain.info/09/05/2010/undervolting-in-ubuntu-10-04-lucid-lts/
+ * http://www.thinkwiki.org/wiki/Pentium_M_undervolting_and_underclocking
+ * http://www.thinkwiki.org/wiki/Undervolt_Stress_Testing_Script
+
 #### Intel
 
 Power management is implemented in `gnome-desktop.sh`.

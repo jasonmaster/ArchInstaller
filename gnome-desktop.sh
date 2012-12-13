@@ -45,6 +45,10 @@ INSTALL_WINE=0
 INSTALL_CRYPTO_APPS=0
 INSTALL_BACKUP_APPS=0
 
+# Upgrade currently installed packages
+pacman_upgrade
+packer_upgrade
+
 # Make sure all the required packages are installed.
 pacman_install "`cat extra-packages.txt`"
 HAS_PACKER=`which packer 2>/dev/null`
