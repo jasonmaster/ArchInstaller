@@ -224,11 +224,16 @@ is correct. I will add the kernel options to `/etc/modprobe.d`.
   * <http://www.phoronix.com/scan.php?page=article&item=intel_i915_power&num=1>
   * <http://www.scribd.com/doc/73071712/Intel-Linux-Graphics>
 
-    i915.i915_enable_rc6=1 i915.i915_enable_fbc=1 i915.lvds_downclock=1 i915.semaphores=1
+    i915.i915_enable_rc6=1
+    i915.i915_enable_fbc=1
+    i915.lvds_downclock=1
+    i915.semaphores=1
 
 Use this to detect i915 capable cards?
 
     cat /sys/kernel/debug/dri/0/i915_capabilities
+
+Only set `i915.i915_enable_fbc=1` if `has_fbc` is 1.
 
 ### Alternatives
 

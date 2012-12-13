@@ -30,6 +30,11 @@ if [ -f /usr/lib/systemd/system/laptop-mode.service ]; then
     pacman_remove "laptop-mode-tools"
 fi
 
+# The screen brightness script is now generic-ish.
+if [ -f /etc/pm/config.d/thinkpad-brightness ]; then
+    rm -f /etc/pm/config.d/thinkpad-brightness
+fi
+
 # Migrate to the consistent naming scheme.
 if [ -f /etc/modprobe.d/nobeep.conf ]; then
     mv -f /etc/modprobe.d/nobeep.conf /etc/modprobe.d/blacklist-pcspkr.conf

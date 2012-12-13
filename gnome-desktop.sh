@@ -60,33 +60,42 @@ fi
 # Power Saving
 laptop-detect
 if [ $? -eq 0 ]; then
-    pacman_install "tlp"
+    packer_install "tlp"
     # Some SATA chipsets can corrupt data when ALPM is enabled. Disable it
     replaceinfile 'SATA_LINKPWR' '#SATA_LINKPWR' /etc/default/tlp
     replaceinfile "PCIE_ASPM_ON_AC=performance" "PCIE_ASPM_ON_AC=default" /etc/default/tlp
     replaceinfile "BAY_POWEROFF_ON_BAT=0" "BAY_POWEROFF_ON_BAT=1" /etc/default/tlp
 
-    # Is this a Thinkpad? If so, enable brightness control.
-    if [ -w /proc/acpi/ibm/brightness ]; then
-        cat >/etc/pm/power.d/thinkpad-brightness<<'ENDTHINKPADLCD'
+    # Enable brightness control.
+    cat >/etc/pm/power.d/display-brightness<<'ENDBRIGHTNESS'
 #!/usr/bin/env bash
 
+BRIGHTNESS=""
+MAX_BRIGHTNESS=""
 if [ -w /proc/acpi/ibm/brightness ]; then
+    BRIGHTNESS="/proc/acpi/ibm/brightness"
+    MAX_BRIGHTNESS="/proc/acpi/ibm/max_brightness"
+elif [ -w /sys/class/backlight/acpi_video0/ ]; then
+    BRIGHTNESS="/sys/class/backlight/acpi_video0/brightness"
+    MAX_BRIGHTNESS="/sys/class/backlight/acpi_video0/max_brightness"
+fi
+
+if [ -n "${BRIGHTNESS}" ]; then
     case $1 in
         true)
-            echo "Enable screen power saving"
-            echo 0 > /proc/acpi/ibm/brightness
+            echo "Enable screen power saving : ${BRIGHTNESS}"
+            echo 0 > ${BRIGHTNESS}
             ;;
         false)
-            echo "Disable screen power saving"
-            echo 7 > /proc/acpi/ibm/brightness
+            echo "Disable screen power saving : ${BRIGHTNESS}"
+            cat ${MAX_BRIGHTNESS} > ${BRIGHTNESS}
             ;;
     esac
 fi
-ENDTHINKPADLCD
+ENDBRIGHTNESS
     fi
 
-    chmod +x /etc/pm/power.d/thinkpad-brightness
+    chmod +x /etc/pm/power.d/display-brightness
     system_ctl enable tlp-init
 fi
 
@@ -153,6 +162,7 @@ if [ $? -eq 0 ]; then
     cp /usr/share/doc/thinkfan/examples/thinkfan.conf.thinkpad /etc/thinkfan.conf
     system_ctl --system daemon-reload
     system_ctl enable thinkfan
+    #TODO - hsfmodem hdaps
 fi
 
 VIRTUALBOX_GUEST=`dmidecode --type 1 | grep VirtualBox`
