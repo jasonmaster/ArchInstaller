@@ -126,8 +126,6 @@ if [ -n "${VIDEO_DECODER}" ]; then
     pacman_install "${VIDEO_DECODER}"
 fi
 
-exit
-
 # Touch Screen
 # - http://www.x.org/archive/X11R7.5/doc/man/man4/evdev.4.html
 # - https://bbs.archlinux.org/viewtopic.php?id=126208
