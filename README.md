@@ -123,10 +123,11 @@ attention.
     * Maybe whitelist know safe SATA controller.
     * https://bugs.launchpad.net/ubuntu/+source/linux/+bug/539467
     * https://wiki.ubuntu.com/Kernel/PowerManagementALPM
-  * Investigate `acpi_backlight=vendor` on the Thinkpad.
-  * Disable CRT, DVI and S-video output on the Thinkpad.
-    * `echo crt_disable > /proc/acpi/ibm/video`
-    * `echo dvi_disable > /proc/acpi/ibm/video`
+  * Write Thinkpad brightness power management script for `pm-utils` or
+  contribute a feature to TLP.
+    * https://wiki.archlinux.org/index.php/Backlight
+    * `/proc/acpi/ibm/brightness`
+    * `/sys/class/backlight/thinkpad_screen/brightness`
   * Active State Power Management - fixed since kernel 3.4.
     * Still requires the `pcie_aspm=force` kernel option is set.
     * https://bbs.archlinux.org/viewtopic.php?id=120640
@@ -138,14 +139,11 @@ attention.
   * Intel i915 power management, see below.
   * Nouveau power management, see below.
   * Blacklist or unload `pcmcia` and `yenta_socket` kernel modules.
-  * Add the following `udisk` rules.
-
-    KERNEL=="sr0", SUBSYSTEM=="block", ENV{POWER_SUPPLY_ONLINE}=="0", ENV{UDISKS_DISABLE_POLLING}="1"
-    KERNEL=="sr0", SUBSYSTEM=="block", ENV{POWER_SUPPLY_ONLINE}=="1", ENV{UDISKS_DISABLE_POLLING}="0"
+  * Blacklist or unload `parport`, `ppdev` kernel modules.
 
 #### Radeon
 
-I've implemented Radeon power management via `laptop-mode-tools`.
+Power management implemented via TLP.
 
   * http://www.x.org/wiki/RadeonFeature#KMS_Power_Management_Options
   * https://wiki.archlinux.org/index.php/ATI#Powersaving
@@ -212,6 +210,9 @@ specific stuff and Radeon power profiles.
   * https://github.com/linrunner/TLP
   * https://wiki.archlinux.org/index.php/TLP
   * https://aur.archlinux.org/packages.php?ID=48464
+
+Initial tests demonstrate that it results in lower power consumption on a
+Thinkpad T43p than laptop-mode-tools. Only missing a brightness control.
 
 [Powerdown](https://github.com/taylorchu/powerdown) could be a viable
 alternative to `laptop-mode-tools`, but it replaces `pm-utils` when instaled

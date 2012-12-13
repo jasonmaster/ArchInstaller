@@ -130,10 +130,9 @@ if [ $? -eq 0 ]; then
         packer_install "xinput_calibrator"
         rmmod usbtouchscreen 2>/dev/null
 
-        cat >/etc/modprobe.d/egalax.conf<<ENDEGALAX
+        cat >/etc/modprobe.d/blacklist-usbtouchscreen.conf<<ENDEGALAX
 # Do not load the 'usbtouchscreen' module, as it conflicts with eGalax
 blacklist usbtouchscreen
-#options usbhid quirks=0xxeef.0x0001:0x0040 # <-- Not required since 2.6.32-ish here for reference
 ENDEGALAX
 
         cat >/etc/X11/xorg.conf.d/99-calibration.conf<<ENDCALIB
@@ -157,16 +156,7 @@ if [ $? -eq 0 ]; then
     pacman_install "fprintd tp_smapi"
     packer_install "thinkfan"
     echo "options thinkpad_acpi fan_control=1" > /etc/modprobe.d/thinkfan.conf
-    cat >/etc/thinkfan.conf<<ENDTHINKFAN
-(0,    0,    55)
-(1,    50,    60)
-(2,    58,    62)
-(3,    60,    64)
-(4,    62,    66)
-(5,    64,    66)
-(7,    65,    32767)
-ENDTHINKFAN
-    #replaceinfile "-q" "-q -p 2" /usr/lib/systemd/system/thinkfan.service
+    cp /usr/share/doc/thinkfan/examples/thinkfan.conf.thinkpad /etc/thinkfan.conf
     system_ctl --system daemon-reload
     system_ctl enable thinkfan
 fi
