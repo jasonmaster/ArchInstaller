@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+if [ -f common.sh ]; then
+    source common.sh
+else
+    echo "ERROR! Could not source 'common.sh'"
+    exit 1
+fi
+
 BASE_GROUPS="adm,audio,disk,lp,optical,storage,video,games,power,scanner"
 DSK=""
 NFS_CACHE=""
@@ -131,7 +138,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Detect the CPU
-grep -q "^flags.*\blm\b" /proc/cpuinfo && CPU="x86_64" || CPU="i686"
+check_cpu
 if [ "${CPU}" != "i686" ] && [ "${CPU}" != "x86_64" ]; then
     echo "ERROR! `basename ${0}` is designed for i686 and x86_64 platforms only."
     echo " * Contributions welcome :-D"
@@ -304,6 +311,17 @@ fi
 
 # Create the fstab, based on disk labels.
 genfstab -L /mnt >> /mnt/etc/fstab
+
+# Is the device we are install
+if [ `cat /sys/block/${DSK}/queue/rotational` == "0" ] && [ `cat /sys/block/${DSK}/removable` == "0" ]; then
+    if [ -n "$(hdparm -I /dev/${DSK} 2>&1 | grep 'TRIM supported')" ]; then
+        echo "Solid State Device with TRIM support detected."
+        # TODO - Test this works. None of my SSDs are TRIM compatible.
+        #sed -i 's/rw,relatime/rw,relatime,discard/g' /mnt/etc/fstab
+    else
+        echo "Solid State Device detected. No TRIM support."
+    fi
+fi
 
 # Configure the hostname.
 #arch-chroot /mnt hostnamectl set-hostname --static ${FQDN}

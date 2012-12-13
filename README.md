@@ -103,22 +103,14 @@ that is already present, so subsequent runs are quicker.
 
 # TODO
 
-  * Refactor graphics cards detection using `/sys/kernel/debug/dri/0/name`.
-    * Fall back to `lspci` for VirtualBox.
   * Unify changes to users home directory for all users.
   * Fix suspend on the Thinkpad.
     * Should `acpid` be used as well?
   * Detect locale for dictionaries in `gnome-desktop.sh`.
-  * Refactor `arch-installer.sh` to use `common.sh`.
   * Add installation profiles to `gnome-desktop.sh`.
   * Maybe add "do nothing" option for partitioning and filesystem creation.
-  * Review CPU detection. Just detect what the current kernel is running.
   * Maybe create an LVM and lob everything in it except for `/boot`?
   * Consolidate the partitioning.
-  * Detect SSD and TRIM and add `discard` to `/etc/fstab`.
-    * `/sys/block/sdX/queue/rotational` # 0 = SSD
-    * `/sys/block/sda/removable` # 0 = not removable
-    * `sudo hdparm -I /dev/sda | grep "TRIM supported"`
   * Review the links below, see if there is anything I can re-use.
     * <https://github.com/helmuthdu/aui>
     * <http://www.winpe.com/page04.html>
@@ -155,20 +147,27 @@ attention.
   * SATA ALPM is disabled by `gnome-desktop.sh` due to the risk of data corruption.
     * https://bugs.launchpad.net/ubuntu/+source/linux/+bug/539467
     * https://wiki.ubuntu.com/Kernel/PowerManagementALPM
-  * Active State Power Management - fixed since kernel 3.4.
-    * Still requires the `pcie_aspm=force` kernel option is set.
+  * Active State Power Management.
+    * Add capability to set `pcie_aspm=force`.
     * https://bbs.archlinux.org/viewtopic.php?id=120640
     * http://smackerelofopinion.blogspot.co.uk/2011/03/making-sense-of-pcie-aspm.html
     * http://crunchbang.org/forums/viewtopic.php?id=23445
     * I've submitted a pull request to `laptop-mode-tools`.
       * <https://github.com/rickysarraf/laptop-mode-tools/pull/7>
     * TLP has this capability.
-  * Intel i915 power management, see below.
   * Nouveau power management, see below.
   * Blacklist or unload `pcmcia` and `yenta_socket` kernel modules.
   * Blacklist or unload `parport`, `ppdev` kernel modules.
   * Experiment with PHC
     * <https://wiki.archlinux.org/index.php/PHC>
+
+#### Intel
+
+Power management is implemented in `gnome-desktop.sh`.
+
+  * <http://www.kubuntuforums.net/showthread.php?57279-How-to-Enable-power-management-features>
+  * <http://www.phoronix.com/scan.php?page=article&item=intel_i915_power&num=1>
+  * <http://www.scribd.com/doc/73071712/Intel-Linux-Graphics>
 
 #### Radeon
 
@@ -209,31 +208,11 @@ at this time through setting the `RADEON_HYPERZ` environment variable.
 
 #### Nouveau
 
-Not done yet.
+Power management is not done yet, waiting on stable kernel implementation.
 
   * <http://nouveau.freedesktop.org/wiki/PowerManagement>
   * <http://ubuntuforums.org/showthread.php?t=1718929>
   * <http://www.phoronix.com/scan.php?page=article&item=nouveau_reclocking_one&num=1>
-
-#### Intel
-
-Power management implemented via TLP, although I'm not sure the implementation
-is correct. I will add the kernel options to `/etc/modprobe.d`.
-
-  * <http://www.kubuntuforums.net/showthread.php?57279-How-to-Enable-power-management-features>
-  * <http://www.phoronix.com/scan.php?page=article&item=intel_i915_power&num=1>
-  * <http://www.scribd.com/doc/73071712/Intel-Linux-Graphics>
-
-    i915.i915_enable_rc6=1
-    i915.i915_enable_fbc=1
-    i915.lvds_downclock=1
-    i915.semaphores=1
-
-Use this to detect i915 capable cards?
-
-    cat /sys/kernel/debug/dri/0/i915_capabilities
-
-Only set `i915.i915_enable_fbc=1` if `has_fbc` is 1.
 
 ### Alternatives
 

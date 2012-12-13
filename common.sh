@@ -101,7 +101,8 @@ check_ip() {
 }
 
 check_cpu() {
-    grep -q "^flags.*\blm\b" /proc/cpuinfo && CPU="x86_64" || CPU="i686"
+    #grep -q "^flags.*\blm\b" /proc/cpuinfo && CPU="x86_64" || CPU="i686"
+    CPU=`uname -m`
 }
 
 check_vga() {
