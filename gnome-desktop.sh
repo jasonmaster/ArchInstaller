@@ -60,14 +60,6 @@ fi
 # Power Saving
 laptop-detect
 if [ $? -eq 0 ]; then
-    # Disable all the pm-utils power.d scripts, TLC will perform those functions.
-    for FILE in /usr/lib/pm-utils/power.d/*
-    do
-         echo "#!/bin/sh"                                   >  /etc/pm/power.d/`basename ${FILE}`
-         echo "echo `basename ${FILE}` skipping && exit 0"  >> /etc/pm/power.d/`basename ${FILE}`
-         chmod +x /etc/pm/power.d/`basename ${FILE}`
-    done
-
     pacman_install "tlp"
     # Some SATA chipsets can corrupt data when ALPM is enabled. Disable it
     replaceinfile 'SATA_LINKPWR' '#SATA_LINKPWR' /etc/default/tlp
@@ -76,7 +68,7 @@ if [ $? -eq 0 ]; then
 
     # Is this a Thinkpad? If so, enable brightness control.
     if [ -w /proc/acpi/ibm/brightness ]; then
-        cat >/etc/pm/power.d/thinkpad-brightness<<'ENDTHINKPADBRIGHTNESS'
+        cat >/etc/pm/power.d/thinkpad-brightness<<'ENDTHINKPADLCD'
 #!/usr/bin/env bash
 
 if [ -w /proc/acpi/ibm/brightness ]; then
@@ -91,8 +83,7 @@ if [ -w /proc/acpi/ibm/brightness ]; then
             ;;
     esac
 fi
-ENDTHINKPADBRIGHTNESS
-
+ENDTHINKPADLCD
     fi
 
     chmod +x /etc/pm/power.d/thinkpad-brightness
