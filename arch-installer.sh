@@ -8,7 +8,7 @@ TIMEZONE="Europe/London"
 KEYMAP="uk"
 LANG="en_GB.UTF-8"
 LC_COLLATE="C"
-# Read the following to understand how to tweak the FONT and FONTMAP settings.
+# Read the following to understand how to tweak the FONT and FONT_MAP settings.
 #  - https://wiki.archlinux.org/index.php/Fonts#Console_fonts
 #  - http://en.wikipedia.org/wiki/ISO/IEC_8859
 #  - http://alexandre.deverteuil.net/consolefonts/consolefonts.html
@@ -359,7 +359,7 @@ echo "blacklist pcspkr" > /mnt/etc/modprobe.d/blacklist-pcspkr.conf
 # - https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling
 modprobe -q acpi-cpufreq
 if [ $? -eq 0 ]; then
-    echo "acpi-cpufreq" > /mnt/etc/modules-load.d/cpufreq.conf
+    echo "acpi-cpufreq" > /mnt/etc/modules-load.d/acpi-cpufreq.conf
 fi
 
 # Install and configure the extra packages

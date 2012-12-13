@@ -45,22 +45,22 @@ INSTALL_WINE=0
 INSTALL_CRYPTO_APPS=0
 INSTALL_BACKUP_APPS=0
 
-# Configure init things
-update_early_modules ${VIDEO_KMS}
-
 # Make sure all the required packages are installed.
 pacman_install "`cat extra-packages.txt`"
+HAS_PACKER=`which packer 2>/dev/null`
+if [ $? -ne 0 ] && [ -x ./packer-installer.sh ]; then
+    ./packer-installer.sh
+fi
 
-# pm-utils gets pulled in by `gnome` anyway. But I require it now so I can
-# disable the `power.d` scripts ;-)
-pacman_install "pm-utils"
+# I make mistakes and bad choices. This corrects them.
+if [ -x ./errata.sh ]; then
+    ./errata.sh
+fi
 
-# Laptop Mode Tools
-#  - https://wiki.archlinux.org/index.php/Laptop_Mode_Tools
+# Power Saving
 laptop-detect
 if [ $? -eq 0 ]; then
-    # Disable all the pm-utils power scripts, as I will use laptop-mode-tools to
-    # manage power events.
+    # Disable all the pm-utils power.d scripts, TLC will perform those functions.
     for FILE in /usr/lib/pm-utils/power.d/*
     do
          echo "#!/bin/sh"                                   >  /etc/pm/power.d/`basename ${FILE}`
@@ -68,40 +68,43 @@ if [ $? -eq 0 ]; then
          chmod +x /etc/pm/power.d/`basename ${FILE}`
     done
 
-    pacman_install "laptop-mode-tools"
-    # Some SATA chipsets can corrupt data when ALPM is enabled.
-    replaceinfile 'CONTROL_INTEL_SATA_POWER="auto"' 'CONTROL_INTEL_SATA_POWER=0' /etc/laptop-mode/conf.d/intel-sata-powermgmt.conf
-    replaceinfile 'DISABLE_ETHERNET_ON_BATTERY=0' 'DISABLE_ETHERNET_ON_BATTERY=1' /etc/laptop-mode/conf.d/ethernet.conf
+    pacman_install "tlp"
+    # Some SATA chipsets can corrupt data when ALPM is enabled. Disable it
+    replaceinfile 'SATA_LINKPWR' '#SATA_LINKPWR' /etc/default/tlp
+    replaceinfile "PCIE_ASPM_ON_AC=performance" "PCIE_ASPM_ON_AC=default" /etc/default/tlp
+    replaceinfile "BAY_POWEROFF_ON_BAT=0" "BAY_POWEROFF_ON_BAT=1" /etc/default/tlp
 
-    # Is this a Thinkpad? If so, enable brightness control. I can't get this to work
-    # via `lcd_bringhtness.conf` so I'm forcing it in `exec-commands.conf`
+    # Is this a Thinkpad? If so, enable brightness control.
     if [ -w /proc/acpi/ibm/brightness ]; then
-        replaceinfile 'BATT_EXEC_COMMAND_0=""' 'BATT_EXEC_COMMAND_0="echo level 0 > \/proc\/acpi\/ibm\/brightness"' /etc/laptop-mode/conf.d/exec-commands.conf
-        replaceinfile 'LM_AC_EXEC_COMMAND_0=""' 'LM_AC_EXEC_COMMAND_0="echo level 7 > \/proc\/acpi\/ibm\/brightness"' /etc/laptop-mode/conf.d/exec-commands.conf
-        replaceinfile 'NOLM_AC_EXEC_COMMAND_0=""' 'NOLM_AC_EXEC_COMMAND_0="echo level 7 > \/proc\/acpi\/ibm\/brightness"' /etc/laptop-mode/conf.d/exec-commands.conf
-        #replaceinfile 'CONTROL_BRIGHTNESS=0' 'CONTROL_BRIGHTNESS="auto"' /etc/laptop-mode/conf.d/lcd-brightness.conf
-        #replaceinfile 'BATT_BRIGHTNESS_COMMAND="echo \[value\]"' 'BATT_BRIGHTNESS_COMMAND="echo level 0"' /etc/laptop-mode/conf.d/lcd-brightness.conf   
-        #replaceinfile 'LM_AC_BRIGHTNESS_COMMAND="echo \[value\]"' 'LM_AC_BRIGHTNESS_COMMAND="echo level 7"' /etc/laptop-mode/conf.d/lcd-brightness.conf   
-        #replaceinfile 'NOLM_AC_BRIGHTNESS_COMMAND="echo \[value\]"' 'NOLM_AC_BRIGHTNESS_COMMAND="echo level 7"' /etc/laptop-mode/conf.d/lcd-brightness.conf   
-        #replaceinfile 'BRIGHTNESS_OUTPUT="\/proc\/acpi\/video\/VID\/LCD\/brightness"' 'BRIGHTNESS_OUTPUT="\/proc\/acpi\/ibm\/brightness"' /etc/laptop-mode/conf.d/lcd-brightness.conf                   
+        cat >/etc/pm/power.d/thinkpad-brightness<<'ENDTHINKPADBRIGHTNESS'
+#!/usr/bin/env bash
+
+if [ -w /proc/acpi/ibm/brightness ]; then
+    case $1 in
+        true)
+            echo "Enable screen power saving"
+            echo 0 > /proc/acpi/ibm/brightness
+            ;;
+        false)
+            echo "Disable screen power saving"
+            echo 7 > /proc/acpi/ibm/brightness
+            ;;
+    esac
+fi
+ENDTHINKPADBRIGHTNESS
+
     fi
 
-    # Is the radeon power management available?
-    if [ -w /sys/class/drm/card*/device/power_method ] && [ -w /sys/class/drm/card*/device/power_profile ]; then
-        replaceinfile 'BATT_EXEC_COMMAND_1=""' 'BATT_EXEC_COMMAND_1="echo profile > \/sys\/class\/drm\/card*\/device\/power_method"' /etc/laptop-mode/conf.d/exec-commands.conf
-        replaceinfile 'LM_AC_EXEC_COMMAND_1=""' 'LM_AC_EXEC_COMMAND_1="echo profile > \/sys\/class\/drm\/card*\/device\/power_method"' /etc/laptop-mode/conf.d/exec-commands.conf
-        replaceinfile 'NOLM_AC_EXEC_COMMAND_1=""' 'NOLM_AC_EXEC_COMMAND_1="echo profile > \/sys\/class\/drm\/card*\/device\/power_method"' /etc/laptop-mode/conf.d/exec-commands.conf
-        replaceinfile 'BATT_EXEC_COMMAND_2=""' 'BATT_EXEC_COMMAND_2="echo low > \/sys\/class\/drm\/card*\/device\/power_profile"' /etc/laptop-mode/conf.d/exec-commands.conf
-        replaceinfile 'LM_AC_EXEC_COMMAND_2=""' 'LM_AC_EXEC_COMMAND_2="echo auto > \/sys\/class\/drm\/card*\/device\/power_profile"' /etc/laptop-mode/conf.d/exec-commands.conf
-        replaceinfile 'NOLM_AC_EXEC_COMMAND_2=""' 'NOLM_AC_EXEC_COMMAND_2="echo auto > \/sys\/class\/drm\/card*\/device\/power_profile"' /etc/laptop-mode/conf.d/exec-commands.conf
-    fi
-
-    system_ctl enable laptop-mode
+    chmod +x /etc/pm/power.d/thinkpad-brightness
+    system_ctl enable tlp-init
 fi
 
 # Xorg
 pacman_install_group "xorg"
 pacman_install_group "xorg-apps"
+
+# Configure init things
+update_early_modules ${VIDEO_KMS}
 
 # Install video drivers (Xorg/DRI)
 pacman_install "${VIDEO_XORG}"
@@ -117,7 +120,7 @@ if [ -n "${VIDEO_DECODER}" ]; then
     pacman_install "${VIDEO_DECODER}"
 fi
 
-#Touch Screen
+# Touch Screen
 # - http://www.x.org/archive/X11R7.5/doc/man/man4/evdev.4.html
 # - https://bbs.archlinux.org/viewtopic.php?id=126208
 # Is there an eGalax touch screen available?
@@ -126,7 +129,7 @@ EGALAX=`lsusb | grep -q 0eef:0001`
 if [ $? -eq 0 ]; then
     TOUCH_SCREEN=1
     echo " [!] eGalax touch screen detected"
-    if [ ! -f /etc/modprobe.d/egalax.conf ]; then
+    if [ ! -f /etc/modprobe.d/blacklist-usbtouchscreen.conf ]; then
         packer_install "xinput_calibrator"
         rmmod usbtouchscreen 2>/dev/null
 
@@ -155,7 +158,7 @@ T43=`dmidecode --type 1 | grep "ThinkPad T43"`
 if [ $? -eq 0 ]; then
     pacman_install "fprintd tp_smapi"
     packer_install "thinkfan"
-    echo "options thinkpad_acpi fan_control=1" > /etc/modprobe.d/thinkfan.conf
+    echo "options thinkpad_acpi fan_control=1" > /etc/modprobe.d/thinkpad_acpi.conf
     cp /usr/share/doc/thinkfan/examples/thinkfan.conf.thinkpad /etc/thinkfan.conf
     system_ctl --system daemon-reload
     system_ctl enable thinkfan

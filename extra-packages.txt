@@ -87,7 +87,6 @@ ntfs-3g
 ntfsprogs
 ntp
 openssh
-openssh
 p7zip
 pacman
 partclone
@@ -96,6 +95,7 @@ partimage
 pciutils
 pcmciautils
 perl
+pm-utils
 powertop
 ppp
 procps-ng
