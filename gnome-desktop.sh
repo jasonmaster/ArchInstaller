@@ -79,9 +79,9 @@ if [ $? -eq 0 ]; then
 
 BRIGHTNESS=""
 MAX_BRIGHTNESS=""
-if [ -w /proc/acpi/ibm/brightness ]; then
-    BRIGHTNESS="/proc/acpi/ibm/brightness"
-    MAX_BRIGHTNESS="/proc/acpi/ibm/max_brightness"
+if [ -w /sys/class/backlight/thinkpad_screen/brightness ]; then
+    BRIGHTNESS="/sys/class/backlight/thinkpad_screen/brightness"
+    MAX_BRIGHTNESS="/sys/class/backlight/thinkpad_screen/max_brightness"
 elif [ -w /sys/class/backlight/acpi_video0/ ]; then
     BRIGHTNESS="/sys/class/backlight/acpi_video0/brightness"
     MAX_BRIGHTNESS="/sys/class/backlight/acpi_video0/max_brightness"
@@ -109,9 +109,11 @@ ENDBRIGHTNESS
     if [ $? -eq 0 ]; then
         pacman_install "linux-headers"
         packer_install "phc-intel"
-        ncecho " [x] Building phc_intel kernel module "
-        phc-intel setup >>"$log" 2>&1 &
-        pid=$!;progress $pid
+        if [ ! -f /lib/modules/extramodules-`uname -r | cut -d'.' -f1-2`-ARCH/phc-intel.ko ]; then
+            ncecho " [x] Building phc_intel kernel module "
+            phc-intel setup >>"$log" 2>&1 &
+            pid=$!;progress $pid
+        fi
         if [ "${CPU}" == "x86_64" ]; then
             packer_install "mprime"
         else
@@ -192,11 +194,15 @@ fi
 #  - http://pc-freak.net/blog/controlling-fan-with-thinkfan-on-lenovo-thinkpad-r61-on-debian-gnulinux-adjusting-proper-fan-cycling/
 T43=`dmidecode --type 1 | grep "ThinkPad T43"`
 if [ $? -eq 0 ]; then
-    pacman_install "fprintd hdaps tp_smapi"
-    packer_install "thinkfan"
+    pacman_install "fprintd hdapsd tp_smapi"
+    packer_install "thinkfan hdaps-gl"
     echo "options thinkpad_acpi fan_control=1" > /etc/modprobe.d/thinkpad_acpi.conf
+    # On the T43p the x-axis is inverted.
+    echo "options hdaps invert=1" > /etc/modprobe.d/hdaps.conf
+    # TODO
+    #  - use `tlp` to get a disk list. Only enable hdaps for rotational drives.
+    #  - Find a way to start `hdapsd-wrapper`
     cp /usr/share/doc/thinkfan/examples/thinkfan.conf.thinkpad /etc/thinkfan.conf
-    system_ctl --system daemon-reload
     system_ctl enable thinkfan
     #TODO - hsfmodem
 fi
@@ -229,6 +235,8 @@ pacman_install_group "gnome-extra"
 pacman_install_group "telepathy"
 pacman_install "epiphany-extensions gedit-plugins gnome-tweak-tool networkmanager-pptp"
 packer_install "firewalld gnome-packagekit gnome-settings-daemon-updates polkit-gnome terminator"
+replaceinfile "Categories=GNOME;GTK;System;" "Categories=X-GNOME-Settings-Panel;GNOME;GTK;System;" /usr/share/applications/gpk-application.desktop
+# Add this category to package that should be in the Settings - X-GNOME-Settings-Panel
 # Gstreamer
 pacman_install "gst-plugins-base gst-plugins-base-libs gst-plugins-good \
 gst-plugins-bad gst-plugins-ugly gst-ffmpeg" "GStreamer"
