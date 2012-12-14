@@ -133,10 +133,10 @@ The following are useful sources of reference.
   * <http://www.thinkwiki.org/wiki/How_to_reduce_power_consumption>
   * <http://linrunner.de/en/tlp/docs/tlp-faq.html>
 
-I've opted to use TLP for power management as it provides a comprehensive
-collection of power management scripts. pm-utils is still being used for
-suspend/hibernate and resume functions, but its `power.d` scripts are disabled
-by `gnome-desktop.sh`.
+I've opted to use [TLP](http://linrunner.de/en/tlp/tlp.html) for power
+management as it provides a comprehensive collection of power management
+scripts. pm-utils is still being used for suspend/hibernate and resume
+functions, but its `power.d` scripts are disabled by `gnome-desktop.sh`.
 
 ### Power Management TODO
 
@@ -171,12 +171,14 @@ Use the `phc-mprime.sh` script in `contrib` to undervolt your CPU.
     * `17:43 14:37 12:32 10:28 8:23 6:18` - Default
     * `17:29 14:22 12:15 10:12  8:6  6:4` - Tuned (Do NOT work)
 
- * https://wiki.archlinux.org/index.php/PHC
- * https://bbs.archlinux.org/viewtopic.php?id=146454
- * https://aur.archlinux.org/packages/linux-phc-optimize/
- * http://openmindedbrain.info/09/05/2010/undervolting-in-ubuntu-10-04-lucid-lts/
- * http://www.thinkwiki.org/wiki/Pentium_M_undervolting_and_underclocking
- * http://www.thinkwiki.org/wiki/Undervolt_Stress_Testing_Script
+Futher reading.
+
+  * <https://wiki.archlinux.org/index.php/PHC>
+  * <https://bbs.archlinux.org/viewtopic.php?id=146454>
+  * <https://aur.archlinux.org/packages/linux-phc-optimize/>
+  * <http://openmindedbrain.info/09/05/2010/undervolting-in-ubuntu-10-04-lucid-lts/>
+  * <http://www.thinkwiki.org/wiki/Pentium_M_undervolting_and_underclocking>
+  * <http://www.thinkwiki.org/wiki/Undervolt_Stress_Testing_Script>
 
 #### Intel
 
@@ -225,7 +227,7 @@ at this time through setting the `RADEON_HYPERZ` environment variable.
 
 #### Nouveau
 
-Power management is not done yet, waiting on stable kernel implementation.
+Power management is not done yet, waiting on a stable kernel implementation.
 
   * <http://nouveau.freedesktop.org/wiki/PowerManagement>
   * <http://ubuntuforums.org/showthread.php?t=1718929>
@@ -241,7 +243,9 @@ No power management stuff at the moment, just figure out how to get it working.
   * <http://www.openchrome.org/>
   * <http://unichrome.sourceforge.net/>
 
-### Alternatives
+### Power management tools
+
+Some notes I gathered while researching what power management tools to use.
 
 ### TLP
 
@@ -263,6 +267,16 @@ Find out more here.
 
 My tests demonstrated that TLP resulted in lower power consumption on a
 Thinkpad T43p running on battery when compared to laptop-mode-tools.
+
+#### Laptop mode Tools
+
+I was originally using laptop-mode-tool for power management. It offers
+comprehensive power control, but I found TLP did more.
+
+Find out more here.
+
+  * http://samwel.tk/laptop_mode/
+  * https://github.com/rickysarraf/laptop-mode-tools
 
 #### Powerdown
 
