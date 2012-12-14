@@ -23,6 +23,14 @@ if [ $? -eq 0 ]; then
     pacman_remove "chrony"
 fi
 
+# Remove ufw/gufw
+HAS_GUFW=`which gufw 2>/dev/null`
+if [ $? -eq 0 ]; then
+    system_ctl stop ufw
+    system_ctl disable ufw
+    pacman_remove "gufw ufw"
+fi
+
 # Remove laptop-mode-tools. It has been replaced by TLP.
 if [ -f /usr/lib/systemd/system/laptop-mode.service ]; then
     system_ctl stop laptop-mode

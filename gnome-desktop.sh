@@ -37,6 +37,7 @@ INSTALL_VIDEO_PLAYER_APPS=0
 INSTALL_VIDEO_EDITOR_APPS=0
 INSTALL_VIDEO_RIPPER_APPS=0
 INSTALL_REMOTE_DESKTOP_APPS=0
+INSTALL_NETWORK_APPS=0
 INSTALL_DOWNLOAD_APPS=0
 INSTALL_ZIMBRA_DESKTOP=0
 INSTALL_IPMIVIEW=0
@@ -46,8 +47,8 @@ INSTALL_CRYPTO_APPS=0
 INSTALL_BACKUP_APPS=0
 
 # Upgrade currently installed packages
-# - Hmm, it might not make sense to do this here.
-#   Package upgrade may required user input.
+# - Hmm, it might not make sense to do this here. Package upgrades may require
+#   user input.
 #pacman_upgrade
 #packer_upgrade
 
@@ -104,14 +105,6 @@ ENDBRIGHTNESS
     system_ctl enable tlp-init
 fi
 
-# Configure init things
-update_early_modules ${VIDEO_KMS}
-
-# Configure kernel module options
-if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
-    echo "${VIDEO_MODPROBE}" > /etc/modprobe.d/${VIDEO_KMS}.conf
-fi
-
 # Install video driver (DRI)
 if [ -n "${VIDEO_DRI}" ]; then
     pacman_install "${VIDEO_DRI}"
@@ -130,6 +123,14 @@ pacman_install "${VIDEO_DDX}"
 # Video decoder acceleration (VDPAU, libVA, etc)
 if [ -n "${VIDEO_DECODER}" ]; then
     pacman_install "${VIDEO_DECODER}"
+fi
+
+# Configure init things
+update_early_modules ${VIDEO_KMS}
+
+# Configure kernel module options
+if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
+    echo "${VIDEO_MODPROBE}" > /etc/modprobe.d/${VIDEO_KMS}.conf
 fi
 
 # Touch Screen
@@ -205,7 +206,7 @@ pacman_install_group "gnome"
 pacman_install_group "gnome-extra"
 pacman_install_group "telepathy"
 pacman_install "epiphany-extensions gedit-plugins gnome-tweak-tool networkmanager-pptp"
-packer_install "gip gnome-packagekit gnome-settings-daemon-updates gufw polkit-gnome terminator"
+packer_install "firewalld gnome-packagekit gnome-settings-daemon-updates polkit-gnome terminator"
 # Gstreamer
 pacman_install "gst-plugins-base gst-plugins-base-libs gst-plugins-good \
 gst-plugins-bad gst-plugins-ugly gst-ffmpeg" "GStreamer"
@@ -221,6 +222,8 @@ system_ctl enable accounts-daemon.service
 system_ctl enable upower.service
 # Network Manager
 system_ctl enable NetworkManager.service
+# FirewallD
+system_ctl enable firewalld.service
 
 # Printing
 pacman_install "cups foomatic-db foomatic-db-engine foomatic-db-nonfree \
@@ -287,7 +290,7 @@ fi
 if [ ${INSTALL_GOOGLE_EARTH} -eq 1 ]; then
     packer_install "ld-lsb"
     packer_install "google-earth"
-    # TODO - Remove thsi work around when bugs in current version are fixed.
+    # TODO - Remove this work around when bugs in current version are fixed.
     if [ -f /etc/fonts/conf.d/65-fonts-persian.conf ]; then
         mv /etc/fonts/conf.d/65-fonts-persian.conf /etc/fonts/conf.d/65-fonts-persian.conf.breaks-google-earth
     fi
@@ -395,6 +398,11 @@ fi
 if [ ${INSTALL_REMOTE_DESKTOP_APPS} -eq 1 ]; then
     #pacman_install "remmina freerdp nxproxy" # vinagre does what I need for now
     pacman_install "nxclient rdesktop tigervnc"
+fi
+
+# Network Tools
+if [ ${INSTALL_NETWORK_APPS} -eq 1 ]; then
+    packer_install "gip"
 fi
 
 # Download Managers

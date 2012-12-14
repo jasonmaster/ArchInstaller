@@ -105,19 +105,18 @@ that is already present, so subsequent runs are quicker.
 
 # TODO
 
-  * Unify changes to users home directory for all users.
+  * When `gnome-desktop.sh` changes something in a user home directory, make
+  that change for all users.
   * Fix suspend on the Thinkpad.
     * Should `acpid` be used as well?
   * Detect locale for dictionaries in `gnome-desktop.sh`.
   * Add installation profiles to `gnome-desktop.sh`.
-  * Maybe add "do nothing" option for partitioning and filesystem creation.
-  * Maybe create an LVM and lob everything in it except for `/boot`?
-  * Consolidate the partitioning.
   * Review the links below, see if there is anything I can re-use.
     * <https://github.com/helmuthdu/aui>
     * <http://www.winpe.com/page04.html>
     * <http://blog.burntsushi.net/lenovo-thinkpad-t430-archlinux>
   * UEFI support - waiting for UEFI support in SYSLINUX.
+  * Maybe add LVM and LUKS capability to disk partitioning.
   * Investigate zRAM and zSWAP.
 
 ## Power Management

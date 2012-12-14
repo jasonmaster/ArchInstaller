@@ -18,7 +18,7 @@ LC_COLLATE="C"
 FONT="ter-116b"
 FONT_MAP="8859-1_to_uni"
 PASSWORD=""
-FS="ext4" #or xfs are the only supported options right now.
+FS="ext4"
 PARTITION_TYPE="msdos"
 PARTITION_LAYOUT=""
 MINIMAL=0
@@ -147,9 +147,7 @@ if [ "${CPU}" != "i686" ] && [ "${CPU}" != "x86_64" ]; then
 fi
 
 if [ -n "${NFS_CACHE}" ]; then
-    echo "Starting rpc.statd..."
     systemctl start rpc-statd.service
-    echo "Mounting ${NFS_CACHE}..."
     mount -t nfs ${NFS_CACHE} /var/cache/pacman/pkg
     if [ $? -ne 0 ]; then
         echo "ERROR! Unable to mount ${NFS_CACHE}"
@@ -170,15 +168,13 @@ fi
 if [ "${HOSTNAME}" != "archiso" ]; then
     echo "PARACHUTE DEPLOYED! This script is not running from the Arch Linux install media."
     echo " - Exitting now to prevent untold chaos."
-    #exit 1
+    exit 1
 fi
 
-# Installation summary
-echo ""
+echo
 echo "Installation Summary"
 echo
 echo " - Installation target : /dev/${DSK}"
-# Is the device we are install
 if [ `cat /sys/block/${DSK}/queue/rotational` == "0" ] && [ `cat /sys/block/${DSK}/removable` == "0" ]; then
     if [ -n "$(hdparm -I /dev/${DSK} 2>&1 | grep 'TRIM supported')" ]; then
         echo " -  Disk type           : Solid state with TRIM."
@@ -212,134 +208,91 @@ else
     echo " - Provision users     : DISABLED!"
 fi
 
-# Warn user about end of the world
-echo ""
+echo
 echo "WARNING: `basename ${0}` is about to destroy everything on /dev/${DSK}!"
 echo "I make no guarantee that the installation of Arch Linux will succeed."
-echo "Press RETURN to go on or CTRL-C to cancel."
+echo "Press RETURN to try your luck or CTRL-C to cancel."
 read
 
-# Load the keymap, remove the PC speaker module. Silence is golden.
+# Load the keymap and remove the PC speaker module.
 loadkeys -q ${KEYMAP}
 rmmod -s pcspkr 2>/dev/null
 
-# Calcualte a sane size for swap. Half RAM.
-SWP=`awk '/MemTotal/ {printf( "%.0f\n", $2 / 1024 / 2 )}' /proc/meminfo`
-
 # Partition the disk
-# References
-# - https://bbs.archlinux.org/viewtopic.php?id=145678
-# - http://sprunge.us/WATU
-# You may use "msdos" here instead of "gpt", if you want:
+#  - https://bbs.archlinux.org/viewtopic.php?id=145678
+#  - http://sprunge.us/WATU
 parted -s /dev/${DSK} mktable ${PARTITION_TYPE}
 
+# Calculate common partition sizes.
+swap_size=`awk '/MemTotal/ {printf( "%.0f\n", $2 / 1000 )}' /proc/meminfo`
+boot_end=$(( 1 + 96 ))
+swap_end=$(( $boot_end + ${swap_size} ))
+max=$(( $(cat /sys/block/${DSK}/size) * 512 / 1024 / 1024 - 1 ))
+
 if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-    # /dev/sda1: 100 MB
-    # /dev/sda2:  16 GB
-    # /dev/sda3:  2 GB
-    # /dev/sda4:  remaining GB
-
-    boot=$((   1   +   100    ))
-    root=$(( $boot + (1024*24) )) #FIXME - determine something sane for small disks
-    swap=$(( $root + ${SWP} ))
-    max=$(( $(cat /sys/block/${DSK}/size) * 512 / 1024 / 1024 - 1 ))
-
-    parted /dev/${DSK} unit MiB mkpart primary     1 $boot
-    parted /dev/${DSK} unit MiB mkpart primary $boot $root
-    parted /dev/${DSK} unit MiB mkpart primary linux-swap $root $swap
-    parted /dev/${DSK} unit MiB mkpart primary $swap $max
-
-    # Set boot flags
-    parted /dev/${DSK} toggle 1 boot
-    if [ "${PARTITION_TYPE}" == "gpt" ]; then
-        sgdisk /dev/${DSK} --attributes=1:set:2
-    fi
-
-    mkfs.ext2 -F -L boot -m 0 /dev/${DSK}1
-
-    if [ "${FS}" == "xfs" ]; then
-        mkfs.xfs -f -L root /dev/${DSK}3
-        mkfs.xfs -f -L home /dev/${DSK}4
+    # If the total space available is less than 'root_max' (in Gb) then make
+    # the /root partition half the total disk capcity.
+    root_max=24
+    if [ $(( $max )) -le $(( (${root_max} * 1024) + ${swap_size} )) ]; then
+        root_end=$(( $swap_end + ( $max / 2 )  ))
     else
-        mkfs.ext4 -F -L root -m 0 /dev/${DSK}3
+        root_end=$(( $swap_end + ( $root_max * 1024 ) ))
+    fi
+else
+    root_end=$max
+fi
+
+# Partition the disk.
+# /boot
+parted -s /dev/${DSK} unit MiB mkpart primary 1 $boot_end
+
+if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
+    # swap and /root
+    ROOT_PARTITION="${DSK}3"
+    parted -s /dev/${DSK} unit MiB mkpart primary linux-swap $boot_end $swap_end
+    parted -s /dev/${DSK} unit MiB mkpart primary $swap_end $root_end
+    # /home
+    if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+        parted -s /dev/${DSK} unit MiB mkpart primary $root_end $max
+    fi
+elif [ "${PARTITION_LAYOUT}" = "br" ]; then
+    # /root
+    ROOT_PARTITION="${DSK}2"
+    parted -s /dev/${DSK} unit MiB mkpart primary $boot_end $root_end
+fi
+
+# Set boot flags
+parted -s /dev/${DSK} toggle 1 boot
+if [ "${PARTITION_TYPE}" == "gpt" ]; then
+    sgdisk /dev/${DSK} --attributes=1:set:2
+fi
+
+# Make the file systems.
+mkfs.ext2 -F -L boot -m 0 /dev/${DSK}1
+if [ "${FS}" == "xfs" ]; then
+    mkfs.xfs -f -L root /dev/${ROOT_PARTITION}
+    if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+        mkfs.xfs -f -L home /dev/${DSK}4
+    fi
+else
+    mkfs.ext4 -F -L root -m 0 /dev/${ROOT_PARTITION}
+    if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
         mkfs.ext4 -F -L home -m 0 /dev/${DSK}4
     fi
+fi
 
+# Enable swap
+if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
     mkswap -L swap /dev/${DSK}2
     swapon -L swap
+fi
 
-    # Mount
-    mount /dev/${DSK}3 /mnt
-    mkdir -p /mnt/{boot,home}
-    mount /dev/${DSK}1 /mnt/boot
+# Mount
+mount /dev/${ROOT_PARTITION} /mnt
+mkdir -p /mnt/{boot,home}
+mount /dev/${DSK}1 /mnt/boot
+if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
     mount /dev/${DSK}4 /mnt/home
-    ROOT_PARTITION="${DSK}3"
-
-elif [ "${PARTITION_LAYOUT}" == "bsr" ]; then
-    # /dev/sda1: 100 MB
-    # /dev/sda2: swap
-    # /dev/sda3: root - remaining GB
-
-    boot=$((   1   +   100    ))
-    swap=$(( $boot + ${SWP} ))
-    max=$(( $(cat /sys/block/${DSK}/size) * 512 / 1024 / 1024 - 1 ))
-
-    parted /dev/${DSK} unit MiB mkpart primary     1 $boot
-    parted /dev/${DSK} unit MiB mkpart primary linux-swap $boot $swap
-    parted /dev/${DSK} unit MiB mkpart primary $swap $max
-
-    # Set boot flags
-    parted /dev/${DSK} toggle 1 boot
-    if [ "${PARTITION_TYPE}" == "gpt" ]; then
-        sgdisk /dev/${DSK} --attributes=1:set:2
-    fi
-
-    mkfs.ext2 -F -L boot -m 0 /dev/${DSK}1
-
-    if [ "${FS}" == "xfs" ]; then
-        mkfs.xfs -f -L root /dev/${DSK}3
-    else
-        mkfs.ext4 -F -L root -m 0 /dev/${DSK}3
-    fi
-
-    mkswap -L swap /dev/${DSK}2
-    swapon -L swap
-
-    # Mount
-    mount /dev/${DSK}3 /mnt
-    mkdir -p /mnt/{boot,home}
-    mount /dev/${DSK}1 /mnt/boot
-    ROOT_PARTITION="${DSK}3"
-
-elif [ "${PARTITION_LAYOUT}" == "br" ]; then
-    # /dev/sda1: 100 MB
-    # /dev/sda2: remaining GB
-
-    boot=$((   1   +   100    ))
-    max=$(( $(cat /sys/block/${DSK}/size) * 512 / 1024 / 1024 - 1 ))
-
-    parted /dev/${DSK} unit MiB mkpart primary     1 $boot
-    parted /dev/${DSK} unit MiB mkpart primary $boot $max
-
-    # Set boot flags
-    parted /dev/${DSK} toggle 1 boot
-    if [ "${PARTITION_TYPE}" == "gpt" ]; then
-        sgdisk /dev/${DSK} --attributes=1:set:2
-    fi
-
-    mkfs.ext2 -F -L boot -m 0 /dev/${DSK}1
-
-    if [ "${FS}" == "xfs" ]; then
-        mkfs.xfs -f -L root /dev/${DSK}2
-    else
-        mkfs.ext4 -F -L root -m 0 /dev/${DSK}2
-    fi
-
-    # Mount
-    mount /dev/${DSK}2 /mnt
-    mkdir -p /mnt/{boot,home}
-    mount /dev/${DSK}1 /mnt/boot
-    ROOT_PARTITION="${DSK}2"
 fi
 
 # Base system
@@ -364,9 +317,8 @@ if [ ${ENABLE_DICARD} -eq 1 ]; then
     #sed -i 's/rw,relatime/rw,relatime,discard/g' /mnt/etc/fstab
 fi
 
-
 # Configure the hostname.
-# This is the systemd way but does work in a chroot.
+# This is the systemd way but doesn't seem to work in a `chroot`.
 #arch-chroot /mnt hostnamectl set-hostname --static ${FQDN}
 echo "${FQDN}" > /mnt/etc/hostname
 
@@ -487,7 +439,7 @@ if [ -f users.csv ]; then
         PROVISION_ARCHINSTALLER=`echo ${_GROUPS} | grep wheel`
         if [ $? -eq 0 ]; then
             mkdir -p /mnt/home/${_USERNAME}/Source/Mine/ArchInstaller/
-            cp -R `pwd`/ /mnt/home/${_USERNAME}/Source/Mine/ArchInstaller/
+            rsync -aq `pwd`/ /mnt/home/${_USERNAME}/Source/Mine/ArchInstaller/
             arch-chroot /mnt chown -R ${_USERNAME}:users /home/${_USERNAME}
         fi
     done
@@ -509,5 +461,6 @@ fi
 umount /mnt/sys/fs/cgroup/{systemd,}
 umount /mnt/sys
 umount /mnt/{boot,}
+swapoff -a
 
 echo "All done!"
