@@ -120,13 +120,13 @@ ENDBRIGHTNESS
     fi
 
     # I don't use PCMCIA slots anymore.
-    echo "blacklist pcmcia"       >  blacklist-pcmcia.conf
-    echo "blacklist yenta_socket" >> blacklist-pcmcia.conf
+    echo "blacklist pcmcia"       >  /etc/modprobe.d/blacklist-pcmcia.conf
+    echo "blacklist yenta_socket" >> /etc/modprobe.d/blacklist-pcmcia.conf
 fi
 
 # I don't use parallel ports anymore.
-echo "blacklist parport" >  blacklist-parport.conf
-echo "blacklist ppdev"   >> blacklist-parport.conf
+echo "blacklist parport" >  /etc/modprobe.d/blacklist-parport.conf
+echo "blacklist ppdev"   >> /etc/modprobe.d/blacklist-parport.conf
 
 # Install video driver (DRI)
 if [ -n "${VIDEO_DRI}" ]; then
