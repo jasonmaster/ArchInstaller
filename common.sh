@@ -95,7 +95,7 @@ check_domainname() {
 
 check_ip() {
     IP_ADDR=`ip addr 2>/dev/null | egrep -o '([0-9]{1,3}\.){3}[0-9]{1,3}' | egrep -v '255|(127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})' | sed 's/ //g'`
-    if [ $? -ne 0 ]; then
+    if [ -z "${IP_ADDR}" ]; then
         error_msg "ERROR! Could not find valid IP address."
     fi
 }
@@ -108,7 +108,7 @@ check_cpu() {
 check_vga() {
     # Determine video chipset.
     # TODO 
-    #  - Detect proprietary nVidia and ATI/AMD.
+    #  - Detect proprietary nVidia and ATI/AMD and prevent clobbering them.
     #  - Unichrome (or whatever) support.
     #  - Query sysfs with `systool -m i915 -av`
     ncecho " [x] Detecting video chipset "
@@ -130,7 +130,6 @@ check_vga() {
         # TODO - Add `radeon.pcie_gen2=1` if the card is PCIe.
         # http://wiki.x.org/wiki/RadeonFeature#Linux_kernel_parameters
     elif [ -f /sys/kernel/debug/dri/0/vbios.rom ]; then
-        # TODO - Check the above is correct.
         cecho Nvidia
         VIDEO_KMS="nouveau"
         VIDEO_DRI="nouveau-dri"

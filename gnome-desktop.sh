@@ -103,7 +103,30 @@ ENDBRIGHTNESS
 
     chmod +x /etc/pm/power.d/display-brightness
     system_ctl enable tlp-init
+
+    # Install PHC
+    IS_INTEL_CPU=`grep GenuineIntel /proc/cpuinfo`
+    if [ $? -eq 0 ]; then
+        pacman_install "linux-headers"
+        packer_install "phc-intel"
+        ncecho " [x] Building phc_intel kernel module "
+        phc-intel setup >>"$log" 2>&1 &
+        pid=$!;progress $pid
+        if [ "${CPU}" == "x86_64" ]; then
+            packer_install "mprime"
+        else
+            pacman_install "mprime-bin"
+        fi
+    fi
+
+    # I don't use PCMCIA slots anymore.
+    echo "blacklist pcmcia"       >  blacklist-pcmcia.conf
+    echo "blacklist yenta_socket" >> blacklist-pcmcia.conf
 fi
+
+# I don't use parallel ports anymore.
+echo "blacklist parport" >  blacklist-parport.conf
+echo "blacklist ppdev"   >> blacklist-parport.conf
 
 # Install video driver (DRI)
 if [ -n "${VIDEO_DRI}" ]; then
@@ -169,13 +192,13 @@ fi
 #  - http://pc-freak.net/blog/controlling-fan-with-thinkfan-on-lenovo-thinkpad-r61-on-debian-gnulinux-adjusting-proper-fan-cycling/
 T43=`dmidecode --type 1 | grep "ThinkPad T43"`
 if [ $? -eq 0 ]; then
-    pacman_install "fprintd tp_smapi"
+    pacman_install "fprintd hdaps tp_smapi"
     packer_install "thinkfan"
     echo "options thinkpad_acpi fan_control=1" > /etc/modprobe.d/thinkpad_acpi.conf
     cp /usr/share/doc/thinkfan/examples/thinkfan.conf.thinkpad /etc/thinkfan.conf
     system_ctl --system daemon-reload
     system_ctl enable thinkfan
-    #TODO - hsfmodem hdaps
+    #TODO - hsfmodem
 fi
 
 VIRTUALBOX_GUEST=`dmidecode --type 1 | grep VirtualBox`
@@ -187,7 +210,6 @@ if [ $? -eq 0 ]; then
     modprobe -a vboxguest vboxsf vboxvideo
 
     # Enable access to Shared Folders
-    #groupadd vboxsf
     add_user_to_group ${SUDO_USER} vboxsf
 
     # Synchronise date/time to the host
@@ -238,7 +260,7 @@ pacman_install "nspluginwrapper flashplugin"
 if [ "${CPU}" == "x86_64" ]; then
     packer_install "lib32-flashplugin"
 fi
-#packer_install "jre6"
+packer_install "jre6"
 
 ncecho " [x] Configuring plugins "
 nspluginwrapper -v -n -a -i >>"$log" 2>&1 &

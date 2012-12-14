@@ -156,32 +156,13 @@ attention.
       * <https://github.com/rickysarraf/laptop-mode-tools/pull/7>
     * TLP has this capability.
   * Nouveau power management, see below.
-  * Blacklist or unload `pcmcia` and `yenta_socket` kernel modules.
-  * Blacklist or unload `parport`, `ppdev` kernel modules.
-  * Experiment with PHC
-    * <https://wiki.archlinux.org/index.php/PHC>
 
 #### PHC
 
-Some notes.
+PHC is installed on laptops with Intel processors. I'll add AMD support when I
+get a chance to test it. Automating it further than that is not sensible.
 
-    sudo packer -S --noedit --noconfirm phc-intel curl stress
-    sudo phc-intel setup
-
-Reboot the computer to ensure the `phc_intel` kernel module is loaded.
-
-On x86_64
-
-    sudo pacman -S --confirm --needed linux-headers
-    packer -S --noedit --noconfirm mprime
-
-On i686
-
-`mprime` has not build on any i686 computers I tried it on.
-
-    packer -S --noedit --noconfirm mprime-bin
-
-Use the `phc-mprime.sh` script in `contrib`.
+Use the `phc-mprime.sh` script in `contrib` to undervolt your CPU.
 
   * Dell Mini 9
     * `12:39 10:31 8:23 6:15` - Defaults
@@ -257,8 +238,8 @@ No power management stuff at the moment, just figure out how to get it working.
   * <https://wiki.archlinux.org/index.php/Via_Unichrome>
   * <https://bbs.archlinux.org/viewtopic.php?pid=1104036>
   * <https://bbs.archlinux.org/viewtopic.php?pid=1201986>
-  * http://www.openchrome.org/
-  * http://unichrome.sourceforge.net/
+  * <http://www.openchrome.org/>
+  * <http://unichrome.sourceforge.net/>
 
 ### Alternatives
 
