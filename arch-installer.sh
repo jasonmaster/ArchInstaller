@@ -22,6 +22,7 @@ FS="ext4" #or xfs are the only supported options right now.
 PARTITION_TYPE="msdos"
 PARTITION_LAYOUT=""
 MINIMAL=0
+ENABLE_DISCARD=0
 
 function usage() {
     echo
@@ -141,7 +142,7 @@ fi
 check_cpu
 if [ "${CPU}" != "i686" ] && [ "${CPU}" != "x86_64" ]; then
     echo "ERROR! `basename ${0}` is designed for i686 and x86_64 platforms only."
-    echo " * Contributions welcome :-D"
+    echo " - Contributions welcome - https://github.com/flexiondotorg/ArchInstaller/"
     exit 1
 fi
 
@@ -168,9 +169,55 @@ fi
 
 if [ "${HOSTNAME}" != "archiso" ]; then
     echo "PARACHUTE DEPLOYED! This script is not running from the Arch Linux install media."
-    echo " * Exitting now to prevent untold chaos."
-    exit 1
+    echo " - Exitting now to prevent untold chaos."
+    #exit 1
 fi
+
+# Installation summary
+echo ""
+echo "Installation Summary"
+echo
+echo " - Installation target : /dev/${DSK}"
+# Is the device we are install
+if [ `cat /sys/block/${DSK}/queue/rotational` == "0" ] && [ `cat /sys/block/${DSK}/removable` == "0" ]; then
+    if [ -n "$(hdparm -I /dev/${DSK} 2>&1 | grep 'TRIM supported')" ]; then
+        echo " -  Disk type           : Solid state with TRIM."
+        ENABLE_DISCARD=1
+    else
+        echo " -  Disk type           : Solid state without TRIM."
+    fi
+else
+    echo " - Disk type           : Rotational"
+fi
+echo " - Disk label          : ${PARTITION_TYPE}"
+echo " - Partition layout    : ${PARTITION_LAYOUT}"
+echo " - File System         : ${FS}"
+echo " - Hostname            : ${FQDN}"
+echo " - Timezone            : ${TIMEZONE}"
+echo " - Keyboard mapping    : ${KEYMAP}"
+echo " - Locale              : ${LANG}"
+if [ -n "${NFS_CACHE}" ]; then
+    echo " - NFS Cache           : ${NFS_CACHE}"
+fi
+
+if [ ${MINIMAL} -eq 0 ]; then
+    echo " - Installation type   : Standard"
+else
+    echo " - Installation type   : Minimal"
+fi
+
+if [ -f users.csv ]; then
+    echo " - Provision users     : `cat users.csv | wc -l`"
+else
+    echo " - Provision users     : DISABLED!"
+fi
+
+# Warn user about end of the world
+echo ""
+echo "WARNING: `basename ${0}` is about to destroy everything on /dev/${DSK}!"
+echo "I make no guarantee that the installation of Arch Linux will succeed."
+echo "Press RETURN to go on or CTRL-C to cancel."
+read
 
 # Load the keymap, remove the PC speaker module. Silence is golden.
 loadkeys -q ${KEYMAP}
@@ -195,7 +242,7 @@ if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
     boot=$((   1   +   100    ))
     root=$(( $boot + (1024*24) )) #FIXME - determine something sane for small disks
     swap=$(( $root + ${SWP} ))
-    max=$(( $(cat /sys/block/sda/size) * 512 / 1024 / 1024 - 1 ))
+    max=$(( $(cat /sys/block/${DSK}/size) * 512 / 1024 / 1024 - 1 ))
 
     parted /dev/${DSK} unit MiB mkpart primary     1 $boot
     parted /dev/${DSK} unit MiB mkpart primary $boot $root
@@ -235,7 +282,7 @@ elif [ "${PARTITION_LAYOUT}" == "bsr" ]; then
 
     boot=$((   1   +   100    ))
     swap=$(( $boot + ${SWP} ))
-    max=$(( $(cat /sys/block/sda/size) * 512 / 1024 / 1024 - 1 ))
+    max=$(( $(cat /sys/block/${DSK}/size) * 512 / 1024 / 1024 - 1 ))
 
     parted /dev/${DSK} unit MiB mkpart primary     1 $boot
     parted /dev/${DSK} unit MiB mkpart primary linux-swap $boot $swap
@@ -269,7 +316,7 @@ elif [ "${PARTITION_LAYOUT}" == "br" ]; then
     # /dev/sda2: remaining GB
 
     boot=$((   1   +   100    ))
-    max=$(( $(cat /sys/block/sda/size) * 512 / 1024 / 1024 - 1 ))
+    max=$(( $(cat /sys/block/${DSK}/size) * 512 / 1024 / 1024 - 1 ))
 
     parted /dev/${DSK} unit MiB mkpart primary     1 $boot
     parted /dev/${DSK} unit MiB mkpart primary $boot $max
@@ -296,7 +343,7 @@ elif [ "${PARTITION_LAYOUT}" == "br" ]; then
 fi
 
 # Base system
-BASE_SYSTEM="base base-devel syslinux terminus-font wget"
+BASE_SYSTEM="base base-devel syslinux terminus-font"
 pacstrap -c /mnt ${BASE_SYSTEM}
 
 # Prevent unwanted cache purges
@@ -304,26 +351,22 @@ pacstrap -c /mnt ${BASE_SYSTEM}
 sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' /mnt/etc/pacman.conf
 
 # Uncomment the multilib repo on the install ISO and the target
-if [ `uname -m` == "x86_64" ]; then
+if [ "${CPU}" == "x86_64" ]; then
     sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
     sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /mnt/etc/pacman.conf
 fi
 
 # Create the fstab, based on disk labels.
 genfstab -L /mnt >> /mnt/etc/fstab
-
-# Is the device we are install
-if [ `cat /sys/block/${DSK}/queue/rotational` == "0" ] && [ `cat /sys/block/${DSK}/removable` == "0" ]; then
-    if [ -n "$(hdparm -I /dev/${DSK} 2>&1 | grep 'TRIM supported')" ]; then
-        echo "Solid State Device with TRIM support detected."
-        # TODO - Test this works. None of my SSDs are TRIM compatible.
-        #sed -i 's/rw,relatime/rw,relatime,discard/g' /mnt/etc/fstab
-    else
-        echo "Solid State Device detected. No TRIM support."
-    fi
+# TODO - Test this works. None of my SSDs are TRIM compatible.
+if [ ${ENABLE_DICARD} -eq 1 ]; then
+    :
+    #sed -i 's/rw,relatime/rw,relatime,discard/g' /mnt/etc/fstab
 fi
 
+
 # Configure the hostname.
+# This is the systemd way but does work in a chroot.
 #arch-chroot /mnt hostnamectl set-hostname --static ${FQDN}
 echo "${FQDN}" > /mnt/etc/hostname
 
@@ -345,7 +388,7 @@ echo LC_COLLATE=${LC_COLLATE} >>  /mnt/etc/locale.conf
 arch-chroot /mnt locale-gen
 
 # Configure SYSLINUX
-wget --quiet http://projects.archlinux.org/archiso.git/plain/configs/releng/syslinux/splash.png -O /mnt/boot/syslinux/splash.png
+cp splash.png /mnt/boot/syslinux/splash.png
 sed -i 's/UI menu.c32/#UI menu.c32/' /mnt/boot/syslinux/syslinux.cfg
 sed -i 's/#UI vesamenu.c32/UI vesamenu.c32/' /mnt/boot/syslinux/syslinux.cfg
 sed -i 's/#MENU BACKGROUND/MENU BACKGROUND/' /mnt/boot/syslinux/syslinux.cfg
@@ -379,7 +422,7 @@ fi
 # Install and configure the extra packages
 if [ ${MINIMAL} -eq 0 ]; then
     # Install multilib-devel
-    if [ `uname -m` == "x86_64" ]; then
+    if [ "${CPU}" == "x86_64" ]; then
     echo "
 Y
 Y
@@ -439,7 +482,14 @@ if [ -f users.csv ]; then
             _GROUPS=${_BASE_GROUPS}
         fi
         arch-chroot /mnt useradd --password ${_CRYPTPASSWD} --comment "${_COMMENT}" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}
-        arch-chroot /mnt chown -R ${_USERNAME}:users /home/${_USERNAME}
+
+        # Put ArchInstaller in the home directory of users in the `wheel` group.
+        PROVISION_ARCHINSTALLER=`echo ${_GROUPS} | grep wheel`
+        if [ $? -eq 0 ]; then
+            mkdir -p /mnt/home/${_USERNAME}/Source/Mine/ArchInstaller/
+            cp -R `pwd`/ /mnt/home/${_USERNAME}/Source/Mine/ArchInstaller/
+            arch-chroot /mnt chown -R ${_USERNAME}:users /home/${_USERNAME}
+        fi
     done
 fi
 
@@ -450,7 +500,7 @@ arch-chroot /mnt usermod --password ${PASSWORD_CRYPT} root
 # Unmount
 sync
 if [ -n "${NFS_CACHE}" ]; then
-    echo "${NFS_CACHE} /var/cache/pacman/pkg nfs noauto,x-systemd.automount 0 0" >> /mnt/etc/fstab
+    echo "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,noauto,x-systemd.automount 0 0" >> /mnt/etc/fstab
     umount /var/cache/pacman/pkg
 fi
 if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then

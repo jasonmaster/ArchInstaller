@@ -46,8 +46,10 @@ INSTALL_CRYPTO_APPS=0
 INSTALL_BACKUP_APPS=0
 
 # Upgrade currently installed packages
-pacman_upgrade
-packer_upgrade
+# - Hmm, it might not make sense to do this here.
+#   Package upgrade may required user input.
+#pacman_upgrade
+#packer_upgrade
 
 # Make sure all the required packages are installed.
 pacman_install "`cat extra-packages.txt`"

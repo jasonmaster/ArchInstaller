@@ -1,5 +1,5 @@
-ArchInstaller is a simply suite a bash scripts to automate the installation of
-Arch Linux.
+ArchInstaller is a suite a bash scripts to automate the installation of
+[Arch Linux](http://www.archlinux.org).
 
   * `arch-installer.sh` should be run from the [Arch Linux install ISO](https://www.archlinux.org/download/).
   * `gnome-desktop.sh` should be run from a Arch Linux system that was installed using `arch-installer`.
@@ -62,10 +62,11 @@ When you execute `arch-installer.sh` pass in the `-c` argument, for example:
 
 # Install GNOME
 
-Once the system has been installed using `arch-installer.sh` clone this repository
-again and run:
+Once the system has been installed using `arch-installer.sh` a [GNOME](http://www.gnome.org)
+desktop can be installed.
 
-    ./gnome-desktop.sh
+    cd ~/Source/Mine/ArchInstaller
+    sudo ./gnome-desktop.sh
 
 There are no command line switches to control how `gnome-desktop.sh` operates,
 but you can edit the script and toogle the following.
@@ -100,6 +101,7 @@ that is already present, so subsequent runs are quicker.
 
   * These scripts are heavily biased toward my own preferences and may not suit your needs.
   * These scripts are not well tested. I've published them here for some of the guys at work to experiment with.
+  * These scripts do not support UEFI. I don't have any UEFI hardware to test on.
 
 # TODO
 
@@ -115,8 +117,7 @@ that is already present, so subsequent runs are quicker.
     * <https://github.com/helmuthdu/aui>
     * <http://www.winpe.com/page04.html>
     * <http://blog.burntsushi.net/lenovo-thinkpad-t430-archlinux>
-  * UEFI boot - I don't have any UEFI systems to test.
-    * Wait for UEFI dupport in SYSLINUX.
+  * UEFI support - waiting for UEFI support in SYSLINUX.
   * Investigate zRAM and zSWAP.
 
 ## Power Management
@@ -249,6 +250,16 @@ Power management is not done yet, waiting on stable kernel implementation.
   * <http://nouveau.freedesktop.org/wiki/PowerManagement>
   * <http://ubuntuforums.org/showthread.php?t=1718929>
   * <http://www.phoronix.com/scan.php?page=article&item=nouveau_reclocking_one&num=1>
+
+#### Unichrome or OpenChrome
+
+No power management stuff at the moment, just figure out how to get it working.
+
+  * <https://wiki.archlinux.org/index.php/Via_Unichrome>
+  * <https://bbs.archlinux.org/viewtopic.php?pid=1104036>
+  * <https://bbs.archlinux.org/viewtopic.php?pid=1201986>
+  * http://www.openchrome.org/
+  * http://unichrome.sourceforge.net/
 
 ### Alternatives
 

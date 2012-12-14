@@ -138,8 +138,8 @@ check_vga() {
         VIDEO_DECODER="libva-vdpau-driver"
         VIDEO_MODPROBE="options nouveau modeset=1"
     else
-        local VGA=`lspci | grep VGA`
-        echo ${VGA} | tr "[:upper:]" "[:lower:]" | grep -q "virtualbox"
+        local VGA=`lspci | grep VGA | tr "[:upper:]" "[:lower:]"`
+        echo ${VGA} | grep -q "virtualbox"
         if [ $? -eq 0 ]; then
             cecho VirtualBox
             VIDEO_DRI=""
