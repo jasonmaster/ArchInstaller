@@ -180,7 +180,7 @@ Futher reading.
   * <http://www.thinkwiki.org/wiki/Pentium_M_undervolting_and_underclocking>
   * <http://www.thinkwiki.org/wiki/Undervolt_Stress_Testing_Script>
 
-#### Intel
+#### i915
 
 Power management is implemented in `gnome-desktop.sh`.
 
