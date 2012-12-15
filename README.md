@@ -188,6 +188,8 @@ Power management is implemented in `gnome-desktop.sh`.
   * <http://www.phoronix.com/scan.php?page=article&item=intel_i915_power&num=1>
   * <http://www.scribd.com/doc/73071712/Intel-Linux-Graphics>
 
+Need to enable SNA.
+
 #### Radeon
 
 Power management implemented via TLP.
@@ -195,6 +197,8 @@ Power management implemented via TLP.
   * <http://www.x.org/wiki/RadeonFeature#KMS_Power_Management_Options>
   * <https://wiki.archlinux.org/index.php/ATI#Powersaving>
   * <http://www.overclock.net/t/731469/how-to-power-saving-with-the-radeon-driver>
+
+Need to enable Glamor.
 
 I still need to detect AGP radeon cards and add the kernel options to
 `/etc/modprobe.d/radeon.conf`.
