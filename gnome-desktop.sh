@@ -117,7 +117,7 @@ ENDBRIGHTNESS
         if [ "${CPU}" == "x86_64" ]; then
             packer_install "mprime"
         else
-            pacman_install "mprime-bin"
+            packer_install "mprime-bin"
         fi
     fi
 
