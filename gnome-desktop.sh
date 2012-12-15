@@ -235,8 +235,13 @@ pacman_install_group "gnome-extra"
 pacman_install_group "telepathy"
 pacman_install "epiphany-extensions gedit-plugins gnome-tweak-tool networkmanager-pptp"
 packer_install "firewalld gnome-packagekit gnome-settings-daemon-updates polkit-gnome terminator"
-replaceinfile "Categories=GNOME;GTK;System;" "Categories=X-GNOME-Settings-Panel;GNOME;GTK;System;" /usr/share/applications/gpk-application.desktop
-# Add this category to package that should be in the Settings - X-GNOME-Settings-Panel
+
+# Add some applications to the system settings.
+#replaceinfile "Categories=GNOME;GTK;System;" "Categories=X-GNOME-Settings-Panel;GNOME;GTK;System;" /usr/share/applications/gpk-application.desktop
+#addlinetofile "X-GNOME-Settings-Panel=system-software-install" /usr/share/applications/gpk-application.desktop
+#replaceinfile "Categories=System;Settings;Security;" "Categories=System;Settings;Security;" /usr/share/applications/firewall-config.desktop
+#addlinetofile "X-GNOME-Settings-Panel=firewall-config" /usr/share/applications/firewall-config.desktop
+
 # Gstreamer
 pacman_install "gst-plugins-base gst-plugins-base-libs gst-plugins-good \
 gst-plugins-bad gst-plugins-ugly gst-ffmpeg" "GStreamer"
@@ -253,7 +258,7 @@ system_ctl enable upower.service
 # Network Manager
 system_ctl enable NetworkManager.service
 # FirewallD
-system_ctl enable firewalld.service
+system_ctl enable firewalld
 
 # Printing
 pacman_install "cups foomatic-db foomatic-db-engine foomatic-db-nonfree \
