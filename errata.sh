@@ -15,6 +15,11 @@ check_root
 check_sudo
 check_archlinux
 
+# Remove .git from /etc/skel
+if [ -d /etc/skel/.git ]; then
+    rm -rf /etc/skel/.git
+fi
+
 # Remove Chrony. It has been replaced by `ntpd`.
 HAS_CHRONYC=`which chronyc 2>/dev/null`
 if [ $? -eq 0 ]; then
