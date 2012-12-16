@@ -107,8 +107,15 @@ that is already present, so subsequent runs are quicker.
 
   * When `gnome-desktop.sh` changes something in a user home directory, make
   that change for all users.
-  * Fix suspend on the Thinkpad.
-    * Should `acpid` be used as well?
+  * Fix suspend on the Thinkpad. Probably just needs a swap partition.
+  * Fix Thinkpad volume keys.
+    * Run one of the following on system start up.
+    * `echo enable,0x00ffffff > /proc/acpi/ibm/hotkey`
+    * `cp /sys/devices/platform/thinkpad_acpi/hotkey_all_mask /sys/devices/platform/thinkpad_acpi/hotkey_mask`
+    * <http://www.thinkwiki.org/wiki/Thinkpad-acpi>
+    * <https://github.com/torvalds/linux/blob/master/Documentation/laptops/thinkpad-acpi.txt>
+    * <http://ubuntuforums.org/showthread.php?t=1328016>
+    * <https://bbs.archlinux.org/viewtopic.php?id=147160>
   * Detect locale for dictionaries in `gnome-desktop.sh`.
   * Add installation profiles to `gnome-desktop.sh`.
   * Review the links below, see if there is anything I can re-use.
