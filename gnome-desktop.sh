@@ -17,8 +17,10 @@ check_archlinux
 check_hostname
 check_domainname
 check_ip
+check_product_name
 check_cpu
 check_vga
+
 pacman_sync
 
 INSTALL_BROWSERS=0
@@ -52,11 +54,15 @@ INSTALL_BACKUP_APPS=0
 #pacman_upgrade
 #packer_upgrade
 
+# Assume this is not a touch screen device.
+# Toggle this to 1 in bus or product scripts.
+TOUCH_SCREEN=0
+
 # Make sure all the required packages are installed.
 pacman_install "`cat extra-packages.txt`"
 HAS_PACKER=`which packer 2>/dev/null`
 if [ $? -ne 0 ] && [ -x ./packer-installer.sh ]; then
-    ./packer-installer.sh
+    /packer-installer.sh
 fi
 
 # I make mistakes and bad choices. This corrects them.
@@ -82,7 +88,7 @@ MAX_BRIGHTNESS=""
 if [ -w /sys/class/backlight/thinkpad_screen/brightness ]; then
     BRIGHTNESS="/sys/class/backlight/thinkpad_screen/brightness"
     MAX_BRIGHTNESS="/sys/class/backlight/thinkpad_screen/max_brightness"
-elif [ -w /sys/class/backlight/acpi_video0/ ]; then
+elif [ -w /sys/class/backlight/acpi_video0/brightness ]; then
     BRIGHTNESS="/sys/class/backlight/acpi_video0/brightness"
     MAX_BRIGHTNESS="/sys/class/backlight/acpi_video0/max_brightness"
 fi
@@ -121,11 +127,13 @@ ENDBRIGHTNESS
         fi
     fi
 
+    # TODO - Link this to my serial numbers
     # I don't use PCMCIA slots anymore.
     echo "blacklist pcmcia"       >  /etc/modprobe.d/blacklist-pcmcia.conf
     echo "blacklist yenta_socket" >> /etc/modprobe.d/blacklist-pcmcia.conf
 fi
 
+# TODO - Link this to my serial numbers.
 # I don't use parallel ports anymore.
 echo "blacklist parport" >  /etc/modprobe.d/blacklist-parport.conf
 echo "blacklist ppdev"   >> /etc/modprobe.d/blacklist-parport.conf
@@ -158,36 +166,39 @@ if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
     echo "${VIDEO_MODPROBE}" > /etc/modprobe.d/${VIDEO_KMS}.conf
 fi
 
-# Touch Screen
-# - http://www.x.org/archive/X11R7.5/doc/man/man4/evdev.4.html
-# - https://bbs.archlinux.org/viewtopic.php?id=126208
-# Is there an eGalax touch screen available?
-TOUCH_SCREEN=0
-EGALAX=`lsusb | grep -q 0eef:0001`
-if [ $? -eq 0 ]; then
-    TOUCH_SCREEN=1
-    echo " [!] eGalax touch screen detected"
-    if [ ! -f /etc/modprobe.d/blacklist-usbtouchscreen.conf ]; then
-        packer_install "xinput_calibrator"
-        rmmod usbtouchscreen 2>/dev/null
+# Configure PCI/USB device specific stuff
+for BUS in pci usb
+do
+    for DEVICE_CONFIG in hardware/${BUS}/*.sh
+    do
+        if [ -f ${DEVICE_CONFIG} ]; then
+            DEVICE_ID=`echo ${DEVICE_CONFIG} | cut -f3 -d'/' | sed s'/\.sh//'`
+            if [ "${BUS}" == "pci" ]; then
+                DEVICE_FINDER="lspci"
+            elif [ "${BUS}" == "usb" ]; then
+                DEVICE_FINDER="lsusb"
+            fi
 
-        cat >/etc/modprobe.d/blacklist-usbtouchscreen.conf<<ENDEGALAX
-# Do not load the 'usbtouchscreen' module, as it conflicts with eGalax
-blacklist usbtouchscreen
-ENDEGALAX
+            FOUND_DEVICE=`${DEVICE_FINDER} -d ${DEVICE_ID}`
+            if [ -n "${FOUND_DEVICE}" ]; then
+                if [ -x ${DEVICE_CONFIG} ]; then
+                    ncecho " [+] Configuring ${BUS} ${DEVICE_ID} "
+                    ./${DEVICE_CONFIG}
+                    pid=$!;progress $pid
+                else
+                    cecho " [!] ${BUS} ${DEVICE_ID} configuration is not executable."
+                fi
+            fi
+        fi
+    done
+done
 
-        cat >/etc/X11/xorg.conf.d/99-calibration.conf<<ENDCALIB
-Section "InputClass"
-    Identifier      "calibration"
-    MatchProduct    "eGalax Inc. USB TouchController"
-    Option          "Calibration"   "3996 122 208 3996"
-    Option          "InvertY" "1"
-    Option          "SwapAxes" "0"
-EndSection
-ENDCALIB
-    fi
+# Configure any product specific stuff
+if [ -x "hardware/system/${PRODUCT_NAME}.sh" ]; then
+    ncecho " [+] Configuring ${PRODUCT_NAME} "
+    ./hardware/system/${PRODUCT_NAME}.sh >>"$log" 2>&1 &
+    pid=$!;progress $pid
 fi
-#xinput set-int-prop "eGalax Inc. Touch" "Evdev Axis Calibration" 32 3975 107 -147 3582
 
 # Thinkpad T43
 #  - https://communities.bmc.com/communities/blogs/linux/2010/03/16/ubuntu-1004-and-the-t43
