@@ -205,6 +205,14 @@ if [ $? -eq 0 ]; then
     cp /usr/share/doc/thinkfan/examples/thinkfan.conf.thinkpad /etc/thinkfan.conf
     system_ctl enable thinkfan
     #TODO - hsfmodem
+    cat >/etc/tmpfiles.d/thinkpad-hotkeys.conf<<ENDHOTKEYS
+[Unit]
+Description=Enable hotkeys on Thinkpad
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'echo "It works" > /home/martin/testfile' ; /bin/sh -c 'echo "like a charm!" >> /home/martin/testfile'
+ENDHOTKEYS
 fi
 
 VIRTUALBOX_GUEST=`dmidecode --type 1 | grep VirtualBox`
