@@ -102,7 +102,9 @@ check_ip() {
 
 check_cpu() {
     #grep -q "^flags.*\blm\b" /proc/cpuinfo && CPU="x86_64" || CPU="i686"
+    ncecho " [x] Detecting kernel machine hardware "
     CPU=`uname -m`
+    cecho "${CPU}"
 }
 
 check_vga() {
@@ -166,6 +168,13 @@ check_wireless() {
         WIRELESS_PKG=""
         WIRELESS_MOD=""
     fi
+}
+
+check_product_name() {
+    ncecho " [x] Detecting product name "
+    PRODUCT_NAME=`dmidecode --type 1 | grep "Product Name" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
+    cecho "${PRODUCT_NAME}"
+    
 }
 
 replaceinfile() {

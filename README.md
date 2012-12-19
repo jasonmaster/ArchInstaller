@@ -107,8 +107,7 @@ that is already present, so subsequent runs are quicker.
 
   * When `gnome-desktop.sh` changes something in a user home directory, make
   that change for all users.
-  * Fix suspend on the Thinkpad. Probably just needs a swap partition.
-  * Fix Thinkpad volume keys.
+  * Fix Thinkpad hotkeys keys.
     * Run one of the following on system start up.
     * `echo enable,0x00ffffff > /proc/acpi/ibm/hotkey`
     * `cp /sys/devices/platform/thinkpad_acpi/hotkey_all_mask /sys/devices/platform/thinkpad_acpi/hotkey_mask`
@@ -117,7 +116,7 @@ that is already present, so subsequent runs are quicker.
     * <http://ubuntuforums.org/showthread.php?t=1328016>
     * <https://bbs.archlinux.org/viewtopic.php?id=147160>
   * Detect locale for dictionaries in `gnome-desktop.sh`.
-  * Add installation profiles to `gnome-desktop.sh`.
+  * Add installation profiles for software and hardware to `gnome-desktop.sh`.
   * Review the links below, see if there is anything I can re-use.
     * <https://github.com/helmuthdu/aui>
     * <http://www.winpe.com/page04.html>
