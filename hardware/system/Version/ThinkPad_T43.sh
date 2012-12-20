@@ -7,6 +7,11 @@ else
     exit 1
 fi
 
+# Errata
+if [ -f /etc/modprobe.d/thinkfan.conf ]; then
+    mv -f /etc/modprobe.d/thinkfan.conf /etc/modprobe.d/thinkpad_acpi.conf
+fi
+
 replaceinfile "BAY_POWEROFF_ON_BAT=0" "BAY_POWEROFF_ON_BAT=1" /etc/default/tlp
 
 # Thinkpad T43

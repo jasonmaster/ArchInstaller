@@ -7,6 +7,11 @@ else
     exit 1
 fi
 
+# Errata
+if [ -f /etc/modprobe.d/egalax.conf ]; then
+    mv -f /etc/modprobe.d/egalax.conf /etc/modprobe.d/blacklist-usbtouchscreen.conf
+fi
+
 # References
 # - http://www.x.org/archive/X11R7.5/doc/man/man4/evdev.4.html
 # - https://bbs.archlinux.org/viewtopic.php?id=126208

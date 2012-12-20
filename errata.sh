@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-sp="/-\|"
-log="${PWD}/`basename ${0}`.log"
-rm $log 2>/dev/null
-
 if [ -f common.sh ]; then
     source common.sh
 else
@@ -51,14 +47,6 @@ fi
 # Migrate to the consistent naming scheme.
 if [ -f /etc/modprobe.d/nobeep.conf ]; then
     mv -f /etc/modprobe.d/nobeep.conf /etc/modprobe.d/blacklist-pcspkr.conf
-fi
-
-if [ -f /etc/modprobe.d/egalax.conf ]; then
-    mv -f /etc/modprobe.d/egalax.conf /etc/modprobe.d/blacklist-usbtouchscreen.conf
-fi
-
-if [ -f /etc/modprobe.d/thinkfan.conf ]; then
-    mv -f /etc/modprobe.d/thinkfan.conf /etc/modprobe.d/thinkpad_acpi.conf
 fi
 
 if [ -f /etc/modules-load.d/cpufreq.conf ]; then
