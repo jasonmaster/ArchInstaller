@@ -442,8 +442,7 @@ update_early_hooks() {
 system_ctl () {
     local ACTION=${1}
     local OBJECT=${2}
-    ncecho " [x] systemdctl ${ACTION} ${OBJECT} "
+    ncecho " [x] systemctl ${ACTION} ${OBJECT} "
     systemctl ${ACTION} ${OBJECT} >>"$log" 2>&1
     pid=$!;progress $pid
-    #cecho success
 }
