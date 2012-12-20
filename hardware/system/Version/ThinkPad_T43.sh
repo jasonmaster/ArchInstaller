@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-log="${PWD}/`basename ${0}`.log"
-rm $log 2>/dev/null
-
 if [ -f common.sh ]; then
     source common.sh
 else
@@ -11,16 +8,6 @@ else
 fi
 
 replaceinfile "BAY_POWEROFF_ON_BAT=0" "BAY_POWEROFF_ON_BAT=1" /etc/default/tlp
-
-# TODO - Link this to my serial numbers
-# I don't use PCMCIA slots anymore.
-echo "blacklist pcmcia"       >  /etc/modprobe.d/blacklist-pcmcia.conf
-echo "blacklist yenta_socket" >> /etc/modprobe.d/blacklist-pcmcia.conf
-
-# TODO - Link this to my serial numbers.
-# I don't use parallel ports anymore.
-echo "blacklist parport" >  /etc/modprobe.d/blacklist-parport.conf
-echo "blacklist ppdev"   >> /etc/modprobe.d/blacklist-parport.conf
 
 # Thinkpad T43
 #  - https://communities.bmc.com/communities/blogs/linux/2010/03/16/ubuntu-1004-and-the-t43
@@ -37,4 +24,3 @@ cp /usr/share/doc/thinkfan/examples/thinkfan.conf.thinkpad /etc/thinkfan.conf
 system_ctl enable thinkfan
 
 #TODO - hsfmodem
-rm /etc/tmpfiles.d/thinkpad-hotkeys.conf

@@ -1,1 +1,0 @@
-Thinkpad_T43.sh
