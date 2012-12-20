@@ -194,11 +194,14 @@ do
 done
 
 # Configure any product specific stuff
-if [ -x "hardware/system/${PRODUCT_NAME}.sh" ]; then
-    ncecho " [+] Configuring ${PRODUCT_NAME} "
-    ./hardware/system/${PRODUCT_NAME}.sh >>"$log" 2>&1 &
-    pid=$!;progress $pid
-fi
+for IDENTITY in Product_Name Version Serial_Number
+do
+    if [ -x "hardware/system/${IDENTITY}/${PRODUCT_NAME}.sh" ]; then
+        ncecho " [+] Configuring ${PRODUCT_NAME} "
+        ./hardware/system/${IDENTITY}/${PRODUCT_NAME}.sh >>"$log" 2>&1 &
+        pid=$!;progress $pid
+    fi
+done
 
 # Thinkpad T43
 #  - https://communities.bmc.com/communities/blogs/linux/2010/03/16/ubuntu-1004-and-the-t43
