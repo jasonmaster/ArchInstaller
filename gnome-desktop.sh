@@ -395,7 +395,7 @@ fi
 
 # Music
 if [ ${INSTALL_MUSIC_APPS} -eq 1 ]; then
-    pacman_install "banshee mp3gain"
+    pacman_install "abcde banshee mp3gain"
     pacman_install "picard chromaprint libdiscid"
     packer_install "picard-plugins google-musicmanager nuvolaplayer"
 
