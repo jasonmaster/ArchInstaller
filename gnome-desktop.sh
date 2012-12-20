@@ -168,7 +168,7 @@ pacman_install "gst-plugins-base gst-plugins-base-libs gst-plugins-good \
 gst-plugins-bad gst-plugins-ugly gst-ffmpeg" "GStreamer"
 
 # Gnome Display Manager
-system_ctl enable gdm
+system_ctl enable gdm.service
 # D-Bus interface for user account query and manipulation
 system_ctl enable accounts-daemon.service
 # Enumerates power devices, listens to device events and querys history and statistics
