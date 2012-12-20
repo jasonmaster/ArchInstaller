@@ -149,47 +149,6 @@ if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
     echo "${VIDEO_MODPROBE}" > /etc/modprobe.d/${VIDEO_KMS}.conf
 fi
 
-# Configure PCI/USB device specific stuff
-for BUS in pci usb
-do
-    for DEVICE_CONFIG in hardware/${BUS}/*.sh
-    do
-        if [ -f ${DEVICE_CONFIG} ]; then
-            DEVICE_ID=`echo ${DEVICE_CONFIG} | cut -f3 -d'/' | sed s'/\.sh//'`
-            if [ "${BUS}" == "pci" ]; then
-                DEVICE_FINDER="lspci"
-            elif [ "${BUS}" == "usb" ]; then
-                DEVICE_FINDER="lsusb"
-            fi
-
-            FOUND_DEVICE=`${DEVICE_FINDER} -d ${DEVICE_ID}`
-            if [ -n "${FOUND_DEVICE}" ]; then
-                if [ -x ${DEVICE_CONFIG} ]; then
-                    ncecho " [+] Configuring ${BUS} ${DEVICE_ID} "
-                    ./${DEVICE_CONFIG}
-                    pid=$!;progress $pid
-                else
-                    cecho " [!] ${BUS} ${DEVICE_ID} configuration is not executable."
-                fi
-            fi
-        fi
-    done
-done
-
-# Configure any product specific stuff
-for IDENTITY in Product_Name Version Serial_Number
-do
-    FIELD=`echo ${IDENTITY} | sed 's/_/ /g'`
-    #echo ${FIELD}
-    VALUE=`dmidecode --type system | grep "${FIELD}" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
-    #echo ${VALUE}
-    if [ -x hardware/system/${IDENTITY}/${VALUE}.sh ]; then
-        ncecho " [+] Configuring ${FIELD} ${VALUE} "
-        ./hardware/system/${IDENTITY}/${VALUE}.sh >>"$log" 2>&1 &
-        pid=$!;progress $pid
-    fi
-done
-
 # Fonts
 pacman_install "ttf-bitstream-vera ttf-liberation ttf-ubuntu-font-family"
 packer_install "ttf-fixedsys-excelsior-linux ttf-ms-fonts ttf-source-code-pro"
@@ -240,6 +199,47 @@ packer_install "jre6"
 ncecho " [x] Configuring plugins "
 nspluginwrapper -v -n -a -i >>"$log" 2>&1 &
 pid=$!;progress $pid
+
+# Configure PCI/USB device specific stuff
+for BUS in pci usb
+do
+    for DEVICE_CONFIG in hardware/${BUS}/*.sh
+    do
+        if [ -f ${DEVICE_CONFIG} ]; then
+            DEVICE_ID=`echo ${DEVICE_CONFIG} | cut -f3 -d'/' | sed s'/\.sh//'`
+            if [ "${BUS}" == "pci" ]; then
+                DEVICE_FINDER="lspci"
+            elif [ "${BUS}" == "usb" ]; then
+                DEVICE_FINDER="lsusb"
+            fi
+
+            FOUND_DEVICE=`${DEVICE_FINDER} -d ${DEVICE_ID}`
+            if [ -n "${FOUND_DEVICE}" ]; then
+                if [ -x ${DEVICE_CONFIG} ]; then
+                    ncecho " [+] Configuring ${BUS} ${DEVICE_ID} "
+                    ./${DEVICE_CONFIG}
+                    pid=$!;progress $pid
+                else
+                    cecho " [!] ${BUS} ${DEVICE_ID} configuration is not executable."
+                fi
+            fi
+        fi
+    done
+done
+
+# Configure any product specific stuff
+for IDENTITY in Product_Name Version Serial_Number
+do
+    FIELD=`echo ${IDENTITY} | sed 's/_/ /g'`
+    #echo ${FIELD}
+    VALUE=`dmidecode --type system | grep "${FIELD}" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
+    #echo ${VALUE}
+    if [ -x hardware/system/${IDENTITY}/${VALUE}.sh ]; then
+        ncecho " [+] Configuring ${FIELD} ${VALUE} "
+        ./hardware/system/${IDENTITY}/${VALUE}.sh >>"$log" 2>&1 &
+        pid=$!;progress $pid
+    fi
+done
 
 # Browsers
 if [ ${INSTALL_BROWSERS} -eq 1 ]; then
