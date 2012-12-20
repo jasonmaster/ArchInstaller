@@ -188,7 +188,7 @@ Futher reading.
 
 #### i915
 
-Power management is implemented in `gnome-desktop.sh`.
+Power management is implemented.
 
   * <http://www.kubuntuforums.net/showthread.php?57279-How-to-Enable-power-management-features>
   * <http://www.phoronix.com/scan.php?page=article&item=intel_i915_power&num=1>
@@ -198,7 +198,7 @@ Need to enable SNA.
 
 #### Radeon
 
-Power management implemented via TLP.
+Power management is implemented.
 
   * <http://www.x.org/wiki/RadeonFeature#KMS_Power_Management_Options>
   * <https://wiki.archlinux.org/index.php/ATI#Powersaving>

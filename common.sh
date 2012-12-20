@@ -159,24 +159,6 @@ check_vga() {
     fi
 }
 
-check_wireless() {
-    lspci | grep -q BCM4312
-    if [ $? -eq 0 ]; then
-        WIRELESS_PKG="dkms-broadcom-wl"
-        WIRELESS_MOD="wl"
-    else
-        WIRELESS_PKG=""
-        WIRELESS_MOD=""
-    fi
-}
-
-check_product_name() {
-    ncecho " [x] Detecting product name "
-    PRODUCT_NAME=`dmidecode --type 1 | grep "Product Name" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
-    cecho "${PRODUCT_NAME}"
-    
-}
-
 replaceinfile() {
     SEARCH=${1}
     REPLACE=${2}
@@ -429,7 +411,7 @@ update_early_modules() {
                 NEW_MODULES="${MODULES} ${NEW_MODULE}"
             fi
             replaceinfile "MODULES=\"${MODULES}\"" "MODULES=\"${NEW_MODULES}\"" /etc/mkinitcpio.conf
-            rebuild_init            
+            rebuild_init
         fi
     fi
 }

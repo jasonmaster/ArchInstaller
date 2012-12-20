@@ -17,7 +17,6 @@ check_archlinux
 check_hostname
 check_domainname
 check_ip
-check_product_name
 check_cpu
 check_vga
 
@@ -196,9 +195,13 @@ done
 # Configure any product specific stuff
 for IDENTITY in Product_Name Version Serial_Number
 do
-    if [ -x "hardware/system/${IDENTITY}/${PRODUCT_NAME}.sh" ]; then
-        ncecho " [+] Configuring ${PRODUCT_NAME} "
-        ./hardware/system/${IDENTITY}/${PRODUCT_NAME}.sh >>"$log" 2>&1 &
+    FIELD=`echo ${IDENTITY} | sed 's/_/ /g'`
+    #echo ${FIELD}
+    VALUE=`dmidecode --type system | grep "${FIELD}" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
+    #echo ${VALUE}
+    if [ -x hardware/system/${IDENTITY}/${VALUE}.sh ]; then
+        ncecho " [+] Configuring ${FIELD} ${VALUE}"
+        ./hardware/system/${IDENTITY}/${VALUE}.sh >>"$log" 2>&1 &
         pid=$!;progress $pid
     fi
 done
