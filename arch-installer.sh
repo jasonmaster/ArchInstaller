@@ -414,8 +414,8 @@ Y" | pacstrap -c -i /mnt multilib-devel
     # Install my dot files and configure the root user shell.
     git clone https://github.com/flexiondotorg/dot-files.git /tmp/dot-files
     rm -rf /tmp/dot-files/.git
-    rsync -av /tmp/dot-files/ /mnt/
-    rsync -av /mnt/etc/skel/ /mnt/root/
+    cp -Rf /tmp/dot-files/* /mnt/
+    cp -Rf /tmp/dot-files/etc/skel/* /mnt/root/
 fi
 
 # Rebuild init and update SYSLINUX
