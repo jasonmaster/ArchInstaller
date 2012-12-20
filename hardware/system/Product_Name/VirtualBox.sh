@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 
-source ../../../common.sh
+log="${PWD}/`basename ${0}`.log"
+rm $log 2>/dev/null
+
+if [ -f common.sh ]; then
+    source common.sh
+else
+    echo "ERROR! Could not source 'common.sh'"
+    exit 1
+fi
 
 pacman_install "virtualbox-guest-utils"
 echo "vboxguest" >  /etc/modules-load.d/virtualbox-guest.conf

@@ -1,3 +1,5 @@
+sp="/-\|"
+
 error_msg() {
     local MSG="${1}"
     echo "${MSG}"
@@ -441,7 +443,7 @@ system_ctl () {
     local ACTION=${1}
     local OBJECT=${2}
     ncecho " [x] systemdctl ${ACTION} ${OBJECT} "
-    systemdctl ${ACTION} ${OBJECT} >>"$log" 2>&1
-    #pid=$!;progress $pid
-    cecho success
+    systemctl ${ACTION} ${OBJECT} >>"$log" 2>&1
+    pid=$!;progress $pid
+    #cecho success
 }

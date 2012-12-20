@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-sp="/-\|"
 log="${PWD}/`basename ${0}`.log"
 rm $log 2>/dev/null
 
@@ -185,7 +184,7 @@ do
     VALUE=`dmidecode --type system | grep "${FIELD}" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
     #echo ${VALUE}
     if [ -x hardware/system/${IDENTITY}/${VALUE}.sh ]; then
-        ncecho " [+] Configuring ${FIELD} ${VALUE}"
+        ncecho " [+] Configuring ${FIELD} ${VALUE} "
         ./hardware/system/${IDENTITY}/${VALUE}.sh >>"$log" 2>&1 &
         pid=$!;progress $pid
     fi
@@ -211,11 +210,6 @@ packer_install "firewalld gnome-packagekit gnome-settings-daemon-updates polkit-
 # Gstreamer
 pacman_install "gst-plugins-base gst-plugins-base-libs gst-plugins-good \
 gst-plugins-bad gst-plugins-ugly gst-ffmpeg" "GStreamer"
-
-# TODO - Move this to a Product_Name
-if [ ${TOUCH_SCREEN} -eq 1 ]; then
-    pacman_install "xournal"
-fi
 
 # Gnome Display Manager
 system_ctl enable gdm.service
