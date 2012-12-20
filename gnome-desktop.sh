@@ -53,10 +53,6 @@ INSTALL_BACKUP_APPS=0
 #pacman_upgrade
 #packer_upgrade
 
-# Assume this is not a touch screen device.
-# Toggle this to 1 in bus or product scripts.
-TOUCH_SCREEN=0
-
 # Make sure all the required packages are installed.
 pacman_install "`cat extra-packages.txt`"
 HAS_PACKER=`which packer 2>/dev/null`
@@ -76,7 +72,6 @@ if [ $? -eq 0 ]; then
     # Some SATA chipsets can corrupt data when ALPM is enabled. Disable it
     replaceinfile 'SATA_LINKPWR' '#SATA_LINKPWR' /etc/default/tlp
     replaceinfile "PCIE_ASPM_ON_AC=performance" "PCIE_ASPM_ON_AC=default" /etc/default/tlp
-    replaceinfile "BAY_POWEROFF_ON_BAT=0" "BAY_POWEROFF_ON_BAT=1" /etc/default/tlp
 
     # Enable brightness control.
     cat >/etc/pm/power.d/display-brightness<<'ENDBRIGHTNESS'
@@ -125,17 +120,7 @@ ENDBRIGHTNESS
             packer_install "mprime-bin"
         fi
     fi
-
-    # TODO - Link this to my serial numbers
-    # I don't use PCMCIA slots anymore.
-    echo "blacklist pcmcia"       >  /etc/modprobe.d/blacklist-pcmcia.conf
-    echo "blacklist yenta_socket" >> /etc/modprobe.d/blacklist-pcmcia.conf
 fi
-
-# TODO - Link this to my serial numbers.
-# I don't use parallel ports anymore.
-echo "blacklist parport" >  /etc/modprobe.d/blacklist-parport.conf
-echo "blacklist ppdev"   >> /etc/modprobe.d/blacklist-parport.conf
 
 # Install video driver (DRI)
 if [ -n "${VIDEO_DRI}" ]; then
@@ -206,50 +191,6 @@ do
     fi
 done
 
-# Thinkpad T43
-#  - https://communities.bmc.com/communities/blogs/linux/2010/03/16/ubuntu-1004-and-the-t43
-#  - http://pc-freak.net/blog/controlling-fan-with-thinkfan-on-lenovo-thinkpad-r61-on-debian-gnulinux-adjusting-proper-fan-cycling/
-T43=`dmidecode --type 1 | grep "ThinkPad T43"`
-if [ $? -eq 0 ]; then
-    pacman_install "fprintd hdapsd tp_smapi"
-    packer_install "thinkfan hdaps-gl"
-    echo "options thinkpad_acpi fan_control=1" > /etc/modprobe.d/thinkpad_acpi.conf
-    # On the T43p the x-axis is inverted.
-    echo "options hdaps invert=1" > /etc/modprobe.d/hdaps.conf
-    # TODO
-    #  - use `tlp` to get a disk list. Only enable hdaps for rotational drives.
-    #  - Find a way to start `hdapsd-wrapper`
-    cp /usr/share/doc/thinkfan/examples/thinkfan.conf.thinkpad /etc/thinkfan.conf
-    system_ctl enable thinkfan
-    #TODO - hsfmodem
-    cat >/etc/tmpfiles.d/thinkpad-hotkeys.conf<<ENDHOTKEYS
-[Unit]
-Description=Enable hotkeys on Thinkpad
-
-[Service]
-Type=oneshot
-ExecStart=/bin/sh -c 'echo "It works" > /home/martin/testfile' ; /bin/sh -c 'echo "like a charm!" >> /home/martin/testfile'
-ENDHOTKEYS
-fi
-
-VIRTUALBOX_GUEST=`dmidecode --type 1 | grep VirtualBox`
-if [ $? -eq 0 ]; then
-    pacman_install "virtualbox-guest-utils"
-    echo "vboxguest" >  /etc/modules-load.d/virtualbox-guest.conf
-    echo "vboxsf"    >> /etc/modules-load.d/virtualbox-guest.conf
-    echo "vboxvideo" >> /etc/modules-load.d/virtualbox-guest.conf
-    modprobe -a vboxguest vboxsf vboxvideo
-
-    # Enable access to Shared Folders
-    add_user_to_group ${SUDO_USER} vboxsf
-
-    # Synchronise date/time to the host
-    system_ctl stop ntpd.service
-    system_ctl disable ntpd.service
-    system_ctl enable vboxservice
-    system_ctl start vboxservice
-fi
-
 # Fonts
 pacman_install "ttf-bitstream-vera ttf-liberation ttf-ubuntu-font-family"
 packer_install "ttf-fixedsys-excelsior-linux ttf-ms-fonts ttf-source-code-pro"
@@ -270,6 +211,8 @@ packer_install "firewalld gnome-packagekit gnome-settings-daemon-updates polkit-
 # Gstreamer
 pacman_install "gst-plugins-base gst-plugins-base-libs gst-plugins-good \
 gst-plugins-bad gst-plugins-ugly gst-ffmpeg" "GStreamer"
+
+# TODO - Move this to a Product_Name
 if [ ${TOUCH_SCREEN} -eq 1 ]; then
     pacman_install "xournal"
 fi
