@@ -250,7 +250,7 @@ if [ ${TOUCH_SCREEN} -eq 1 ]; then
 fi
 
 # Gnome Display Manager
-system_ctl enable gdm.service
+system_ctl enable gdm
 # D-Bus interface for user account query and manipulation
 system_ctl enable accounts-daemon.service
 # Enumerates power devices, listens to device events and querys history and statistics
