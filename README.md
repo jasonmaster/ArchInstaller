@@ -127,10 +127,16 @@ that is already present, so subsequent runs are quicker.
 
   * When `gnome-desktop.sh` changes something in a user home directory, make
   that change for all users.
-  * Fix suspend on the Thinkpad.
-    * Should `acpid` be used as well?
+  * Fix Thinkpad hotkeys keys.
+    * Run one of the following on system start up.
+    * `echo enable,0x00ffffff > /proc/acpi/ibm/hotkey`
+    * `cp /sys/devices/platform/thinkpad_acpi/hotkey_all_mask /sys/devices/platform/thinkpad_acpi/hotkey_mask`
+    * <http://www.thinkwiki.org/wiki/Thinkpad-acpi>
+    * <https://github.com/torvalds/linux/blob/master/Documentation/laptops/thinkpad-acpi.txt>
+    * <http://ubuntuforums.org/showthread.php?t=1328016>
+    * <https://bbs.archlinux.org/viewtopic.php?id=147160>
   * Detect locale for dictionaries in `gnome-desktop.sh`.
-  * Add installation profiles to `gnome-desktop.sh`.
+  * Add installation profiles for software and hardware to `gnome-desktop.sh`.
   * Review the links below, see if there is anything I can re-use.
     * <https://github.com/helmuthdu/aui>
     * <http://www.winpe.com/page04.html>
@@ -202,7 +208,7 @@ Futher reading.
 
 #### i915
 
-Power management is implemented in `gnome-desktop.sh`.
+Power management is implemented.
 
   * <http://www.kubuntuforums.net/showthread.php?57279-How-to-Enable-power-management-features>
   * <http://www.phoronix.com/scan.php?page=article&item=intel_i915_power&num=1>
@@ -212,7 +218,7 @@ Need to enable SNA.
 
 #### Radeon
 
-Power management implemented via TLP.
+Power management is implemented.
 
   * <http://www.x.org/wiki/RadeonFeature#KMS_Power_Management_Options>
   * <https://wiki.archlinux.org/index.php/ATI#Powersaving>

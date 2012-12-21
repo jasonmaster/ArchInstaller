@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
 
-if [ -f common.sh ]; then
-    source common.sh
-else
-    echo "ERROR! Could not source 'common.sh'"
-    exit 1
-fi
-
 BASE_GROUPS="adm,audio,disk,lp,optical,storage,video,games,power,scanner"
 DSK=""
 NFS_CACHE=""
@@ -40,7 +33,7 @@ function usage() {
     echo "Optional parameters"
     echo "  -b : The partition type to use. Defaults to '${PARTITION_TYPE}'. Can be 'msdos' or 'gpt'."
     echo "  -c : The NFS export to mount and use as the pacman cache."
-    echo "  -f : The filesystem to use. Currently 'ext4' and 'xfs' are supported, defaults to '${FS}'."
+    echo "  -f : The filesystem to use. 'btrfs', 'ext4', 'jfs', 'nilfs2' and 'xfs' are supported. Defaults to '${FS}'."
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
     echo "  -m : Install a minimal system."
@@ -94,11 +87,19 @@ if [ ! -b /dev/${DSK} ]; then
     exit 1
 fi
 
-if [ "${FS}" != "ext4" ] && [ "${FS}" != "xfs" ]; then
-    echo "ERROR! Filesystem ${FS} is not supported."
-    echo " - See `basename ${0}` -h"
-    exit 1
-fi
+case ${FS} in
+    "btrfs")  MKFS="mkfs.btrfs";;
+    "ext2")   MKFS="mkfs.ext2 -F -m 0 -q";;
+    "ext3")   MKFS="mkfs.ext3 -F -m 0 -q";;
+    "ext4")   MKFS="mkfs.ext4 -F -m 0 -q";;
+    "jfs")    MKFS="mkfs.jfs -q";;
+    "nilfs2") MKFS="mkfs.nilfs2 -q";;
+    "xfs")    MKFS="mkfs.xfs -f -q";;
+    *) echo "ERROR! Filesystem ${FS} is not supported."
+       echo " - See `basename ${0}` -h"
+       exit 1
+       ;;
+esac
 
 if [ "${PARTITION_TYPE}" != "msdos" ] && [ "${PARTITION_TYPE}" != "gpt" ]; then
     echo "ERROR! Partition type ${PARTITION_TYPE} is not supported."
@@ -138,8 +139,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Detect the CPU
-check_cpu
+CPU=`uname -m`
 if [ "${CPU}" != "i686" ] && [ "${CPU}" != "x86_64" ]; then
     echo "ERROR! `basename ${0}` is designed for i686 and x86_64 platforms only."
     echo " - Contributions welcome - https://github.com/flexiondotorg/ArchInstaller/"
@@ -147,8 +147,8 @@ if [ "${CPU}" != "i686" ] && [ "${CPU}" != "x86_64" ]; then
 fi
 
 if [ -n "${NFS_CACHE}" ]; then
-    systemctl start rpc-statd.service
-    mount -t nfs ${NFS_CACHE} /var/cache/pacman/pkg
+    systemctl start rpc-statd.service >/dev/null
+    mount -t nfs ${NFS_CACHE} /var/cache/pacman/pkg >/dev/null
     if [ $? -ne 0 ]; then
         echo "ERROR! Unable to mount ${NFS_CACHE}"
         echo " - See `basename ${0}` -h"
@@ -188,6 +188,7 @@ fi
 echo " - Disk label          : ${PARTITION_TYPE}"
 echo " - Partition layout    : ${PARTITION_LAYOUT}"
 echo " - File System         : ${FS}"
+echo " - CPU                 : ${CPU}"
 echo " - Hostname            : ${FQDN}"
 echo " - Timezone            : ${TIMEZONE}"
 echo " - Keyboard mapping    : ${KEYMAP}"
@@ -221,7 +222,8 @@ rmmod -s pcspkr 2>/dev/null
 # Partition the disk
 #  - https://bbs.archlinux.org/viewtopic.php?id=145678
 #  - http://sprunge.us/WATU
-parted -s /dev/${DSK} mktable ${PARTITION_TYPE}
+echo "==> Initialising disk /dev/${DSK}: ${PARTITION_TYPE}"
+parted -s /dev/${DSK} mktable ${PARTITION_TYPE} >/dev/null
 
 # Calculate common partition sizes.
 swap_size=`awk '/MemTotal/ {printf( "%.0f\n", $2 / 1000 )}' /proc/meminfo`
@@ -244,55 +246,59 @@ fi
 
 # Partition the disk.
 # /boot
-parted -s /dev/${DSK} unit MiB mkpart primary 1 $boot_end
+echo "==> Creating /boot partition"
+parted -s /dev/${DSK} unit MiB mkpart primary 1 $boot_end >/dev/null
 
 if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
     # swap and /root
     ROOT_PARTITION="${DSK}3"
-    parted -s /dev/${DSK} unit MiB mkpart primary linux-swap $boot_end $swap_end
-    parted -s /dev/${DSK} unit MiB mkpart primary $swap_end $root_end
+    echo "==> Creating swap partition"
+    parted -s /dev/${DSK} unit MiB mkpart primary linux-swap $boot_end $swap_end >/dev/null
+    echo "==> Creating /root partition"
+    parted -s /dev/${DSK} unit MiB mkpart primary $swap_end $root_end >/dev/null
     # /home
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-        parted -s /dev/${DSK} unit MiB mkpart primary $root_end $max
+        echo "==> Creating /home partition"
+        parted -s /dev/${DSK} unit MiB mkpart primary $root_end $max >/dev/null
     fi
 elif [ "${PARTITION_LAYOUT}" = "br" ]; then
     # /root
     ROOT_PARTITION="${DSK}2"
-    parted -s /dev/${DSK} unit MiB mkpart primary $boot_end $root_end
+    echo "==> Creating /root partition"
+    parted -s /dev/${DSK} unit MiB mkpart primary $boot_end $root_end >/dev/null
 fi
 
 # Set boot flags
-parted -s /dev/${DSK} toggle 1 boot
+echo "==> Setting /dev/${DSK} bootable"
+parted -s /dev/${DSK} toggle 1 boot >/dev/null
 if [ "${PARTITION_TYPE}" == "gpt" ]; then
-    sgdisk /dev/${DSK} --attributes=1:set:2
+    sgdisk /dev/${DSK} --attributes=1:set:2 >/dev/null
 fi
 
 # Make the file systems.
-mkfs.ext2 -F -L boot -m 0 /dev/${DSK}1
-if [ "${FS}" == "xfs" ]; then
-    mkfs.xfs -f -L root /dev/${ROOT_PARTITION}
-    if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-        mkfs.xfs -f -L home /dev/${DSK}4
-    fi
-else
-    mkfs.ext4 -F -L root -m 0 /dev/${ROOT_PARTITION}
-    if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-        mkfs.ext4 -F -L home -m 0 /dev/${DSK}4
-    fi
+echo "==> Making /boot filesystem : ext2"
+mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}1 >/dev/null
+echo "==> Making /root filesystem : ${FS}"
+${MKFS} -L root /dev/${ROOT_PARTITION} >/dev/null
+if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+    echo "==> Making /home filesystem : ${FS}"
+    ${MKFS} -L home /dev/${DSK}4 >/dev/null
 fi
 
 # Enable swap
 if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
-    mkswap -L swap /dev/${DSK}2
-    swapon -L swap
+    echo -n "==> "
+    mkswap -f -L swap /dev/${DSK}2
+    swapon /dev/${DSK}2
 fi
 
 # Mount
-mount /dev/${ROOT_PARTITION} /mnt
+echo "==> Mounting filesystems"
+mount /dev/${ROOT_PARTITION} /mnt >/dev/null
 mkdir -p /mnt/{boot,home}
-mount /dev/${DSK}1 /mnt/boot
+mount /dev/${DSK}1 /mnt/boot >/dev/null
 if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-    mount /dev/${DSK}4 /mnt/home
+    mount /dev/${DSK}4 /mnt/home >/dev/null
 fi
 
 # Base system
@@ -309,10 +315,10 @@ if [ "${CPU}" == "x86_64" ]; then
     sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /mnt/etc/pacman.conf
 fi
 
-# Create the fstab, based on disk labels.
-genfstab -L /mnt >> /mnt/etc/fstab
+# Create /etc/fstab
+genfstab -t UUID -p /mnt >> /mnt/etc/fstab
 # TODO - Test this works. None of my SSDs are TRIM compatible.
-if [ ${ENABLE_DICARD} -eq 1 ]; then
+if [ ${ENABLE_DISCARD} -eq 1 ]; then
     :
     #sed -i 's/rw,relatime/rw,relatime,discard/g' /mnt/etc/fstab
 fi
@@ -386,8 +392,8 @@ Y" | pacstrap -c -i /mnt multilib-devel
     pacstrap -c /mnt `cat extra-packages.txt`
 
     # Unmount /sys in the target
-    umount /mnt/sys/fs/cgroup/{systemd,}
-    umount /mnt/sys
+    umount /mnt/sys/fs/cgroup/{systemd,} >/dev/null
+    umount /mnt/sys >/dev/null
 
     # Configure mDNS
     sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /mnt/etc/nsswitch.conf
@@ -409,7 +415,7 @@ Y" | pacstrap -c -i /mnt multilib-devel
     git clone https://github.com/flexiondotorg/dot-files.git /tmp/dot-files
     rm -rf /tmp/dot-files/.git
     rsync -av /tmp/dot-files/ /mnt/
-    cp -R /tmp/dot-files/etc/skel/* /mnt/root/
+    rsync -av /mnt/etc/skel/ /mnt/root/
 fi
 
 # Rebuild init and update SYSLINUX
@@ -459,8 +465,8 @@ fi
 if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
     umount /mnt/home
 fi
-umount /mnt/sys/fs/cgroup/{systemd,}
-umount /mnt/sys
+umount /mnt/sys/fs/cgroup/{systemd,} >/dev/null
+umount /mnt/sys >/dev/null
 umount /mnt/{boot,}
 swapoff -a
 

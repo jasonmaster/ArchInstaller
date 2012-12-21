@@ -1,3 +1,7 @@
+sp="/-\|"
+log="${PWD}/`basename ${0}`.log"
+rm $log 2>/dev/null
+
 error_msg() {
     local MSG="${1}"
     echo "${MSG}"
@@ -102,7 +106,9 @@ check_ip() {
 
 check_cpu() {
     #grep -q "^flags.*\blm\b" /proc/cpuinfo && CPU="x86_64" || CPU="i686"
+    ncecho " [x] Detecting kernel machine hardware "
     CPU=`uname -m`
+    cecho "${CPU}"
 }
 
 check_vga() {
@@ -154,17 +160,6 @@ check_vga() {
             VIDEO_DECODER=""
             VIDEO_MODPROBE=""
         fi
-    fi
-}
-
-check_wireless() {
-    lspci | grep -q BCM4312
-    if [ $? -eq 0 ]; then
-        WIRELESS_PKG="dkms-broadcom-wl"
-        WIRELESS_MOD="wl"
-    else
-        WIRELESS_PKG=""
-        WIRELESS_MOD=""
     fi
 }
 
@@ -420,7 +415,7 @@ update_early_modules() {
                 NEW_MODULES="${MODULES} ${NEW_MODULE}"
             fi
             replaceinfile "MODULES=\"${MODULES}\"" "MODULES=\"${NEW_MODULES}\"" /etc/mkinitcpio.conf
-            rebuild_init            
+            rebuild_init
         fi
     fi
 }
@@ -449,8 +444,7 @@ update_early_hooks() {
 system_ctl () {
     local ACTION=${1}
     local OBJECT=${2}
-    ncecho " [x] systemdctl ${ACTION} ${OBJECT} "
-    systemdctl ${ACTION} ${OBJECT} >>"$log" 2>&1
-    #pid=$!;progress $pid
-    cecho success
+    ncecho " [x] systemctl ${ACTION} ${OBJECT} "
+    systemctl ${ACTION} ${OBJECT} >>"$log" 2>&1
+    pid=$!;progress $pid
 }

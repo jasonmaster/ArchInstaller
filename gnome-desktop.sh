@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-sp="/-\|"
-log="${PWD}/`basename ${0}`.log"
-rm $log 2>/dev/null
-
 if [ -f common.sh ]; then
     source common.sh
 else
@@ -19,6 +15,7 @@ check_domainname
 check_ip
 check_cpu
 check_vga
+
 pacman_sync
 
 INSTALL_BROWSERS=0
@@ -56,7 +53,7 @@ INSTALL_BACKUP_APPS=0
 pacman_install "`cat extra-packages.txt`"
 HAS_PACKER=`which packer 2>/dev/null`
 if [ $? -ne 0 ] && [ -x ./packer-installer.sh ]; then
-    ./packer-installer.sh
+    /packer-installer.sh
 fi
 
 # I make mistakes and bad choices. This corrects them.
@@ -71,7 +68,6 @@ if [ $? -eq 0 ]; then
     # Some SATA chipsets can corrupt data when ALPM is enabled. Disable it
     replaceinfile 'SATA_LINKPWR' '#SATA_LINKPWR' /etc/default/tlp
     replaceinfile "PCIE_ASPM_ON_AC=performance" "PCIE_ASPM_ON_AC=default" /etc/default/tlp
-    replaceinfile "BAY_POWEROFF_ON_BAT=0" "BAY_POWEROFF_ON_BAT=1" /etc/default/tlp
 
     # Enable brightness control.
     cat >/etc/pm/power.d/display-brightness<<'ENDBRIGHTNESS'
@@ -82,7 +78,7 @@ MAX_BRIGHTNESS=""
 if [ -w /sys/class/backlight/thinkpad_screen/brightness ]; then
     BRIGHTNESS="/sys/class/backlight/thinkpad_screen/brightness"
     MAX_BRIGHTNESS="/sys/class/backlight/thinkpad_screen/max_brightness"
-elif [ -w /sys/class/backlight/acpi_video0/ ]; then
+elif [ -w /sys/class/backlight/acpi_video0/brightness ]; then
     BRIGHTNESS="/sys/class/backlight/acpi_video0/brightness"
     MAX_BRIGHTNESS="/sys/class/backlight/acpi_video0/max_brightness"
 fi
@@ -120,15 +116,7 @@ ENDBRIGHTNESS
             packer_install "mprime-bin"
         fi
     fi
-
-    # I don't use PCMCIA slots anymore.
-    echo "blacklist pcmcia"       >  /etc/modprobe.d/blacklist-pcmcia.conf
-    echo "blacklist yenta_socket" >> /etc/modprobe.d/blacklist-pcmcia.conf
 fi
-
-# I don't use parallel ports anymore.
-echo "blacklist parport" >  /etc/modprobe.d/blacklist-parport.conf
-echo "blacklist ppdev"   >> /etc/modprobe.d/blacklist-parport.conf
 
 # Install video driver (DRI)
 if [ -n "${VIDEO_DRI}" ]; then
@@ -158,73 +146,6 @@ if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
     echo "${VIDEO_MODPROBE}" > /etc/modprobe.d/${VIDEO_KMS}.conf
 fi
 
-# Touch Screen
-# - http://www.x.org/archive/X11R7.5/doc/man/man4/evdev.4.html
-# - https://bbs.archlinux.org/viewtopic.php?id=126208
-# Is there an eGalax touch screen available?
-TOUCH_SCREEN=0
-EGALAX=`lsusb | grep -q 0eef:0001`
-if [ $? -eq 0 ]; then
-    TOUCH_SCREEN=1
-    echo " [!] eGalax touch screen detected"
-    if [ ! -f /etc/modprobe.d/blacklist-usbtouchscreen.conf ]; then
-        packer_install "xinput_calibrator"
-        rmmod usbtouchscreen 2>/dev/null
-
-        cat >/etc/modprobe.d/blacklist-usbtouchscreen.conf<<ENDEGALAX
-# Do not load the 'usbtouchscreen' module, as it conflicts with eGalax
-blacklist usbtouchscreen
-ENDEGALAX
-
-        cat >/etc/X11/xorg.conf.d/99-calibration.conf<<ENDCALIB
-Section "InputClass"
-    Identifier      "calibration"
-    MatchProduct    "eGalax Inc. USB TouchController"
-    Option          "Calibration"   "3996 122 208 3996"
-    Option          "InvertY" "1"
-    Option          "SwapAxes" "0"
-EndSection
-ENDCALIB
-    fi
-fi
-#xinput set-int-prop "eGalax Inc. Touch" "Evdev Axis Calibration" 32 3975 107 -147 3582
-
-# Thinkpad T43
-#  - https://communities.bmc.com/communities/blogs/linux/2010/03/16/ubuntu-1004-and-the-t43
-#  - http://pc-freak.net/blog/controlling-fan-with-thinkfan-on-lenovo-thinkpad-r61-on-debian-gnulinux-adjusting-proper-fan-cycling/
-T43=`dmidecode --type 1 | grep "ThinkPad T43"`
-if [ $? -eq 0 ]; then
-    pacman_install "fprintd hdapsd tp_smapi"
-    packer_install "thinkfan hdaps-gl"
-    echo "options thinkpad_acpi fan_control=1" > /etc/modprobe.d/thinkpad_acpi.conf
-    # On the T43p the x-axis is inverted.
-    echo "options hdaps invert=1" > /etc/modprobe.d/hdaps.conf
-    # TODO
-    #  - use `tlp` to get a disk list. Only enable hdaps for rotational drives.
-    #  - Find a way to start `hdapsd-wrapper`
-    cp /usr/share/doc/thinkfan/examples/thinkfan.conf.thinkpad /etc/thinkfan.conf
-    system_ctl enable thinkfan
-    #TODO - hsfmodem
-fi
-
-VIRTUALBOX_GUEST=`dmidecode --type 1 | grep VirtualBox`
-if [ $? -eq 0 ]; then
-    pacman_install "virtualbox-guest-utils"
-    echo "vboxguest" >  /etc/modules-load.d/virtualbox-guest.conf
-    echo "vboxsf"    >> /etc/modules-load.d/virtualbox-guest.conf
-    echo "vboxvideo" >> /etc/modules-load.d/virtualbox-guest.conf
-    modprobe -a vboxguest vboxsf vboxvideo
-
-    # Enable access to Shared Folders
-    add_user_to_group ${SUDO_USER} vboxsf
-
-    # Synchronise date/time to the host
-    system_ctl stop ntpd.service
-    system_ctl disable ntpd.service
-    system_ctl enable vboxservice
-    system_ctl start vboxservice
-fi
-
 # Fonts
 pacman_install "ttf-bitstream-vera ttf-liberation ttf-ubuntu-font-family"
 packer_install "ttf-fixedsys-excelsior-linux ttf-ms-fonts ttf-source-code-pro"
@@ -245,9 +166,6 @@ packer_install "firewalld gnome-packagekit gnome-settings-daemon-updates polkit-
 # Gstreamer
 pacman_install "gst-plugins-base gst-plugins-base-libs gst-plugins-good \
 gst-plugins-bad gst-plugins-ugly gst-ffmpeg" "GStreamer"
-if [ ${TOUCH_SCREEN} -eq 1 ]; then
-    pacman_install "xournal"
-fi
 
 # Gnome Display Manager
 system_ctl enable gdm
@@ -278,6 +196,47 @@ packer_install "jre6"
 ncecho " [x] Configuring plugins "
 nspluginwrapper -v -n -a -i >>"$log" 2>&1 &
 pid=$!;progress $pid
+
+# Configure PCI/USB device specific stuff
+for BUS in pci usb
+do
+    for DEVICE_CONFIG in hardware/${BUS}/*.sh
+    do
+        if [ -f ${DEVICE_CONFIG} ]; then
+            DEVICE_ID=`echo ${DEVICE_CONFIG} | cut -f3 -d'/' | sed s'/\.sh//'`
+            if [ "${BUS}" == "pci" ]; then
+                DEVICE_FINDER="lspci"
+            elif [ "${BUS}" == "usb" ]; then
+                DEVICE_FINDER="lsusb"
+            fi
+
+            FOUND_DEVICE=`${DEVICE_FINDER} -d ${DEVICE_ID}`
+            if [ -n "${FOUND_DEVICE}" ]; then
+                if [ -x ${DEVICE_CONFIG} ]; then
+                    ncecho " [+] Configuring ${BUS} ${DEVICE_ID} "
+                    ./${DEVICE_CONFIG}
+                    pid=$!;progress $pid
+                else
+                    cecho " [!] ${BUS} ${DEVICE_ID} configuration is not executable."
+                fi
+            fi
+        fi
+    done
+done
+
+# Configure any product specific stuff
+for IDENTITY in Product_Name Version Serial_Number
+do
+    FIELD=`echo ${IDENTITY} | sed 's/_/ /g'`
+    #echo ${FIELD}
+    VALUE=`dmidecode --type system | grep "${FIELD}" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
+    #echo ${VALUE}
+    if [ -x hardware/system/${IDENTITY}/${VALUE}.sh ]; then
+        ncecho " [+] Configuring ${FIELD} ${VALUE} "
+        ./hardware/system/${IDENTITY}/${VALUE}.sh >>"$log" 2>&1 &
+        pid=$!;progress $pid
+    fi
+done
 
 # Browsers
 if [ ${INSTALL_BROWSERS} -eq 1 ]; then
@@ -376,7 +335,7 @@ fi
 
 # Music
 if [ ${INSTALL_MUSIC_APPS} -eq 1 ]; then
-    pacman_install "banshee mp3gain"
+    pacman_install "abcde banshee mp3gain"
     pacman_install "picard chromaprint libdiscid"
     packer_install "picard-plugins google-musicmanager nuvolaplayer"
 
