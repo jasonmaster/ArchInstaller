@@ -427,7 +427,11 @@ fi
 
 # Wine
 if [ ${INSTALL_WINE} -eq 1 ]; then
-    pacman_install "wine winetricks"
+    pacman_install "icoutils wine wine_gecko winetricks"
+    packer_install "ttf-ms-fonts wine-mono-bin"
+    #winetricks sketchup
+    #Using regedit change "HW_OK" = 1 in key
+    #HKEY_CURRENT_USER\Software\Google\SketchUp8\GLConfig\Display
 fi
 
 # Crypto
