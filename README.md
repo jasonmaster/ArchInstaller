@@ -1,12 +1,33 @@
+# Introduction
+
 ArchInstaller is a suite a bash scripts to automate the installation of
 [Arch Linux](http://www.archlinux.org).
 
   * `arch-installer.sh` should be run from the [Arch Linux install ISO](https://www.archlinux.org/download/).
   * `gnome-desktop.sh` should be run from a Arch Linux system that was installed using `arch-installer`.
 
+## Features
+
+  * It works for me.
+  * Automated installation of base Arch Linux OS. Minimal install option, `-m`, available.
+  * Automated installation/update of GNOME desktop OS.
+  * Automatically correct my screw ups (but you have to tell me I've screwed up first).
+  * Installations can be sped up via the use of an NFS cache. See below.
+  * Power management *"out of the box"*.
+  * Adheres to the Arch principle of K.I.S.S.
+
+## Limitations
+
+  * Heavily biased toward my own preferences and may not suit your needs.
+  * Not well tested. Published them here for some of the guys at work to experiment with.
+  * Do not support UEFI. I don't have any UEFI hardware to test on.
+  * Only supports Open Source graphics drivers such as i915, Nouveau and Radeon.
+  * Only simple partition recipes are available.
+
 # Install Arch Linux
 
-Boot the install ISO and clone this repository.
+Boot the [Arch Linux install ISO](https://www.archlinux.org/download/) and clone
+ArchInstaller.
 
     loadkeys uk
     wifi-menu
@@ -60,11 +81,16 @@ When you execute `arch-installer.sh` pass in the `-c` argument, for example:
 
     ./arch-installer.sh -d sda -p bsrh -w pA55w0rd -n myhost.example.org -c myexistinghost:/var/cache/pacman/pkg
 
+If you provide `arch-installer.sh` and NFS cache it will enable that cache in
+the installed system.
+
 # Install GNOME
 
 Once the system has been installed using `arch-installer.sh` a [GNOME](http://www.gnome.org)
 desktop can be installed.
 
+    sudo wifi-menu
+    sudo dhcpcd
     cd ~/Source/Mine/ArchInstaller
     sudo ./gnome-desktop.sh
 
@@ -96,12 +122,6 @@ but you can edit the script and toogle the following.
 
 `gnome-desktop.sh` can be run multiple times. It will not re-install anything
 that is already present, so subsequent runs are quicker.
-
-# Limitations
-
-  * These scripts are heavily biased toward my own preferences and may not suit your needs.
-  * These scripts are not well tested. I've published them here for some of the guys at work to experiment with.
-  * These scripts do not support UEFI. I don't have any UEFI hardware to test on.
 
 # TODO
 

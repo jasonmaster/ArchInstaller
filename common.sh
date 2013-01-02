@@ -1,4 +1,6 @@
 sp="/-\|"
+log="${PWD}/`basename ${0}`.log"
+rm $log 2>/dev/null
 
 error_msg() {
     local MSG="${1}"
