@@ -2,7 +2,6 @@
 
 BASE_GROUPS="adm,audio,disk,lp,optical,storage,video,games,power,scanner"
 DSK=""
-PFX=""
 NFS_CACHE=""
 FQDN="arch.example.org"
 TIMEZONE="Europe/London"
@@ -16,6 +15,7 @@ FS="ext4"
 PARTITION_TYPE="msdos"
 PARTITION_LAYOUT=""
 MINIMAL=0
+SERVER=0
 ENABLE_DISCARD=0
 
 function usage() {
@@ -39,6 +39,7 @@ function usage() {
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
     echo "  -m : Install a minimal system."
     echo "  -n : The hostname to use. Defaults to '${FQDN}'"
+    echo "  -s : Install is for a server. -m overrides this."
     echo "  -t : The timezone to use. Defaults to '${TIMEZONE}'. See '/usr/share/zoneinfo/' for options."
     echo
     echo "User provisioning"
@@ -75,6 +76,7 @@ do
         n) FQDN=${OPTARG};;
         p) PARTITION_LAYOUT=${OPTARG};;
         t) TIMEZONE=${OPTARG};;
+        s) SERVER=1;;
         w) PASSWORD=${OPTARG};;
         *) usage;;
     esac
@@ -86,11 +88,6 @@ if [ ! -b /dev/${DSK} ]; then
     echo "ERROR! Target install disk not found."
     echo " - See `basename ${0}` -h"
     exit 1
-fi
-
-# Adjust partition prefixes based on disk device
-if [ `echo ${DSK} | cut -c1-2` == "dm" ]; then
-    PFX="p"
 fi
 
 case ${FS} in
@@ -204,7 +201,11 @@ if [ -n "${NFS_CACHE}" ]; then
 fi
 
 if [ ${MINIMAL} -eq 0 ]; then
-    echo " - Installation type   : Standard"
+    if [ ${SERVER} -eq 1 ]; then
+        echo " - Installation type   : Server"
+    else
+        echo " - Installation type   : Standard"
+    fi
 else
     echo " - Installation type   : Minimal"
 fi
@@ -213,6 +214,12 @@ if [ -f users.csv ]; then
     echo " - Provision users     : `cat users.csv | wc -l`"
 else
     echo " - Provision users     : DISABLED!"
+fi
+
+if [ -f netcfg ]; then
+    echo " - Configure network   : Yes"
+else
+    echo " - Configure network   : No"
 fi
 
 echo
@@ -257,7 +264,7 @@ parted -s /dev/${DSK} unit MiB mkpart primary 1 $boot_end >/dev/null
 
 if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
     # swap and /root
-    ROOT_PARTITION="${DSK}${PFX}3"
+    ROOT_PARTITION="${DSK}3"
     echo "==> Creating swap partition"
     parted -s /dev/${DSK} unit MiB mkpart primary linux-swap $boot_end $swap_end >/dev/null
     echo "==> Creating /root partition"
@@ -269,7 +276,7 @@ if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; th
     fi
 elif [ "${PARTITION_LAYOUT}" = "br" ]; then
     # /root
-    ROOT_PARTITION="${DSK}${PFX}2"
+    ROOT_PARTITION="${DSK}2"
     echo "==> Creating /root partition"
     parted -s /dev/${DSK} unit MiB mkpart primary $boot_end $root_end >/dev/null
 fi
@@ -283,28 +290,28 @@ fi
 
 # Make the file systems.
 echo "==> Making /boot filesystem : ext2"
-mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}${PFX}1 >/dev/null
+mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}1 >/dev/null
 echo "==> Making /root filesystem : ${FS}"
 ${MKFS} -L root /dev/${ROOT_PARTITION} >/dev/null
 if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
     echo "==> Making /home filesystem : ${FS}"
-    ${MKFS} -L home /dev/${DSK}${PFX}4 >/dev/null
+    ${MKFS} -L home /dev/${DSK}4 >/dev/null
 fi
 
 # Enable swap
 if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
     echo -n "==> "
-    mkswap -f -L swap /dev/${DSK}${PFX}2
-    swapon /dev/${DSK}${PFX}2
+    mkswap -f -L swap /dev/${DSK}2
+    swapon /dev/${DSK}2
 fi
 
 # Mount
 echo "==> Mounting filesystems"
 mount /dev/${ROOT_PARTITION} /mnt >/dev/null
 mkdir -p /mnt/{boot,home}
-mount /dev/${DSK}${PFX}1 /mnt/boot >/dev/null
+mount /dev/${DSK}1 /mnt/boot >/dev/null
 if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-    mount /dev/${DSK}${PFX}4 /mnt/home >/dev/null
+    mount /dev/${DSK}4 /mnt/home >/dev/null
 fi
 
 # Base system
@@ -407,9 +414,13 @@ Y" | pacstrap -c -i /mnt multilib-devel
     sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /mnt/etc/sudoers
     arch-chroot /mnt systemctl start sshdgenkeys.service
     arch-chroot /mnt systemctl enable ntpd.service
-    arch-chroot /mnt systemctl enable avahi-daemon.service
     arch-chroot /mnt systemctl enable sshd.service
-    arch-chroot /mnt systemctl enable rpc-statd.service
+
+    # These services should not be enable for a "server".
+    if [ ${SERVER} -eq 0 ]; then
+        arch-chroot /mnt systemctl enable avahi-daemon.service
+        arch-chroot /mnt systemctl enable rpc-statd.service
+    fi
 
     # Install `packer` and `pacman-color`.
     cp packer-installer.sh /mnt/usr/local/bin/packer-installer.sh
@@ -420,8 +431,8 @@ Y" | pacstrap -c -i /mnt multilib-devel
     # Install my dot files and configure the root user shell.
     git clone https://github.com/flexiondotorg/dot-files.git /tmp/dot-files
     rm -rf /tmp/dot-files/{.git,*.txt,*.md}
-    cp -Rf /tmp/dot-files/* /mnt/
-    cp -Rf /tmp/dot-files/etc/skel/* /mnt/root/
+    rsync -aq /tmp/dot-files/ /mnt/
+    rsync -aq /tmp/dot-files/etc/skel/ /mnt/root/
 fi
 
 # Rebuild init and update SYSLINUX
@@ -429,6 +440,12 @@ arch-chroot /mnt systemctl enable cronie.service
 
 arch-chroot /mnt mkinitcpio -p linux
 arch-chroot /mnt /usr/sbin/syslinux-install_update -iam
+
+# Configure the network if a configuration exists.
+if [ -f netcfg ]; then
+    cp netcfg /mnt/etc/network.d/mynetwork
+    arch-chroot /mnt systemctl enable netcfg@mynetwork
+fi
 
 # Provision accounts if there is a `users.csv` file.
 if [ -f users.csv ]; then
@@ -451,8 +468,8 @@ if [ -f users.csv ]; then
         # Put ArchInstaller in the home directory of users in the `wheel` group.
         PROVISION_ARCHINSTALLER=`echo ${_GROUPS} | grep wheel`
         if [ $? -eq 0 ]; then
-            mkdir -p /mnt/home/${_USERNAME}/Source/Mine/ArchInstaller/
-            rsync -aq `pwd`/ /mnt/home/${_USERNAME}/Source/Mine/ArchInstaller/
+            mkdir -p /mnt/home/${_USERNAME}/Source/flexiondotrg/ArchInstaller/
+            rsync -aq `pwd`/ /mnt/home/${_USERNAME}/Source/flexiondotorg/ArchInstaller/
             arch-chroot /mnt chown -R ${_USERNAME}:users /home/${_USERNAME}
         fi
     done
