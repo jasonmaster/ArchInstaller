@@ -61,7 +61,7 @@ function usage() {
     exit 1
 }
 
-OPTSTRING=b:c:d:f:hk:l:mn:p:t:w:
+OPTSTRING=b:c:d:f:hk:l:mn:p:t:sw:
 while getopts ${OPTSTRING} OPT
 do
     case ${OPT} in
