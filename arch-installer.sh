@@ -2,6 +2,7 @@
 
 BASE_GROUPS="adm,audio,disk,lp,optical,storage,video,games,power,scanner"
 DSK=""
+PFX=""
 NFS_CACHE=""
 FQDN="arch.example.org"
 TIMEZONE="Europe/London"
@@ -85,6 +86,11 @@ if [ ! -b /dev/${DSK} ]; then
     echo "ERROR! Target install disk not found."
     echo " - See `basename ${0}` -h"
     exit 1
+fi
+
+# Adjust partition prefixes based on disk device
+if [ `echo ${DSK} | cut -c1-2` == "dm" ]; then
+    PFX="p"
 fi
 
 case ${FS} in
@@ -251,7 +257,7 @@ parted -s /dev/${DSK} unit MiB mkpart primary 1 $boot_end >/dev/null
 
 if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
     # swap and /root
-    ROOT_PARTITION="${DSK}3"
+    ROOT_PARTITION="${DSK}${PFX}3"
     echo "==> Creating swap partition"
     parted -s /dev/${DSK} unit MiB mkpart primary linux-swap $boot_end $swap_end >/dev/null
     echo "==> Creating /root partition"
@@ -263,7 +269,7 @@ if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; th
     fi
 elif [ "${PARTITION_LAYOUT}" = "br" ]; then
     # /root
-    ROOT_PARTITION="${DSK}2"
+    ROOT_PARTITION="${DSK}${PFX}2"
     echo "==> Creating /root partition"
     parted -s /dev/${DSK} unit MiB mkpart primary $boot_end $root_end >/dev/null
 fi
@@ -277,28 +283,28 @@ fi
 
 # Make the file systems.
 echo "==> Making /boot filesystem : ext2"
-mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}1 >/dev/null
+mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}${PFX}1 >/dev/null
 echo "==> Making /root filesystem : ${FS}"
 ${MKFS} -L root /dev/${ROOT_PARTITION} >/dev/null
 if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
     echo "==> Making /home filesystem : ${FS}"
-    ${MKFS} -L home /dev/${DSK}4 >/dev/null
+    ${MKFS} -L home /dev/${DSK}${PFX}4 >/dev/null
 fi
 
 # Enable swap
 if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
     echo -n "==> "
-    mkswap -f -L swap /dev/${DSK}2
-    swapon /dev/${DSK}2
+    mkswap -f -L swap /dev/${DSK}${PFX}2
+    swapon /dev/${DSK}${PFX}2
 fi
 
 # Mount
 echo "==> Mounting filesystems"
 mount /dev/${ROOT_PARTITION} /mnt >/dev/null
 mkdir -p /mnt/{boot,home}
-mount /dev/${DSK}1 /mnt/boot >/dev/null
+mount /dev/${DSK}${PFX}1 /mnt/boot >/dev/null
 if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-    mount /dev/${DSK}4 /mnt/home >/dev/null
+    mount /dev/${DSK}${PFX}4 /mnt/home >/dev/null
 fi
 
 # Base system
@@ -413,7 +419,7 @@ Y" | pacstrap -c -i /mnt multilib-devel
 
     # Install my dot files and configure the root user shell.
     git clone https://github.com/flexiondotorg/dot-files.git /tmp/dot-files
-    rm -rf /tmp/dot-files/.git
+    rm -rf /tmp/dot-files/{.git,*.txt,*.md}
     cp -Rf /tmp/dot-files/* /mnt/
     cp -Rf /tmp/dot-files/etc/skel/* /mnt/root/
 fi
