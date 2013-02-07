@@ -531,6 +531,11 @@ if [ -f users.csv ]; then
             _GROUPS=${_BASE_GROUPS}
         fi
         ${CHROOT} useradd --password ${_CRYPTPASSWD} --comment "${_COMMENT}" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}
+        # If the user already exists (Possible on a Raspberry Pi) the above may error.
+        # So modify the user, on error, to ensure the correct configuration is applied.
+        if [ $? -ne 0 ]; then
+            ${CHROOT} usermod --password ${_CRYPTPASSWD} --comment "${_COMMENT}" --groups ${_GROUPS} --shell /bin/bash --create-home -g users --append ${_USERNAME}
+        fi
 
         # Put ArchInstaller in the home directory of users in the `wheel` group.
         PROVISION_ARCHINSTALLER=`echo ${_GROUPS} | grep wheel`
