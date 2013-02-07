@@ -356,7 +356,7 @@ fi
 
 # Base system
 if [ "${MACHINE}" == "pc" ]; then
-    pacstrap -c ${TARGET_PREFIX} "base base-devel syslinux terminus-font"
+    pacstrap -c ${TARGET_PREFIX} base base-devel syslinux terminus-font
 else
     pacman -S --noconfirm --needed base base-devel terminus-font
 fi    
