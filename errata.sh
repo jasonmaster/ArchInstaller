@@ -16,13 +16,23 @@ if [ -d /etc/skel/.git ]; then
     rm -rf /etc/skel/.git
 fi
 
-# Remove Chrony. It has been replaced by `ntpd`.
-HAS_CHRONYC=`which chronyc 2>/dev/null`
-if [ $? -eq 0 ]; then
+# Remove Chrony and ntpd. Replaced by `openntpd`.
+HAS_CHRONY=`pacman -Qq chrony 2>/dev/null`
+if [ ${HAS_CHRONY} -eq 0 ]; then
     system_ctl stop chrony
     system_ctl disable chrony
     pacman_remove "chrony"
 fi
+
+HAS_NTP=`pacman -Qq ntp 2>/dev/null`
+if [ ${HAS_NTP} -eq 0 ]; then
+    system_ctl stop ntp
+    system_ctl disable ntp
+    pacman_remove "ntp"
+fi    
+pacman_install "openntpd"
+system_ctl enable openntpd
+system_ctl start openntpd
 
 # Remove ufw/gufw
 HAS_GUFW=`which gufw 2>/dev/null`

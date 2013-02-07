@@ -10,6 +10,7 @@ ArchInstaller is a suite a bash scripts to automate the installation of
 
   * It works for me.
   * Automated installation of base Arch Linux OS. Minimal install option, `-m`, available.
+  * `arch-installer.sh` works on PCs (x86 and x86_64) and Raspberry Pi.
   * Automated installation/update of GNOME desktop OS.
   * Automatically correct my screw ups (but you have to tell me I've screwed up first).
   * Installations can be sped up via the use of an NFS cache. See below.
@@ -39,7 +40,16 @@ ArchInstaller.
 Edit the `users.csv` file to suite your requirements. Run the installer script,
 for example.
 
+## PC
+
     ./arch-installer.sh -d sda -p bsrh -w pA55w0rd -n myhost.example.org
+
+## Raspberry Pi
+
+The Raspberry Pi mode doesn't do any disk partitioning and the image to
+ready to go, that the partition options are redundant on the Pi.
+
+    ./arch-installer.sh -w pA55w0rd -n myhost.example.org
 
 You can get help with the following.
 
@@ -125,6 +135,9 @@ that is already present, so subsequent runs are quicker.
 
 # TODO
 
+  * Finish making `arch-installer.sh` compatible with alarmpi. Resize the root
+  paratition.
+    * <http://michael.otacoo.com/manuals/raspberry-pi/>
   * When `gnome-desktop.sh` changes something in a user home directory, make
   that change for all users.
   * Fix Thinkpad hotkeys keys.

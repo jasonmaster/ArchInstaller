@@ -85,7 +85,7 @@ nss-mdns
 nss-myhostname
 ntfs-3g
 ntfsprogs
-ntp
+openntpd
 openssh
 p7zip
 pacman
