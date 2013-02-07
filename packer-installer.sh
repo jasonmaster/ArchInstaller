@@ -9,7 +9,4 @@ makepkg --asroot -s --noconfirm
 pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`
 
 # Install pacman-color
-# Compile takes l-o-n-g time on the Raspberry Pi, so skip it.
-if [ `uname -m` != "armv6l" ]; then
-    packer -S --noconfirm --noedit pacman-color
-fi    
+packer -S --noconfirm --noedit pacman-color

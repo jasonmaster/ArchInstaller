@@ -69,11 +69,9 @@ function usage() {
     echo "Optional parameters"
     if [ "${MACHINE}" == "pc" ]; then
         echo "  -b : The partition type to use. Defaults to '${PARTITION_TYPE}'. Can be 'msdos' or 'gpt'."
+        echo "  -f : The filesystem to use. 'btrfs', 'ext4', 'jfs', 'nilfs2' and 'xfs' are supported. Defaults to '${FS}'."        
     fi
     echo "  -c : The NFS export to mount and use as the pacman cache."
-    if [ "${MACHINE}" == "pc" ]; then
-        echo "  -f : The filesystem to use. 'btrfs', 'ext4', 'jfs', 'nilfs2' and 'xfs' are supported. Defaults to '${FS}'."
-    fi
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
     echo "  -m : Install a minimal system."
@@ -487,10 +485,15 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     fi
 
     # Install `packer` and `pacman-color`.
-    cp packer-installer.sh ${TARGET_PREFIX}/usr/local/bin/packer-installer.sh
-    chmod +x ${TARGET_PREFIX}/usr/local/bin/packer-installer.sh
-    ${CHROOT} /usr/local/bin/packer-installer.sh
-    rm ${TARGET_PREFIX}/usr/local/bin/packer-installer.sh
+    if [ "${MACHINE}" == "pc" ]; then
+        cp packer-installer.sh ${TARGET_PREFIX}/usr/local/bin/packer-installer.sh
+        chmod +x ${TARGET_PREFIX}/usr/local/bin/packer-installer.sh
+        ${CHROOT} /usr/local/bin/packer-installer.sh
+        rm ${TARGET_PREFIX}/usr/local/bin/packer-installer.sh
+    else
+        # packer is in the alarmpi AUR repository
+        pacman -S --noconfirm packer
+    fi        
 
     # Install my dot files and configure the root user shell.
     rm -rf /tmp/dot-files 2>/dev/null
