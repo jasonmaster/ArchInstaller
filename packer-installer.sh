@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 
-# Install packer
-wget https://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz
+# Download packer
+wget http://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz
+if [ $? -ne 0 ]; then
+    echo "ERROR! Couldn't downloading packer.tar.gz. Aborting packer install."
+    exit 1
+fi
+
+# Make the package and install it
 cd /usr/local/src
 tar zxvf packer.tar.gz
 cd packer

@@ -1,7 +1,7 @@
 # Introduction
 
-ArchInstaller is a suite a bash scripts to automate the installation of
-[Arch Linux](http://www.archlinux.org).
+ArchInstaller is a suite a bash scripts to automate the installation and
+initial confiugration of [Arch Linux](http://www.archlinux.org).
 
   * `arch-installer.sh` should be run from the [Arch Linux install ISO](https://www.archlinux.org/download/).
   * `gnome-desktop.sh` should be run from a Arch Linux system that was installed using `arch-installer`.
@@ -11,6 +11,7 @@ ArchInstaller is a suite a bash scripts to automate the installation of
   * It works for me.
   * Automated installation of base Arch Linux OS. Minimal install option, `-m`, available.
   * `arch-installer.sh` works on PCs (x86 and x86_64) and Raspberry Pi.
+  * On x86_64 the `multi-lib` repository is automatically enabled and `multilib-devel` automatically installed.
   * Automated installation/update of GNOME desktop OS.
   * Automatically correct my screw ups (but you have to tell me I've screwed up first).
   * Installations can be sped up via the use of an NFS cache. See below.
@@ -20,7 +21,6 @@ ArchInstaller is a suite a bash scripts to automate the installation of
 ## Limitations
 
   * Heavily biased toward my own preferences and may not suit your needs.
-  * Not well tested. Published them here for some of the guys at work to experiment with.
   * Do not support UEFI. I don't have any UEFI hardware to test on.
   * Only supports Open Source graphics drivers such as i915, Nouveau and Radeon.
   * Only simple partition recipes are available.
@@ -135,11 +135,12 @@ that is already present, so subsequent runs are quicker.
 
 # TODO
 
-  * Finish making `arch-installer.sh` compatible with alarmpi. Resize the root
-  paratition.
+  * Add automated root partition resizing magic to `arch-installer.sh` for Raspberry Pi.
     * <http://michael.otacoo.com/manuals/raspberry-pi/>
-  * When `gnome-desktop.sh` changes something in a user home directory, make
-  that change for all users.
+  * Add support for multiple desktop environments.
+  * Add support for desktop environment installation profiles that determine what components to install.
+  * Detect locale for dictionaries in desktop environment installs.
+  * When the script changes something in a user home directory, make that change for all users.
   * Fix Thinkpad hotkeys keys.
     * Run one of the following on system start up.
     * `echo enable,0x00ffffff > /proc/acpi/ibm/hotkey`
@@ -148,8 +149,6 @@ that is already present, so subsequent runs are quicker.
     * <https://github.com/torvalds/linux/blob/master/Documentation/laptops/thinkpad-acpi.txt>
     * <http://ubuntuforums.org/showthread.php?t=1328016>
     * <https://bbs.archlinux.org/viewtopic.php?id=147160>
-  * Detect locale for dictionaries in `gnome-desktop.sh`.
-  * Add installation profiles for software and hardware to `gnome-desktop.sh`.
   * Review the links below, see if there is anything I can re-use.
     * <https://github.com/helmuthdu/aui>
     * <http://www.winpe.com/page04.html>
