@@ -484,10 +484,8 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     if [ "${MACHINE}" == "pc" ]; then
         pacstrap -c ${TARGET_PREFIX} `cat extra-packages.txt`
         EXTRA_RET=$?
-        #umount -f ${TARGET_PREFIX}/sys/fs/cgroup/{systemd,} 2>/dev/null
-        #umount -f ${TARGET_PREFIX}/sys 2>/dev/null
     else        
-        # Some packages are not available on Arch Linux ARM
+        # Remove packages that are not available for Arch Linux ARM
         pacman -S --noconfirm --needed `cat extra-packages.txt | grep -v pcmciautils | grep -v syslinux`
         EXTRA_RET=$?        
     fi
@@ -539,7 +537,6 @@ if [ "${MACHINE}" == "pc" ]; then
     ${CHROOT} /usr/sbin/syslinux-install_update -iam
 fi
 
-
 # Configure the network if a configuration exists.
 if [ -f netcfg ]; then
     cp netcfg ${TARGET_PREFIX}/etc/network.d/mynetwork
@@ -557,6 +554,7 @@ if [ -f users.csv ]; then
         _COMMENT=`echo ${USER} | cut -d',' -f3`
         _EXTRA_GROUPS=`echo ${USER} | cut -d',' -f4`
         _BASE_GROUPS=${BASE_GROUPS}
+        echo "==> Provisioning ${_USERNAME}"
         if [ "${_EXTRA_GROUPS}" != "" ]; then
             _GROUPS=${_BASE_GROUPS},${_EXTRA_GROUPS}
         else
@@ -566,7 +564,8 @@ if [ -f users.csv ]; then
         # If the user already exists (Possible on a Raspberry Pi) the above may error.
         # So modify the user, on error, to ensure the correct configuration is applied.
         if [ $? -ne 0 ]; then
-            ${CHROOT} usermod --password ${_CRYPTPASSWD} --comment "${_COMMENT}" --groups ${_GROUPS} --shell /bin/bash --create-home -g users --append ${_USERNAME}
+            echo "==> Encountered a problem provisioning ${_USERNAME}"
+            ${CHROOT} usermod --password ${_CRYPTPASSWD} --comment "${_COMMENT}" --groups ${_GROUPS} --shell /bin/bash --create-home -g users --append ${_USERNAME}            
         fi
 
         # Put ArchInstaller in the home directory of users in the `wheel` group.
@@ -596,8 +595,6 @@ if [ "${MACHINE}" == "pc" ]; then
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
         umount -f ${TARGET_PREFIX}/home
     fi
-    #umount -f ${TARGET_PREFIX}/sys/fs/cgroup/{systemd,} 2>/dev/null
-    #umount -f ${TARGET_PREFIX}/sys 2>/dev/null
     umount -f ${TARGET_PREFIX}/{boot,}
     swapoff -a
 fi    
