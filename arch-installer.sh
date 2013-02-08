@@ -412,7 +412,8 @@ echo FONT_MAP=${FONT_MAP} >> ${TARGET_PREFIX}/etc/vconsole.conf
 
 # Configure init things
 check_vga
-update_early_hooks "consolefont keymap"
+update_early_hooks consolefont
+update_early_hooks keymap
 update_early_modules ${VIDEO_KMS}
 
 # Configure kernel module options
@@ -595,8 +596,8 @@ if [ "${MACHINE}" == "pc" ]; then
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
         umount -f ${TARGET_PREFIX}/home
     fi
-    umount -f ${TARGET_PREFIX}/sys/fs/cgroup/{systemd,} 2>/dev/null
-    umount -f ${TARGET_PREFIX}/sys 2>/dev/null
+    #umount -f ${TARGET_PREFIX}/sys/fs/cgroup/{systemd,} 2>/dev/null
+    #umount -f ${TARGET_PREFIX}/sys 2>/dev/null
     umount -f ${TARGET_PREFIX}/{boot,}
     swapoff -a
 fi    
