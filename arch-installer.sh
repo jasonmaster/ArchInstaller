@@ -257,19 +257,15 @@ else
     echo " - Configure network   : No"
 fi
 
+echo
 if [ "${MACHINE}" == "pc" ]; then
-    echo
     echo "WARNING: `basename ${0}` is about to destroy everything on /dev/${DSK}!"
-    echo "I make no guarantee that the installation of Arch Linux will succeed."
-    echo "Press RETURN to try your luck or CTRL-C to cancel."
-    read
 else
-    echo
     echo "WARNING: `basename ${0}` is about to start installing!"
-    echo "I make no guarantee that the installation of Arch Linux ARM will succeed."
-    echo "Press RETURN to try your luck or CTRL-C to cancel."
-    read        
 fi    
+echo "I make no guarantee that the installation of Arch Linux will succeed."
+echo "Press RETURN to try your luck or CTRL-C to cancel."
+read
 
 # Load the keymap and remove the PC speaker module.
 loadkeys -q ${KEYMAP}
@@ -366,10 +362,6 @@ else
     pacman -S --noconfirm --needed base base-devel terminus-font
 fi    
 
-# Prevent unwanted cache purges
-#  - https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
-sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' ${TARGET_PREFIX}/etc/pacman.conf
-
 if [ "${MACHINE}" == "pc" ]; then
     # Uncomment the multilib repo on the install ISO and the target
     if [ "${CPU}" == "x86_64" ]; then
@@ -379,95 +371,11 @@ if [ "${MACHINE}" == "pc" ]; then
 
     # Create /etc/fstab
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
-
-    # TODO - Test this works. None of my SSDs are TRIM compatible.
-    if [ ${ENABLE_DISCARD} -eq 1 ]; then
-        :
-        #sed -i 's/rw,relatime/rw,relatime,discard/g' /mnt/etc/fstab
-    fi
-
-    # Configure the hostname.
-    # This is the systemd way but doesn't seem to work in a `chroot`.
-    echo "${FQDN}" > ${TARGET_PREFIX}/etc/hostname    
-else    
-    # Configure the hostname.
-    hostnamectl set-hostname --static ${FQDN}
 fi    
 
-# Configure timezone and hwclock
-echo "${TIMEZONE}" > ${TARGET_PREFIX}/etc/timezone
-
-if [ "${MACHINE}" == "pc" ]; then
-    ${CHROOT} ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
-    ${CHROOT} hwclock --systohc --utc
-else
-    rm /etc/localtime 2>/dev/null
-    ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
-fi    
-
-# Configure console font and keymap
-echo KEYMAP=${KEYMAP}     >  ${TARGET_PREFIX}/etc/vconsole.conf
-echo FONT=${FONT}         >> ${TARGET_PREFIX}/etc/vconsole.conf
-echo FONT_MAP=${FONT_MAP} >> ${TARGET_PREFIX}/etc/vconsole.conf
-
-# Configure init things
-check_vga
-update_early_hooks consolefont
-update_early_hooks keymap
-update_early_modules ${VIDEO_KMS}
-
-# Configure kernel module options
-if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
-    echo "${VIDEO_MODPROBE}" > ${TARGET_PREFIX}/etc/modprobe.d/${VIDEO_KMS}.conf
-fi   
-
-# Configure locale
-sed -i "s/#${LANG}/${LANG}/" ${TARGET_PREFIX}/etc/locale.gen
-echo LANG=${LANG}             >   ${TARGET_PREFIX}/etc/locale.conf
-echo LC_COLLATE=${LC_COLLATE} >>  ${TARGET_PREFIX}/etc/locale.conf
-${CHROOT} locale-gen
-
-# Configure SYSLINUX
-if [ "${MACHINE}" == "pc" ]; then
-    cp splash.png ${TARGET_PREFIX}/boot/syslinux/splash.png
-    cp terminus.psf ${TARGET_PREFIX}/boot/syslinux/terminus.psf
-    sed -i 's/UI menu.c32/#UI menu.c32/' ${TARGET_PREFIX}/boot/syslinux/syslinux.cfg
-    sed -i 's/#UI vesamenu.c32/UI vesamenu.c32/' ${TARGET_PREFIX}/boot/syslinux/syslinux.cfg
-    sed -i 's/#MENU BACKGROUND/MENU BACKGROUND/' ${TARGET_PREFIX}/boot/syslinux/syslinux.cfg
-    # Correct the root parition configuration
-    sed -i "s/sda3/\/disk\/by-label\/root/g" ${TARGET_PREFIX}/boot/syslinux/syslinux.cfg
-    # Make the menu look pretty
-    cat >>${TARGET_PREFIX}/boot/syslinux/syslinux.cfg<<ENDSYSMENU
-    
-MENU WIDTH 78
-MENU MARGIN 4
-MENU ROWS 6
-MENU VSHIFT 10
-MENU TABMSGROW 14
-MENU CMDLINEROW 14
-MENU HELPMSGROW 16
-MENU HELPMSGENDROW 29
-FONT terminus.psf
-ENDSYSMENU
-fi
-
-# Configure 'nano' as the system default
-echo "export EDITOR=nano" >> ${TARGET_PREFIX}/etc/profile
-
-# Disable PC speaker - I hate that thing!
-echo "blacklist pcspkr" > ${TARGET_PREFIX}/etc/modprobe.d/blacklist-pcspkr.conf
-
-# CPU Frequency scaling
-# - https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling
-modprobe -q acpi-cpufreq
-if [ $? -eq 0 ]; then
-    echo "acpi-cpufreq" > ${TARGET_PREFIX}/etc/modules-load.d/acpi-cpufreq.conf
-else
-    modprobe -q powernow_k8
-    if [ $? -eq 0 ]; then
-        echo "powernow_k8" > ${TARGET_PREFIX}/etc/modules-load.d/powernow_k8.conf
-    fi
-fi
+# Prevent unwanted cache purges
+#  - https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
+sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' ${TARGET_PREFIX}/etc/pacman.conf
 
 # Install and configure the extra packages
 if [ ${MINIMAL} -eq 0 ]; then
@@ -493,31 +401,132 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     if [ ${EXTRA_RET} -ne 0 ]; then
         echo "ERROR! Installing extra-packages.txt failed. Try running `basename ${0}` again."
         exit 1
-    fi            
+    fi
+fi
 
+# Configure mkinitcpio.conf
+check_vga
+update_early_hooks consolefont
+update_early_hooks keymap
+update_early_modules ${VIDEO_KMS}
+
+# Configure kernel module options
+if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
+    echo "${VIDEO_MODPROBE}" > ${TARGET_PREFIX}/etc/modprobe.d/${VIDEO_KMS}.conf
+fi   
+
+# Start building the configuration script
+start_config
+
+# Add offline discard cron here. None of my SSDs are TRIM compatible.
+if [ ${ENABLE_DISCARD} -eq 1 ]; then
+    :
+fi
+
+# Configure the hostname.
+# This is the systemd way but doesn't seem to work in a `chroot`.
+add_config "echo ${FQDN} > /etc/hostname"
+add_config "hostnamectl set-hostname --static ${FQDN}"
+
+# Configure timezone and hwclock
+add_config "echo ${TIMEZONE} > /etc/timezone"
+
+if [ "${MACHINE}" == "pc" ]; then
+    add_config "hwclock --systohc --utc"
+else
+    add_config "rm /etc/localtime 2>/dev/null"
+fi    
+add_config "ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime"
+
+# Configure console font and keymap
+add_config "echo KEYMAP=${KEYMAP}     >  /etc/vconsole.conf"
+add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
+add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
+
+# Configure locale
+add_config "sed -i \"s/#${LANG}/${LANG}/\" /etc/locale.gen"
+add_config "echo LANG=${LANG}             >  /etc/locale.conf"
+add_config "echo LC_COLLATE=${LC_COLLATE} >> /etc/locale.conf"
+add_config "locale-gen"
+
+# Configure SYSLINUX
+if [ "${MACHINE}" == "pc" ]; then
+    cp splash.png ${TARGET_PREFIX}/boot/syslinux/splash.png
+    cp terminus.psf ${TARGET_PREFIX}/boot/syslinux/terminus.psf
+    add_config "sed -i 's/UI menu.c32/#UI menu.c32/' /boot/syslinux/syslinux.cfg"
+    add_config "sed -i 's/#UI vesamenu.c32/UI vesamenu.c32/' /boot/syslinux/syslinux.cfg"
+    add_config "sed -i 's/#MENU BACKGROUND/MENU BACKGROUND/' /boot/syslinux/syslinux.cfg"
+    # Correct the root parition configuration
+    add_config "sed -i 's/sda3/\/disk\/by-label\/root/g' /boot/syslinux/syslinux.cfg"
+    # Make the menu look pretty
+    cat >>${TARGET_PREFIX}/boot/syslinux/syslinux.cfg<<ENDSYSMENU
+    
+MENU WIDTH 78
+MENU MARGIN 4
+MENU ROWS 6
+MENU VSHIFT 10
+MENU TABMSGROW 14
+MENU CMDLINEROW 14
+MENU HELPMSGROW 16
+MENU HELPMSGENDROW 29
+FONT terminus.psf
+ENDSYSMENU
+fi
+
+# Configure 'nano' as the system default
+addlinetofile "export EDITOR=nano" ${TARGET_PREFIX}/etc/profile
+
+# Disable PC speaker - I hate that thing!
+echo "blacklist pcspkr" > ${TARGET_PREFIX}/etc/modprobe.d/blacklist-pcspkr.conf
+
+# CPU Frequency scaling
+# - https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling
+modprobe -q acpi-cpufreq
+if [ $? -eq 0 ]; then
+    echo "acpi-cpufreq" > ${TARGET_PREFIX}/etc/modules-load.d/acpi-cpufreq.conf
+else
+    modprobe -q powernow_k8
+    if [ $? -eq 0 ]; then
+        echo "powernow_k8" > ${TARGET_PREFIX}/etc/modules-load.d/powernow_k8.conf
+    fi
+fi
+
+if [ ${MINIMAL} -eq 0 ]; then
     # Configure mDNS
     sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' ${TARGET_PREFIX}/etc/nsswitch.conf
     # Members of the `wheel` group are sudoers.
     sed -i '/%wheel ALL=(ALL) ALL/s/^#//' ${TARGET_PREFIX}/etc/sudoers
-    ${CHROOT} systemctl start sshdgenkeys.service    
-    ${CHROOT} systemctl enable sshd.service
-    ${CHROOT} systemctl enable openntpd.service
+    add_config "systemctl start sshdgenkeys.service"
+    add_config "systemctl enable sshd.service"
+    add_config "systemctl enable openntpd.service"
 
-    # These services should not be enable for a "server".
+    # These services should not be enabled on a server.
     if [ ${SERVER} -eq 0 ]; then
-        ${CHROOT} systemctl enable avahi-daemon.service
-        ${CHROOT} systemctl enable rpc-statd.service
+        add_config "systemctl enable avahi-daemon.service"
+        add_config "systemctl enable rpc-statd.service"
     fi
 
     # Install `packer` and `pacman-color`.
     if [ "${MACHINE}" == "pc" ]; then
-        cp packer-installer.sh ${TARGET_PREFIX}/usr/local/bin/packer-installer.sh
-        chmod +x ${TARGET_PREFIX}/usr/local/bin/packer-installer.sh
-        ${CHROOT} /usr/local/bin/packer-installer.sh
-        rm ${TARGET_PREFIX}/usr/local/bin/packer-installer.sh
+        # Download packer
+        add_config "wget http://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz"
+        add_config 'if [ $? -ne 0 ]; then'
+        add_config "    echo \"ERROR! Couldn't downloading packer.tar.gz. Aborting packer install.\""
+        add_config "    exit 1"
+        add_config "fi"
+
+        # Make the package and install it"
+        add_config "cd /usr/local/src"
+        add_config "tar zxvf packer.tar.gz"
+        add_config "cd packer"
+        add_config "makepkg --asroot -s --noconfirm"
+        add_config "pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`"
+
+        # Install pacman-color
+        add_config "packer -S --noconfirm --noedit pacman-color"    
     else
         # packer is in the alarmpi AUR repository
-        pacman -S --noconfirm packer
+        add_config "pacman -S --noconfirm packer"
     fi        
 
     # Install my dot files and configure the root user shell.
@@ -529,12 +538,12 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
 fi
 
 # Enable cron.
-${CHROOT} systemctl enable cronie.service
+add_config "systemctl enable cronie.service"
 
 # Configure the network if a configuration exists.
 if [ -f netcfg ]; then
     cp netcfg ${TARGET_PREFIX}/etc/network.d/mynetwork
-    ${CHROOT} systemctl enable netcfg@mynetwork
+    add_config "systemctl enable netcfg@mynetwork"
 fi
 
 # Provision accounts if there is a `users.csv` file.
@@ -548,39 +557,39 @@ if [ -f users.csv ]; then
         _COMMENT=`echo ${USER} | cut -d',' -f3`
         _EXTRA_GROUPS=`echo ${USER} | cut -d',' -f4`
         _BASE_GROUPS=${BASE_GROUPS}
-        echo "==> Provisioning ${_USERNAME}"
         if [ "${_EXTRA_GROUPS}" != "" ]; then
             _GROUPS=${_BASE_GROUPS},${_EXTRA_GROUPS}
         else
             _GROUPS=${_BASE_GROUPS}
         fi
-        ${CHROOT} /usr/sbin/useradd --password ${_CRYPTPASSWD} --comment "${_COMMENT}" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}
+        add_config "useradd --password ${_CRYPTPASSWD} --comment \"${_COMMENT}\" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}"
         # If the user already exists (Possible on a Raspberry Pi) the above may error.
-        # So modify the user, on error, to ensure the correct configuration is applied.
-        if [ $? -ne 0 ]; then
-            echo "==> Encountered a problem provisioning ${_USERNAME}"
-            ${CHROOT} /usr/sbin/usermod --password ${_CRYPTPASSWD} --comment "${_COMMENT}" --groups ${_GROUPS} --shell /bin/bash --create-home -g users --append ${_USERNAME}
-        fi
+        # So modify the user, to ensure the correct configuration is applied.
+        #add_config "usermod --password ${_CRYPTPASSWD} --comment \"${_COMMENT}\" --groups ${_GROUPS} --shell /bin/bash --create-home -g users --append ${_USERNAME}"
 
         # Put ArchInstaller in the home directory of users in the `wheel` group.
         PROVISION_ARCHINSTALLER=`echo ${_GROUPS} | grep wheel`
         if [ $? -eq 0 ]; then
             mkdir -p ${TARGET_PREFIX}/home/${_USERNAME}/Source/flexiondotorg/ArchInstaller/
             rsync -aq `pwd`/ ${TARGET_PREFIX}/home/${_USERNAME}/Source/flexiondotorg/ArchInstaller/
-            ${CHROOT} chown -R ${_USERNAME}:users /home/${_USERNAME}
+            add_config "chown -R ${_USERNAME}:users /home/${_USERNAME}"
+            add_config "chmod 700 /home/${_USERNAME}"
         fi
     done
 fi
 
 # Change root password.
 PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
-${CHROOT} /usr/sbin/usermod --password ${PASSWORD_CRYPT} root
+add_config "/usr/sbin/usermod --password ${PASSWORD_CRYPT} root"
 
 # Rebuild init and update SYSLINUX
 if [ "${MACHINE}" == "pc" ]; then
-    ${CHROOT} mkinitcpio -p linux
-    ${CHROOT} /usr/sbin/syslinux-install_update -iam
+    add_config "mkinitcpio -p linux"
+    add_config "/usr/sbin/syslinux-install_update -iam"
 fi
+
+less /usr/local/bin/arch-config.sh
+${CHROOT} /usr/local/bin/arch-config.sh
 
 # Unmount
 sync

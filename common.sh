@@ -442,10 +442,19 @@ update_early_hooks() {
     fi
 }
 
-system_ctl () {
+system_ctl() {
     local ACTION=${1}
     local OBJECT=${2}
     ncecho " [x] systemctl ${ACTION} ${OBJECT} "
     systemctl ${ACTION} ${OBJECT} >>"$log" 2>&1
     pid=$!;progress $pid
+}
+
+start_config() {
+    echo "#!/usr/bin/env bash" > ${TARGET_PREFIX}/usr/local/bin/arch_config.sh
+    chmod +x ${TARGET_PREFIX}/usr/local/bin/arch_config.sh
+}
+
+add_config() {
+    echo "${1}" >> ${TARGET_PREFIX}/usr/local/bin/arch_config.sh
 }
