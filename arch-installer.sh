@@ -26,7 +26,7 @@ SERVER=0
 ENABLE_DISCARD=0
 MACHINE=""
 TARGET_PREFIX="/mnt"
-CHROOT="arch-chroot ${TARGET_PREFIX}"
+CMD_PREFIX="arch-chroot ${TARGET_PREFIX}"
 
 CPU=`uname -m`
 if [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]; then
@@ -46,7 +46,7 @@ elif [ "${CPU}" == "armv6l" ]; then
         MACHINE="pi"
         DSK="mmcblk0" 
         TARGET_PREFIX=""
-        CHROOT=""
+        CMD_PREFIX=""
     fi
 else
     echo "ERROR! `basename ${0}` is designed for armv6l, i686, x86_64 platforms only."
@@ -580,16 +580,15 @@ fi
 
 # Change root password.
 PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
-add_config "/usr/sbin/usermod --password ${PASSWORD_CRYPT} root"
+add_config "usermod --password ${PASSWORD_CRYPT} root"
 
 # Rebuild init and update SYSLINUX
 if [ "${MACHINE}" == "pc" ]; then
     add_config "mkinitcpio -p linux"
-    add_config "/usr/sbin/syslinux-install_update -iam"
+    add_config "syslinux-install_update -iam"
 fi
 
-less /usr/local/bin/arch-config.sh
-${CHROOT} /usr/local/bin/arch-config.sh
+${CMD_PREFIX} /usr/local/bin/arch-config.sh
 
 # Unmount
 sync

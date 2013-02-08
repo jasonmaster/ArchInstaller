@@ -451,10 +451,10 @@ system_ctl() {
 }
 
 start_config() {
-    echo "#!/usr/bin/env bash" > ${TARGET_PREFIX}/usr/local/bin/arch_config.sh
-    chmod +x ${TARGET_PREFIX}/usr/local/bin/arch_config.sh
+    echo "#!/usr/bin/env bash" > ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
+    chmod +x ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
 }
 
 add_config() {
-    echo "${1}" >> ${TARGET_PREFIX}/usr/local/bin/arch_config.sh
+    echo "${1}" >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
 }
