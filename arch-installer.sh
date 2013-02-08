@@ -585,7 +585,7 @@ fi
 # Unmount
 sync
 if [ -n "${NFS_CACHE}" ]; then
-    echo "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,noauto,x-systemd.automount 0 0" >> ${TARGET_PREFIX}/etc/fstab
+    addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,noauto,x-systemd.automount 0 0" ${TARGET_PREFIX}/etc/fstab
     if [ "${MACHINE}" == "pc" ]; then
         umount -f /var/cache/pacman/pkg
     fi        
