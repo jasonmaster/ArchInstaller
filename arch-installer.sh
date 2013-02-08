@@ -26,7 +26,7 @@ SERVER=0
 ENABLE_DISCARD=0
 MACHINE=""
 TARGET_PREFIX="/mnt"
-CHROOT="chroot ${TARGET_PREFIX}"
+CHROOT="arch-chroot ${TARGET_PREFIX}"
 
 CPU=`uname -m`
 if [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]; then
@@ -483,8 +483,8 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     if [ "${MACHINE}" == "pc" ]; then
         pacstrap -c ${TARGET_PREFIX} `cat extra-packages.txt`
         EXTRA_RET=$?
-        umount -f ${TARGET_PREFIX}/sys/fs/cgroup/{systemd,} 2>/dev/null
-        umount -f ${TARGET_PREFIX}/sys 2>/dev/null
+        #umount -f ${TARGET_PREFIX}/sys/fs/cgroup/{systemd,} 2>/dev/null
+        #umount -f ${TARGET_PREFIX}/sys 2>/dev/null
     else        
         # Some packages are not available on Arch Linux ARM
         pacman -S --noconfirm --needed `cat extra-packages.txt | grep -v pcmciautils | grep -v syslinux`
@@ -492,7 +492,7 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     fi
 
     if [ ${EXTRA_RET} -ne 0 ]; then
-        echo "ERROR! Installing extra-packages.txt failed. Please try again."            
+        echo "ERROR! Installing extra-packages.txt failed. Try running `basename ${0}` again."
         exit 1
     fi            
 
@@ -529,13 +529,15 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     rsync -aq /tmp/dot-files/etc/skel/ ${TARGET_PREFIX}/root/
 fi
 
-# Rebuild init and update SYSLINUX
+# Enable cron.
 ${CHROOT} systemctl enable cronie.service
 
+# Rebuild init and update SYSLINUX
 if [ "${MACHINE}" == "pc" ]; then
     ${CHROOT} mkinitcpio -p linux
     ${CHROOT} /usr/sbin/syslinux-install_update -iam
-fi    
+fi
+
 
 # Configure the network if a configuration exists.
 if [ -f netcfg ]; then
