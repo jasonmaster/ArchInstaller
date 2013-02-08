@@ -352,18 +352,11 @@ if [ "${MACHINE}" == "pc" ]; then
     # Mount
     echo "==> Mounting filesystems"
     mount /dev/${ROOT_PARTITION} ${TARGET_PREFIX} >/dev/null
-    mkdir -p ${TARGET_PREFIX}/{boot,home}
+    mkdir -p ${TARGET_PREFIX}/{boot,home,proc}
     mount /dev/${DSK}1 ${TARGET_PREFIX}/boot >/dev/null
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
         mount /dev/${DSK}4 ${TARGET_PREFIX}/home >/dev/null
     fi
-    
-    # Mount the live system
-    mkdir -p ${TARGET_PREFIX}/{proc,sys,dev/pts}
-    mount -t proc proc ${TARGET_PREFIX}/proc
-    mount -t sysfs sys ${TARGET_PREFIX}/sys
-    mount -o bind /dev ${TARGET_PREFIX}/dev
-    mount -t devpts pts ${TARGET_PREFIX}/dev/pts
 fi
 
 # Base system
@@ -598,11 +591,6 @@ if [ "${MACHINE}" == "pc" ]; then
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
         umount -f ${TARGET_PREFIX}/home
     fi
-    umount -f ${TARGET_PREFIX}/proc
-    umount -f ${TARGET_PREFIX}/sys
-    umount -f ${TARGET_PREFIX}/dev
-    umount -f ${TARGET_PREFIX}/dev/pts
-    
     #umount ${TARGET_PREFIX}/sys/fs/cgroup/{systemd,} 2>/dev/null
     #umount ${TARGET_PREFIX}/sys 2>/dev/null
     umount -f ${TARGET_PREFIX}/{boot,}
