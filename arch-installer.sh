@@ -402,7 +402,7 @@ fi
 echo KEYMAP=${KEYMAP}     >  ${TARGET_PREFIX}/etc/vconsole.conf
 echo FONT=${FONT}         >> ${TARGET_PREFIX}/etc/vconsole.conf
 echo FONT_MAP=${FONT_MAP} >> ${TARGET_PREFIX}/etc/vconsole.conf
-sed -i 's/filesystems usbinput fsck"/filesystems usbinput fsck consolefont keymap"/' ${TARGET_PREFIX}/etc/mkinitcpio.conf
+sed -i 's/keyboard fsck"/keyboard fsck consolefont keymap"/' ${TARGET_PREFIX}/etc/mkinitcpio.conf
 
 # Configure locale
 sed -i "s/#${LANG}/${LANG}/" ${TARGET_PREFIX}/etc/locale.gen
@@ -417,7 +417,7 @@ if [ "${MACHINE}" == "pc" ]; then
     sed -i 's/#UI vesamenu.c32/UI vesamenu.c32/' ${TARGET_PREFIX}/boot/syslinux/syslinux.cfg
     sed -i 's/#MENU BACKGROUND/MENU BACKGROUND/' ${TARGET_PREFIX}/boot/syslinux/syslinux.cfg
     # Correct the root parition configuration
-    sed -i "s/sda3/\/dev\/disk\/by-label\/root/g" ${TARGET_PREFIX}/boot/syslinux/syslinux.cfg
+    sed -i "s/sda3/\/disk\/by-label\/root/g" ${TARGET_PREFIX}/boot/syslinux/syslinux.cfg
     # Make the menu look pretty
     cat >>${TARGET_PREFIX}/boot/syslinux/syslinux.cfg<<ENDSYSMENU
 MENU WIDTH 78
@@ -442,6 +442,11 @@ echo "blacklist pcspkr" > ${TARGET_PREFIX}/etc/modprobe.d/blacklist-pcspkr.conf
 modprobe -q acpi-cpufreq
 if [ $? -eq 0 ]; then
     echo "acpi-cpufreq" > ${TARGET_PREFIX}/etc/modules-load.d/acpi-cpufreq.conf
+else
+    modprobe -q powernow_k8
+    if [ $? -eq 0 ]; then
+        echo "powernow_k8" > ${TARGET_PREFIX}/etc/modules-load.d/powernow_k8.conf
+    fi
 fi
 
 # Install and configure the extra packages
