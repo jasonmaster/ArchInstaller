@@ -140,6 +140,7 @@ fi
 
 # Configure init things
 update_early_modules ${VIDEO_KMS}
+rebuild_init
 
 # Configure kernel module options
 if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then

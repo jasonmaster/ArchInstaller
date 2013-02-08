@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+if [ -f common.sh ]; then
+    source common.sh
+else
+    echo "ERROR! Could not source 'common.sh'"
+    exit 1
+fi
+
 BASE_GROUPS="adm,audio,disk,lp,optical,storage,video,games,power,scanner"
 DSK=""
 NFS_CACHE=""
@@ -402,21 +409,16 @@ fi
 echo KEYMAP=${KEYMAP}     >  ${TARGET_PREFIX}/etc/vconsole.conf
 echo FONT=${FONT}         >> ${TARGET_PREFIX}/etc/vconsole.conf
 echo FONT_MAP=${FONT_MAP} >> ${TARGET_PREFIX}/etc/vconsole.conf
-sed -i 's/keyboard fsck"/keyboard fsck consolefont keymap"/' ${TARGET_PREFIX}/etc/mkinitcpio.conf
 
-NEW_HOOK="consolefont keymap"
-OLD_ARRAY=`egrep ^HOOKS= ${TARGET_PREFIX}/etc/mkinitcpio.conf`
-# Determine if the new hook is already listed.
-_EXISTS=`echo ${OLD_ARRAY} | grep ${NEW_HOOK}`
-if [ $? -eq 1 ]; then
-    source ${TARGET_PREFIX}/etc/mkinitcpio.conf
-    if [ -z "${HOOKS}" ]; then
-        NEW_HOOKS="${NEW_HOOK}"
-    else
-        NEW_HOOKS="${HOOKS} ${NEW_HOOK}"
-    fi
-    replaceinfile "HOOKS=\"${HOOKS}\"" "HOOKS=\"${NEW_HOOKS}\"" ${TARGET_PREFIX}/etc/mkinitcpio.conf
-fi
+# Configure init things
+check_vga
+update_early_hooks "consolefont keymap"
+update_early_modules ${VIDEO_KMS}
+
+# Configure kernel module options
+if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
+    echo "${VIDEO_MODPROBE}" > ${TARGET_PREFIX}/etc/modprobe.d/${VIDEO_KMS}.conf
+fi   
 
 # Configure locale
 sed -i "s/#${LANG}/${LANG}/" ${TARGET_PREFIX}/etc/locale.gen
@@ -427,6 +429,7 @@ ${CHROOT} locale-gen
 # Configure SYSLINUX
 if [ "${MACHINE}" == "pc" ]; then
     cp splash.png ${TARGET_PREFIX}/boot/syslinux/splash.png
+    cp terminus.psf ${TARGET_PREFIX}/boot/syslinux/terminus.psf
     sed -i 's/UI menu.c32/#UI menu.c32/' ${TARGET_PREFIX}/boot/syslinux/syslinux.cfg
     sed -i 's/#UI vesamenu.c32/UI vesamenu.c32/' ${TARGET_PREFIX}/boot/syslinux/syslinux.cfg
     sed -i 's/#MENU BACKGROUND/MENU BACKGROUND/' ${TARGET_PREFIX}/boot/syslinux/syslinux.cfg
@@ -434,6 +437,7 @@ if [ "${MACHINE}" == "pc" ]; then
     sed -i "s/sda3/\/disk\/by-label\/root/g" ${TARGET_PREFIX}/boot/syslinux/syslinux.cfg
     # Make the menu look pretty
     cat >>${TARGET_PREFIX}/boot/syslinux/syslinux.cfg<<ENDSYSMENU
+    
 MENU WIDTH 78
 MENU MARGIN 4
 MENU ROWS 6
@@ -442,6 +446,7 @@ MENU TABMSGROW 14
 MENU CMDLINEROW 14
 MENU HELPMSGROW 16
 MENU HELPMSGENDROW 29
+FONT terminus.psf
 ENDSYSMENU
 fi
 

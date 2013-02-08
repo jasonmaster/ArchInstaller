@@ -124,15 +124,17 @@ check_vga() {
         VIDEO_DRI="intel-dri"
         VIDEO_DDX="xf86-video-intel"
         VIDEO_DECODER="libva-intel-driver"
-        VIDEO_MODPROBE="options i915 modeset=1 i915_enable_rc6=1 i915_enable_fbc=1 i915.lvds_downclock=1 i915.semaphores=1"
+        VIDEO_MODPROBE=""
+        #"options i915 modeset=1 i915_enable_rc6=1 i915_enable_fbc=1 i915.lvds_downclock=1 i915.semaphores=1"
         #TODO - Check for fbc support.
-    elif [ -f /sys/kernel/debug/dri/0/radeon_pm_info ]; then
+    elif [ -f /sys/kernel/debug/dri/0/radeon_pm_info ] || [ -f /sys/kernel/debug/dri/0/radeon_sa_info ]; then
         cecho AMD/ATI
         VIDEO_KMS="radeon"
         VIDEO_DRI="ati-dri"
         VIDEO_DDX="xf86-video-ati"
         VIDEO_DECODER="libva-vdpau-driver"
-        VIDEO_MODPROBE="options radeon modeset=1"
+        VIDEO_MODPROBE=""
+        #"options radeon modeset=1"
         # TODO - Add `radeon.pcie_gen2=1` if the card is PCIe.
         # http://wiki.x.org/wiki/RadeonFeature#Linux_kernel_parameters
     elif [ -f /sys/kernel/debug/dri/0/vbios.rom ]; then
@@ -141,7 +143,8 @@ check_vga() {
         VIDEO_DRI="nouveau-dri"
         VIDEO_DDX="xf86-video-nouveau"
         VIDEO_DECODER="libva-vdpau-driver"
-        VIDEO_MODPROBE="options nouveau modeset=1"
+        VIDEO_MODPROBE=""
+        #"options nouveau modeset=1"
     else
         local VGA=`lspci | grep VGA | tr "[:upper:]" "[:lower:]"`
         echo ${VGA} | grep -q "virtualbox"
@@ -401,42 +404,40 @@ rebuild_init() {
 
 update_early_modules() {
     local NEW_MODULE=${1}
-    local OLD_ARRAY=`egrep ^MODULES= /etc/mkinitcpio.conf`
+    local OLD_ARRAY=`egrep ^MODULES= ${TARGET_PREFIX}/etc/mkinitcpio.conf`
 
     if [ -n "${NEW_MODULE}" ]; then
         # Determine if the new module is already listed.
         _EXISTS=`echo ${OLD_ARRAY} | grep ${NEW_MODULE}`
         if [ $? -eq 1 ]; then
 
-            source /etc/mkinitcpio.conf
+            source ${TARGET_PREFIX}/etc/mkinitcpio.conf
             if [ -z "${MODULES}" ]; then
                 NEW_MODULES="${NEW_MODULE}"
             else
                 NEW_MODULES="${MODULES} ${NEW_MODULE}"
             fi
-            replaceinfile "MODULES=\"${MODULES}\"" "MODULES=\"${NEW_MODULES}\"" /etc/mkinitcpio.conf
-            rebuild_init
+            replaceinfile "MODULES=\"${MODULES}\"" "MODULES=\"${NEW_MODULES}\"" ${TARGET_PREFIX}/etc/mkinitcpio.conf
         fi
     fi
 }
 
 update_early_hooks() {
     local NEW_HOOK=${1}
-    local OLD_ARRAY=`egrep ^HOOKS= /etc/mkinitcpio.conf`
+    local OLD_ARRAY=`egrep ^HOOKS= ${TARGET_PREFIX}/etc/mkinitcpio.conf`
 
     if [ -n "${NEW_HOOK}" ]; then
         # Determine if the new module is already listed.
         _EXISTS=`echo ${OLD_ARRAY} | grep ${NEW_HOOK}`
         if [ $? -eq 1 ]; then
 
-            source /etc/mkinitcpio.conf
+            source ${TARGET_PREFIX}/etc/mkinitcpio.conf
             if [ -z "${HOOKS}" ]; then
                 NEW_HOOKS="${NEW_HOOK}"
             else
                 NEW_HOOKS="${HOOKS} ${NEW_HOOK}"
             fi
-            replaceinfile "HOOKS=\"${HOOKS}\"" "HOOKS=\"${NEW_HOOKS}\"" /etc/mkinitcpio.conf
-            rebuild_init
+            replaceinfile "HOOKS=\"${HOOKS}\"" "HOOKS=\"${NEW_HOOKS}\"" ${TARGET_PREFIX}/etc/mkinitcpio.conf
         fi
     fi
 }
