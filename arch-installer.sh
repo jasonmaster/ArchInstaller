@@ -352,7 +352,7 @@ if [ "${MACHINE}" == "pc" ]; then
     # Mount
     echo "==> Mounting filesystems"
     mount /dev/${ROOT_PARTITION} ${TARGET_PREFIX} >/dev/null
-    mkdir -p ${TARGET_PREFIX}/{boot,home,proc}
+    mkdir -p ${TARGET_PREFIX}/{boot,home}
     mount /dev/${DSK}1 ${TARGET_PREFIX}/boot >/dev/null
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
         mount /dev/${DSK}4 ${TARGET_PREFIX}/home >/dev/null
@@ -483,6 +483,8 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     if [ "${MACHINE}" == "pc" ]; then
         pacstrap -c ${TARGET_PREFIX} `cat extra-packages.txt`
         EXTRA_RET=$?
+        umount -f ${TARGET_PREFIX}/sys/fs/cgroup/{systemd,} 2>/dev/null
+        umount -f ${TARGET_PREFIX}/sys 2>/dev/null
     else        
         # Some packages are not available on Arch Linux ARM
         pacman -S --noconfirm --needed `cat extra-packages.txt | grep -v pcmciautils | grep -v syslinux`
@@ -591,8 +593,8 @@ if [ "${MACHINE}" == "pc" ]; then
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
         umount -f ${TARGET_PREFIX}/home
     fi
-    #umount ${TARGET_PREFIX}/sys/fs/cgroup/{systemd,} 2>/dev/null
-    #umount ${TARGET_PREFIX}/sys 2>/dev/null
+    umount -f ${TARGET_PREFIX}/sys/fs/cgroup/{systemd,} 2>/dev/null
+    umount -f ${TARGET_PREFIX}/sys 2>/dev/null
     umount -f ${TARGET_PREFIX}/{boot,}
     swapoff -a
 fi    
