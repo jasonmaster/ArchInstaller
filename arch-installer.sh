@@ -531,12 +531,6 @@ fi
 # Enable cron.
 ${CHROOT} systemctl enable cronie.service
 
-# Rebuild init and update SYSLINUX
-if [ "${MACHINE}" == "pc" ]; then
-    ${CHROOT} mkinitcpio -p linux
-    ${CHROOT} /usr/sbin/syslinux-install_update -iam
-fi
-
 # Configure the network if a configuration exists.
 if [ -f netcfg ]; then
     cp netcfg ${TARGET_PREFIX}/etc/network.d/mynetwork
@@ -565,7 +559,7 @@ if [ -f users.csv ]; then
         # So modify the user, on error, to ensure the correct configuration is applied.
         if [ $? -ne 0 ]; then
             echo "==> Encountered a problem provisioning ${_USERNAME}"
-            ${CHROOT} /usr/sbin/usermod --password ${_CRYPTPASSWD} --comment "${_COMMENT}" --groups ${_GROUPS} --shell /bin/bash --create-home -g users --append ${_USERNAME}            
+            ${CHROOT} /usr/sbin/usermod --password ${_CRYPTPASSWD} --comment "${_COMMENT}" --groups ${_GROUPS} --shell /bin/bash --create-home -g users --append ${_USERNAME}
         fi
 
         # Put ArchInstaller in the home directory of users in the `wheel` group.
@@ -581,6 +575,12 @@ fi
 # Change root password.
 PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
 ${CHROOT} /usr/sbin/usermod --password ${PASSWORD_CRYPT} root
+
+# Rebuild init and update SYSLINUX
+if [ "${MACHINE}" == "pc" ]; then
+    ${CHROOT} mkinitcpio -p linux
+    ${CHROOT} /usr/sbin/syslinux-install_update -iam
+fi
 
 # Unmount
 sync
