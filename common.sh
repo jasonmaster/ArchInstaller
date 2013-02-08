@@ -435,7 +435,7 @@ update_early_hooks() {
             else
                 NEW_HOOKS="${HOOKS} ${NEW_HOOK}"
             fi
-            replaceinfile "HOOKS=\"${HOOKS}\"" "MODULES=\"${NEW_HOOKS}\"" /etc/mkinitcpio.conf
+            replaceinfile "HOOKS=\"${HOOKS}\"" "HOOKS=\"${NEW_HOOKS}\"" /etc/mkinitcpio.conf
             rebuild_init
         fi
     fi

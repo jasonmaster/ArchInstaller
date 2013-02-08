@@ -404,6 +404,20 @@ echo FONT=${FONT}         >> ${TARGET_PREFIX}/etc/vconsole.conf
 echo FONT_MAP=${FONT_MAP} >> ${TARGET_PREFIX}/etc/vconsole.conf
 sed -i 's/keyboard fsck"/keyboard fsck consolefont keymap"/' ${TARGET_PREFIX}/etc/mkinitcpio.conf
 
+NEW_HOOK="consolefont keymap"
+OLD_ARRAY=`egrep ^HOOKS= ${TARGET_PREFIX}/etc/mkinitcpio.conf`
+# Determine if the new hook is already listed.
+_EXISTS=`echo ${OLD_ARRAY} | grep ${NEW_HOOK}`
+if [ $? -eq 1 ]; then
+    source ${TARGET_PREFIX}/etc/mkinitcpio.conf
+    if [ -z "${HOOKS}" ]; then
+        NEW_HOOKS="${NEW_HOOK}"
+    else
+        NEW_HOOKS="${HOOKS} ${NEW_HOOK}"
+    fi
+    replaceinfile "HOOKS=\"${HOOKS}\"" "HOOKS=\"${NEW_HOOKS}\"" ${TARGET_PREFIX}/etc/mkinitcpio.conf
+fi
+
 # Configure locale
 sed -i "s/#${LANG}/${LANG}/" ${TARGET_PREFIX}/etc/locale.gen
 echo LANG=${LANG}             >   ${TARGET_PREFIX}/etc/locale.conf
