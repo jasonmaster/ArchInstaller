@@ -513,16 +513,16 @@ if [ ${MINIMAL} -eq 0 ]; then
     rsync -aq /tmp/dot-files/etc/skel/ ${TARGET_PREFIX}/root/
 fi
 
-# Enable cron.
+echo "# Enable cron."
 add_config "systemctl enable cronie.service"
 
-# Configure the network if a configuration exists.
+echo "# Configure the network if a configuration exists."
 if [ -f netcfg ]; then
     cp netcfg ${TARGET_PREFIX}/etc/network.d/mynetwork
     add_config "systemctl enable netcfg@mynetwork"
 fi
 
-# Provision accounts if there is a `users.csv` file.
+echo "# Provision accounts if there is a users.csv file."
 if [ -f users.csv ]; then
     IFS=$'\n';
     for USER in `cat users.csv`
@@ -545,12 +545,13 @@ if [ -f users.csv ]; then
     done
 fi
 
-# Change root password.
+echo "# Change root password."
 PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
 add_config "usermod --password ${PASSWORD_CRYPT} root"
 
-# Rebuild init and update SYSLINUX
+echo "# Rebuild init and update SYSLINUX : [${MACHINE}]"
 if [ "${MACHINE}" == "pc" ]; then
+    echo "Doing the pc thing"
     add_config "mkinitcpio -p linux"
     add_config "syslinux-install_update -iam"
 
@@ -561,10 +562,11 @@ if [ "${MACHINE}" == "pc" ]; then
     add_config "sed -i 's/#ROOT#/\/dev\/disk\/by-label\/root/g' /boot/syslinux/syslinux.cfg"
     arch-chroot ${TARGET_PREFIX} /usr/local/bin/arch-config.sh
 else
+    echo "Doing the non-pc thing."
     /usr/local/bin/arch-config.sh
 fi
 
-# Unmount
+echo "# Unmount"
 sync
 if [ -n "${NFS_CACHE}" ]; then
     addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,noauto,x-systemd.automount 0 0" ${TARGET_PREFIX}/etc/fstab
