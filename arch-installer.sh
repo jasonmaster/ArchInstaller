@@ -449,30 +449,6 @@ add_config "echo LANG=${LANG}             >  /etc/locale.conf"
 add_config "echo LC_COLLATE=${LC_COLLATE} >> /etc/locale.conf"
 add_config "locale-gen"
 
-# Configure SYSLINUX
-if [ "${MACHINE}" == "pc" ]; then
-    cp splash.png ${TARGET_PREFIX}/boot/syslinux/splash.png
-    cp terminus.psf ${TARGET_PREFIX}/boot/syslinux/terminus.psf
-    add_config "sed -i 's/UI menu.c32/#UI menu.c32/' /boot/syslinux/syslinux.cfg"
-    add_config "sed -i 's/#UI vesamenu.c32/UI vesamenu.c32/' /boot/syslinux/syslinux.cfg"
-    add_config "sed -i 's/#MENU BACKGROUND/MENU BACKGROUND/' /boot/syslinux/syslinux.cfg"
-    # Correct the root parition configuration
-    add_config "sed -i 's/sda3/disk\/by-label\/root/g' /boot/syslinux/syslinux.cfg"
-    # Make the menu look pretty
-    cat >>${TARGET_PREFIX}/boot/syslinux/syslinux.cfg<<ENDSYSMENU
-    
-MENU WIDTH 78
-MENU MARGIN 4
-MENU ROWS 6
-MENU VSHIFT 10
-MENU TABMSGROW 14
-MENU CMDLINEROW 14
-MENU HELPMSGROW 16
-MENU HELPMSGENDROW 29
-FONT terminus.psf
-ENDSYSMENU
-fi
-
 # Configure 'nano' as the system default
 addlinetofile "export EDITOR=nano" ${TARGET_PREFIX}/etc/profile
 
@@ -520,7 +496,7 @@ if [ ${MINIMAL} -eq 0 ]; then
         add_config "tar zxvf packer.tar.gz"
         add_config "cd packer"
         add_config "makepkg --asroot -s --noconfirm"
-        add_config "pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`"
+        add_config 'pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`'
 
         # Install pacman-color
         add_config "packer -S --noconfirm --noedit pacman-color"    
@@ -546,6 +522,10 @@ if [ -f netcfg ]; then
     add_config "systemctl enable netcfg@mynetwork"
 fi
 
+# Insert thyself
+mkdir -p ${TARGET_PREFIX}/usr/local/src/ArchInstaller/
+rsync -aq `pwd`/ ${TARGET_PREFIX}/usr/local/src/ArchInstaller/
+
 # Provision accounts if there is a `users.csv` file.
 if [ -f users.csv ]; then
     IFS=$'\n';
@@ -570,8 +550,8 @@ if [ -f users.csv ]; then
         # Put ArchInstaller in the home directory of users in the `wheel` group.
         PROVISION_ARCHINSTALLER=`echo ${_GROUPS} | grep wheel`
         if [ $? -eq 0 ]; then
-            mkdir -p ${TARGET_PREFIX}/home/${_USERNAME}/Source/flexiondotorg/ArchInstaller/
-            rsync -aq `pwd`/ ${TARGET_PREFIX}/home/${_USERNAME}/Source/flexiondotorg/ArchInstaller/
+	    add_config "mkdir -p /home/${_USERNAME}/Source/flexiondotorg"
+            add_config "rsync -aq /usr/local/src/ArchInstaller/ /home/${_USERNAME}/Source/flexiondotorg/ArchInstaller/"
             add_config "chown -R ${_USERNAME}:users /home/${_USERNAME}"
             add_config "chmod 700 /home/${_USERNAME}"
         fi
@@ -586,9 +566,18 @@ add_config "usermod --password ${PASSWORD_CRYPT} root"
 if [ "${MACHINE}" == "pc" ]; then
     add_config "mkinitcpio -p linux"
     add_config "syslinux-install_update -iam"
+
+    cp splash.png ${TARGET_PREFIX}/boot/syslinux/splash.png
+    cp terminus.psf ${TARGET_PREFIX}/boot/syslinux/terminus.psf
+    cp syslinux.cfg ${TARGET_PREFIX/boot/syslinux/syslinux.cfg
+    # Correct the root parition configuration
+    add_config "sed -i 's/#ROOT#/\/dev\/disk\/by-label\/root/g' /boot/syslinux/syslinux.cfg"
 fi
 
-${CMD_PREFIX} /usr/local/bin/arch-config.sh
+arch-chroot ${TARGET_PREFIX} /usr/local/bin/arch-config.sh
+
+# Remove thyself
+rm -rf ${TARGET_PREFIX}/usr/local/src/ArchInstaller 2>/dev/null
 
 # Unmount
 sync
