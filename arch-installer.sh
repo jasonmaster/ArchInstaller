@@ -522,10 +522,6 @@ if [ -f netcfg ]; then
     add_config "systemctl enable netcfg@mynetwork"
 fi
 
-# Insert thyself
-mkdir -p ${TARGET_PREFIX}/usr/local/src/ArchInstaller/
-rsync -aq `pwd`/ ${TARGET_PREFIX}/usr/local/src/ArchInstaller/
-
 # Provision accounts if there is a `users.csv` file.
 if [ -f users.csv ]; then
     IFS=$'\n';
@@ -546,15 +542,6 @@ if [ -f users.csv ]; then
         # If the user already exists (Possible on a Raspberry Pi) the above may error.
         # So modify the user, to ensure the correct configuration is applied.
         #add_config "usermod --password ${_CRYPTPASSWD} --comment \"${_COMMENT}\" --groups ${_GROUPS} --shell /bin/bash --create-home -g users --append ${_USERNAME}"
-
-        # Put ArchInstaller in the home directory of users in the `wheel` group.
-        PROVISION_ARCHINSTALLER=`echo ${_GROUPS} | grep wheel`
-        if [ $? -eq 0 ]; then
-	    add_config "mkdir -p /home/${_USERNAME}/Source/flexiondotorg"
-            add_config "rsync -aq /usr/local/src/ArchInstaller/ /home/${_USERNAME}/Source/flexiondotorg/ArchInstaller/"
-            add_config "chown -R ${_USERNAME}:users /home/${_USERNAME}"
-            add_config "chmod 700 /home/${_USERNAME}"
-        fi
     done
 fi
 
@@ -572,12 +559,10 @@ if [ "${MACHINE}" == "pc" ]; then
     cp syslinux.cfg ${TARGET_PREFIX/boot/syslinux/syslinux.cfg
     # Correct the root parition configuration
     add_config "sed -i 's/#ROOT#/\/dev\/disk\/by-label\/root/g' /boot/syslinux/syslinux.cfg"
+    arch-chroot ${TARGET_PREFIX} /usr/local/bin/arch-config.sh
+else
+    /usr/local/bin/arch-config.sh
 fi
-
-arch-chroot ${TARGET_PREFIX} /usr/local/bin/arch-config.sh
-
-# Remove thyself
-rm -rf ${TARGET_PREFIX}/usr/local/src/ArchInstaller 2>/dev/null
 
 # Unmount
 sync
