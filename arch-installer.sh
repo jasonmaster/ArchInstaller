@@ -457,7 +457,7 @@ if [ "${MACHINE}" == "pc" ]; then
     add_config "sed -i 's/#UI vesamenu.c32/UI vesamenu.c32/' /boot/syslinux/syslinux.cfg"
     add_config "sed -i 's/#MENU BACKGROUND/MENU BACKGROUND/' /boot/syslinux/syslinux.cfg"
     # Correct the root parition configuration
-    add_config "sed -i 's/sda3/\/disk\/by-label\/root/g' /boot/syslinux/syslinux.cfg"
+    add_config "sed -i 's/sda3/disk\/by-label\/root/g' /boot/syslinux/syslinux.cfg"
     # Make the menu look pretty
     cat >>${TARGET_PREFIX}/boot/syslinux/syslinux.cfg<<ENDSYSMENU
     
