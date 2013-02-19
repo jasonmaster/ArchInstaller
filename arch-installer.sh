@@ -503,15 +503,11 @@ PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
 add_config "usermod --password ${PASSWORD_CRYPT} root"
 
 if [ "${MACHINE}" == "pc" ]; then
-    echo "Doing the pc thing : ${TARGET_PREFIX}"
+    echo "arch-chroot ${TARGET_PREFIX}"
     add_config "mkinitcpio -p linux"
     add_config "syslinux-install_update -iam"
-    cp splash.png ${TARGET_PREFIX}/boot/syslinux/splash.png
-    cp terminus.psf ${TARGET_PREFIX}/boot/syslinux/terminus.psf
-    cp syslinux.cfg ${TARGET_PREFIX/boot/syslinux/syslinux.cfg
-    add_config "sed -i 's/#ROOT#/\/dev\/disk\/by-label\/root/g' /boot/syslinux/syslinux.cfg"
-    echo "arch-chroot : ${TARGET_PREFIX}"
     arch-chroot ${TARGET_PREFIX} /usr/local/bin/arch-config.sh
+    cp {splash.png,terminus.psf,syslinux.cfg} ${TARGET_PREFIX}/boot/syslinux/
 else
     /usr/local/bin/arch-config.sh
 fi
