@@ -21,21 +21,17 @@ PASSWORD=""
 FS="ext4"
 PARTITION_TYPE="msdos"
 PARTITION_LAYOUT=""
-MINIMAL=0
-SERVER=0
+INSTALL_TYPE="standard"
 ENABLE_DISCARD=0
-MACHINE=""
+MACHINE="pc"
 TARGET_PREFIX="/mnt"
-CMD_PREFIX="arch-chroot ${TARGET_PREFIX}"
-
 CPU=`uname -m`
+
 if [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]; then
     if [ "${HOSTNAME}" != "archiso" ]; then
         echo "PARACHUTE DEPLOYED! This script is not running from the Arch Linux install media."
         echo " - Exitting now to prevent untold chaos."
         exit 1
-    else        
-        MACHINE="pc"
     fi
 elif [ "${CPU}" == "armv6l" ]; then
     if [ "${HOSTNAME}" != "alarmpi" ]; then
@@ -46,7 +42,6 @@ elif [ "${CPU}" == "armv6l" ]; then
         MACHINE="pi"
         DSK="mmcblk0" 
         TARGET_PREFIX=""
-        CMD_PREFIX=""
     fi
 else
     echo "ERROR! `basename ${0}` is designed for armv6l, i686, x86_64 platforms only."
@@ -116,16 +111,15 @@ do
         h) usage;;
         k) KEYMAP=${OPTARG};;
         l) LANG=${OPTARG};;
-        m) MINIMAL=1;;
+        m) INSTALL_TYPE="minimal";;
         n) FQDN=${OPTARG};;
         p) PARTITION_LAYOUT=${OPTARG};;
         t) TIMEZONE=${OPTARG};;
-        s) SERVER=1;;
+        s) INSTALL_TYPE="server";;
         w) PASSWORD=${OPTARG};;
         *) usage;;
     esac
 done
-
 shift "$(( $OPTIND - 1 ))"
 
 if [ "${MACHINE}" == "pc" ]; then
@@ -235,15 +229,7 @@ if [ -n "${NFS_CACHE}" ]; then
     echo " - NFS Cache           : ${NFS_CACHE}"
 fi
 
-if [ ${MINIMAL} -eq 0 ]; then
-    if [ ${SERVER} -eq 1 ]; then
-        echo " - Installation type   : Server"
-    else
-        echo " - Installation type   : Standard"
-    fi
-else
-    echo " - Installation type   : Minimal"
-fi
+echo " - Installation type   : ${INSTALL_TYPE}"
 
 if [ -f users.csv ]; then
     echo " - Provision users     : `cat users.csv | wc -l`"
@@ -269,12 +255,9 @@ read
 
 # Load the keymap and remove the PC speaker module.
 loadkeys -q ${KEYMAP}
-rmmod -s pcspkr 2>/dev/null
 
 if [ "${MACHINE}" == "pc" ]; then
-    # Partition the disk
-    #  - https://bbs.archlinux.org/viewtopic.php?id=145678
-    #  - http://sprunge.us/WATU
+    # Partition the disk https://bbs.archlinux.org/viewtopic.php?id=145678 http://sprunge.us/WATU
     echo "==> Initialising disk /dev/${DSK}: ${PARTITION_TYPE}"
     parted -s /dev/${DSK} mktable ${PARTITION_TYPE} >/dev/null
 
@@ -297,38 +280,31 @@ if [ "${MACHINE}" == "pc" ]; then
         root_end=$max
     fi
 
-    # Partition the disk.
-    # /boot
     echo "==> Creating /boot partition"
     parted -s /dev/${DSK} unit MiB mkpart primary 1 $boot_end >/dev/null
 
     if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
-        # swap and /root
         ROOT_PARTITION="${DSK}3"
         echo "==> Creating swap partition"
         parted -s /dev/${DSK} unit MiB mkpart primary linux-swap $boot_end $swap_end >/dev/null
         echo "==> Creating /root partition"
         parted -s /dev/${DSK} unit MiB mkpart primary $swap_end $root_end >/dev/null
-        # /home
         if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
             echo "==> Creating /home partition"
             parted -s /dev/${DSK} unit MiB mkpart primary $root_end $max >/dev/null
         fi
     elif [ "${PARTITION_LAYOUT}" = "br" ]; then
-        # /root
         ROOT_PARTITION="${DSK}2"
         echo "==> Creating /root partition"
         parted -s /dev/${DSK} unit MiB mkpart primary $boot_end $root_end >/dev/null
     fi
 
-    # Set boot flags
     echo "==> Setting /dev/${DSK} bootable"
     parted -s /dev/${DSK} toggle 1 boot >/dev/null
     if [ "${PARTITION_TYPE}" == "gpt" ]; then
         sgdisk /dev/${DSK} --attributes=1:set:2 >/dev/null
     fi
 
-    # Make the file systems.
     echo "==> Making /boot filesystem : ext2"
     mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}1 >/dev/null
     echo "==> Making /root filesystem : ${FS}"
@@ -338,14 +314,12 @@ if [ "${MACHINE}" == "pc" ]; then
         ${MKFS} -L home /dev/${DSK}4 >/dev/null
     fi
 
-    # Enable swap
     if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
         echo -n "==> "
         mkswap -f -L swap /dev/${DSK}2
         swapon /dev/${DSK}2
     fi
 
-    # Mount
     echo "==> Mounting filesystems"
     mount /dev/${ROOT_PARTITION} ${TARGET_PREFIX} >/dev/null
     mkdir -p ${TARGET_PREFIX}/{boot,home}
@@ -369,16 +343,14 @@ if [ "${MACHINE}" == "pc" ]; then
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' ${TARGET_PREFIX}/etc/pacman.conf
     fi
 
-    # Create /etc/fstab
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
 fi    
 
-# Prevent unwanted cache purges
-#  - https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
+# https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
 sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' ${TARGET_PREFIX}/etc/pacman.conf
 
 # Install and configure the extra packages
-if [ ${MINIMAL} -eq 0 ]; then
+if [ "${INSTALL_TYPE}" == "standard" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     # Install multilib-devel
     if [ "${CPU}" == "x86_64" ]; then
     echo "
@@ -424,7 +396,6 @@ if [ ${ENABLE_DISCARD} -eq 1 ]; then
 fi
 
 # Configure the hostname.
-# This is the systemd way but doesn't seem to work in a `chroot`.
 add_config "echo ${FQDN} > /etc/hostname"
 add_config "hostnamectl set-hostname --static ${FQDN}"
 
@@ -448,15 +419,12 @@ add_config "sed -i \"s/#${LANG}/${LANG}/\" /etc/locale.gen"
 add_config "echo LANG=${LANG}             >  /etc/locale.conf"
 add_config "echo LC_COLLATE=${LC_COLLATE} >> /etc/locale.conf"
 add_config "locale-gen"
-
-# Configure 'nano' as the system default
 addlinetofile "export EDITOR=nano" ${TARGET_PREFIX}/etc/profile
 
 # Disable PC speaker - I hate that thing!
 echo "blacklist pcspkr" > ${TARGET_PREFIX}/etc/modprobe.d/blacklist-pcspkr.conf
 
-# CPU Frequency scaling
-# - https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling
+# https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling
 modprobe -q acpi-cpufreq
 if [ $? -eq 0 ]; then
     echo "acpi-cpufreq" > ${TARGET_PREFIX}/etc/modules-load.d/acpi-cpufreq.conf
@@ -467,41 +435,33 @@ else
     fi
 fi
 
-if [ ${MINIMAL} -eq 0 ]; then
+if [ "${INSTALL_TYPE}" == "standard" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     # Configure mDNS
     sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' ${TARGET_PREFIX}/etc/nsswitch.conf
     # Members of the `wheel` group are sudoers.
     sed -i '/%wheel ALL=(ALL) ALL/s/^#//' ${TARGET_PREFIX}/etc/sudoers
     add_config "systemctl start sshdgenkeys.service"
     add_config "systemctl enable sshd.service"
-    add_config "systemctl enable openntpd.service"
-
-    # These services should not be enabled on a server.
-    if [ ${SERVER} -eq 0 ]; then
+    add_config "systemctl enable openntpd.service"    
+    if [ "${INSTALL_TYPE}" != "server" ]; then
         add_config "systemctl enable avahi-daemon.service"
         add_config "systemctl enable rpc-statd.service"
     fi
 
     # Install `packer` and `pacman-color`.
     if [ "${MACHINE}" == "pc" ]; then
-        # Download packer
         add_config "wget http://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz"
         add_config 'if [ $? -ne 0 ]; then'
         add_config "    echo \"ERROR! Couldn't downloading packer.tar.gz. Aborting packer install.\""
         add_config "    exit 1"
         add_config "fi"
-
-        # Make the package and install it"
         add_config "cd /usr/local/src"
         add_config "tar zxvf packer.tar.gz"
         add_config "cd packer"
         add_config "makepkg --asroot -s --noconfirm"
         add_config 'pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`'
-
-        # Install pacman-color
         add_config "packer -S --noconfirm --noedit pacman-color"    
     else
-        # packer is in the alarmpi AUR repository
         add_config "pacman -S --noconfirm packer"
     fi        
 
@@ -513,16 +473,13 @@ if [ ${MINIMAL} -eq 0 ]; then
     rsync -aq /tmp/dot-files/etc/skel/ ${TARGET_PREFIX}/root/
 fi
 
-echo "# Enable cron."
 add_config "systemctl enable cronie.service"
 
-echo "# Configure the network if a configuration exists."
 if [ -f netcfg ]; then
     cp netcfg ${TARGET_PREFIX}/etc/network.d/mynetwork
     add_config "systemctl enable netcfg@mynetwork"
 fi
 
-echo "# Provision accounts if there is a users.csv file."
 if [ -f users.csv ]; then
     IFS=$'\n';
     for USER in `cat users.csv`
@@ -532,55 +489,46 @@ if [ -f users.csv ]; then
         _CRYPTPASSWD=`openssl passwd -crypt ${_PLAINPASSWD}`
         _COMMENT=`echo ${USER} | cut -d',' -f3`
         _EXTRA_GROUPS=`echo ${USER} | cut -d',' -f4`
-        _BASE_GROUPS=${BASE_GROUPS}
         if [ "${_EXTRA_GROUPS}" != "" ]; then
-            _GROUPS=${_BASE_GROUPS},${_EXTRA_GROUPS}
+            _GROUPS=${BASE_GROUPS},${_EXTRA_GROUPS}
         else
-            _GROUPS=${_BASE_GROUPS}
+            _GROUPS=${BASE_GROUPS}
         fi
         add_config "useradd --password ${_CRYPTPASSWD} --comment \"${_COMMENT}\" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}"
-        # If the user already exists (Possible on a Raspberry Pi) the above may error.
-        # So modify the user, to ensure the correct configuration is applied.
         #add_config "usermod --password ${_CRYPTPASSWD} --comment \"${_COMMENT}\" --groups ${_GROUPS} --shell /bin/bash --create-home -g users --append ${_USERNAME}"
     done
 fi
 
-echo "# Change root password."
 PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
 add_config "usermod --password ${PASSWORD_CRYPT} root"
 
-echo "# Rebuild init and update SYSLINUX : [${MACHINE}]"
 if [ "${MACHINE}" == "pc" ]; then
-    echo "Doing the pc thing"
+    echo "Doing the pc thing : ${TARGET_PREFIX}"
     add_config "mkinitcpio -p linux"
     add_config "syslinux-install_update -iam"
-
     cp splash.png ${TARGET_PREFIX}/boot/syslinux/splash.png
     cp terminus.psf ${TARGET_PREFIX}/boot/syslinux/terminus.psf
     cp syslinux.cfg ${TARGET_PREFIX/boot/syslinux/syslinux.cfg
-    # Correct the root parition configuration
     add_config "sed -i 's/#ROOT#/\/dev\/disk\/by-label\/root/g' /boot/syslinux/syslinux.cfg"
+    echo "arch-chroot : ${TARGET_PREFIX}"
     arch-chroot ${TARGET_PREFIX} /usr/local/bin/arch-config.sh
 else
-    echo "Doing the non-pc thing."
     /usr/local/bin/arch-config.sh
 fi
 
-echo "# Unmount"
-sync
+swapoff -a && sync
 if [ -n "${NFS_CACHE}" ]; then
     addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,noauto,x-systemd.automount 0 0" ${TARGET_PREFIX}/etc/fstab
     if [ "${MACHINE}" == "pc" ]; then
-        umount -f /var/cache/pacman/pkg
+        umount -fv /var/cache/pacman/pkg
     fi        
 fi
 
 if [ "${MACHINE}" == "pc" ]; then
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-        umount -f ${TARGET_PREFIX}/home
+        umount -fv ${TARGET_PREFIX}/home
     fi
-    umount -f ${TARGET_PREFIX}/{boot,}
-    swapoff -a
+    umount -fv ${TARGET_PREFIX}/{boot,}
 fi    
 
 echo "All done!"
