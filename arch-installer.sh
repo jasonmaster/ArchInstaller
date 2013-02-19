@@ -503,7 +503,6 @@ PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
 add_config "usermod --password ${PASSWORD_CRYPT} root"
 
 if [ "${MACHINE}" == "pc" ]; then
-    echo "arch-chroot ${TARGET_PREFIX}"
     add_config "mkinitcpio -p linux"
     add_config "syslinux-install_update -iam"
     arch-chroot ${TARGET_PREFIX} /usr/local/bin/arch-config.sh
