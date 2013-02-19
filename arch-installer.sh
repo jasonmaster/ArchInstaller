@@ -420,8 +420,6 @@ add_config "echo LANG=${LANG}             >  /etc/locale.conf"
 add_config "echo LC_COLLATE=${LC_COLLATE} >> /etc/locale.conf"
 add_config "locale-gen"
 addlinetofile "export EDITOR=nano" ${TARGET_PREFIX}/etc/profile
-
-# Disable PC speaker - I hate that thing!
 echo "blacklist pcspkr" > ${TARGET_PREFIX}/etc/modprobe.d/blacklist-pcspkr.conf
 
 # https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling
