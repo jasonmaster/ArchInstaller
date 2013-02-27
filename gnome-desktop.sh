@@ -278,7 +278,7 @@ if [ ${INSTALL_GENERAL_DEVELOPMENT} -eq 1 ]; then
 fi
 
 if [ ${INSTALL_ANDROID_DEVELOPMENT} -eq 1 ]; then
-    packer_install "jdk6 android-sdk-platform-tools"
+    packer_install "jdk6 android-sdk-platform-tools android-apktool"
 fi
 
 # Google Earth
