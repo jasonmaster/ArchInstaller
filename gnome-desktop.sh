@@ -35,6 +35,7 @@ INSTALL_VIDEO_EDITOR_APPS=0
 INSTALL_VIDEO_RIPPER_APPS=0
 INSTALL_REMOTE_DESKTOP_APPS=0
 INSTALL_NETWORK_APPS=0
+INSTALL_TORRENT_APPS=0
 INSTALL_DOWNLOAD_APPS=0
 INSTALL_ZIMBRA_DESKTOP=0
 INSTALL_IPMIVIEW=0
@@ -262,7 +263,7 @@ if [ ${INSTALL_GENERAL_DEVELOPMENT} -eq 1 ]; then
 
     pacman_install "meld poedit pygtksourceview2"
     packer_install "bzr-fastimport kiki-re retext sqlite-manager winpdb wxhexeditor"
-    packer_install "upslug2"
+    #packer_install "upslug2"
 
     # Gedit
     packer_install "gedit-advancedfind"
@@ -341,7 +342,7 @@ if [ ${INSTALL_MUSIC_APPS} -eq 1 ]; then
     #pacman_install "banshee"
     pacman_install "abcde mp3gain"
     pacman_install "picard chromaprint libdiscid"
-    packer_install "picard-plugins google-musicmanager nuvolaplayer"
+    packer_install "picard-plugins google-musicmanager" #nuvolaplayer"
 
     # TODO
     #  - Do this for all users
@@ -356,29 +357,29 @@ fi
 if [ ${INSTALL_VIDEO_PLAYER_APPS} -eq 1 ]; then
     # DVD & Blu-Ray
     pacman_install "libbluray libdvdread libdvdcss libdvdnav vlc"
-    packer_install "libaacs"
+    #packer_install "libaacs"
     # TODO - do this for all users
     wget_install_generic "http://vlc-bluray.whoknowsmy.name/files/KEYDB.cfg" "/home/${SUDO_USER}/.config/aacs/"
     chown -R ${SUDO_USER}:users /home/${SUDO_USER}/.config
 
-    addlinetofile "[archnetflix]" /etc/pacman.conf
-    addlinetofile "SigLevel = Required DatabaseOptional TrustedOnly" /etc/pacman.conf
-    addlinetofile 'Server = http://demizerone.com/$repo/$arch' /etc/pacman.conf
+    #addlinetofile "[archnetflix]" /etc/pacman.conf
+    #addlinetofile "SigLevel = Required DatabaseOptional TrustedOnly" /etc/pacman.conf
+    #addlinetofile 'Server = http://demizerone.com/$repo/$arch' /etc/pacman.conf
 
     # TODO - move to common.sh
-    ncecho " [x] Getting key 0EE7A126 "
-    pacman-key --recv-keys 0EE7A126 >>"$log" 2>&1 &
-    pid=$!;progress $pid
+    #ncecho " [x] Getting key 0EE7A126 "
+    #pacman-key --recv-keys 0EE7A126 >>"$log" 2>&1 &
+    #pid=$!;progress $pid
 
     # TODO - move to common.sh
-    ncecho " [x] Signing key 0EE7A126 "
-    pacman-key --lsign-key 0EE7A126 >>"$log" 2>&1 &
-    pid=$!;progress $pid
+    #ncecho " [x] Signing key 0EE7A126 "
+    #pacman-key --lsign-key 0EE7A126 >>"$log" 2>&1 &
+    #pid=$!;progress $pid
 
-    ncecho " [x] Syncing (arch) "
-    pacman -Syy >>"$log" 2>&1 &
-    pid=$!;progress $pid
-    pacman_install "netflix-desktop"
+    #ncecho " [x] Syncing (arch) "
+    #pacman -Syy >>"$log" 2>&1 &
+    #pid=$!;progress $pid
+    #pacman_install "netflix-desktop"
 fi
 
 if [ ${INSTALL_VIDEO_RIPPER_APPS} -eq 1 ]; then
@@ -399,8 +400,8 @@ if [ ${INSTALL_REMOTE_DESKTOP_APPS} -eq 1 ]; then
     # Correct the OpenNX icons.
     replaceinfile "Icon=opennx-admin" "Icon=\/usr\/share\/icons\/scalable\/apps\/opennx-admin\.svg" /usr/share/applications/innovidata-opennx-admin.desktop
     replaceinfile "Icon=opennx-wizard" "Icon=\/usr\/share\/icons\/scalable\/apps\/opennx-wizard\.svg" /usr/share/applications/innovidata-opennx-wizard.desktop
-    replaceinfile "Icon=nx" "Icon=usr\/share\/icons\/scalable\/apps/nx\.svg" /usr/share/applications/innovidata-opennx.desktop
-    replaceinfile "Icon=nx" "Icon=usr\/share\/icons\/scalable\/apps/nx\.svg" /usr/share/applications/innovidata-opennx.directory
+    replaceinfile "Icon=nx" "Icon=usr\/share\/icons\/scalable\/apps\/nx\.svg" /usr/share/applications/innovidata-opennx.desktop
+    replaceinfile "Icon=nx" "Icon=usr\/share\/icons\/scalable\/apps\/nx\.svg" /usr/share/applications/innovidata-opennx.directory
 fi
 
 # Network Tools
@@ -408,9 +409,9 @@ if [ ${INSTALL_NETWORK_APPS} -eq 1 ]; then
     packer_install "gip"
 fi
 
-# Download Managers
-if [ ${INSTALL_DOWNLOAD_APPS} -eq 1 ]; then
-    pacman_install "clamz filezilla ncftp nfoview terminus-font transmission-gtk tucan"
+# Torrent Managers
+if [ ${INSTALL_TORRENT_APPS} -eq 1 ]; then
+    pacman_install "nfoview terminus-font transmission-gtk"
 
     # TODO - do this for all users
     # Update transmission config
@@ -418,11 +419,15 @@ if [ ${INSTALL_DOWNLOAD_APPS} -eq 1 ]; then
         replaceinfile '"blocklist-enabled": false' '"blocklist-enabled": true' /home/${SUDO_USER}/.config/transmission/settings.json
         replaceinfile "www\.example\.com\/blocklist" "list\.iblocklist\.com\/\?list=bt_level1&fileformat=p2p&archiveformat=gz" /home/${SUDO_USER}/.config/transmission/settings.json
     fi
+    packer_install "torrent-search"
+fi
 
+# Download Managers
+if [ ${INSTALL_DOWNLOAD_APPS} -eq 1 ]; then
+    pacman_install "clamz filezilla ncftp tucan"
     packer_install "pymazon"
     wget_install_generic "http://aux.iconpedia.net/uploads/20468992281869356568.png" /usr/share/pixmaps
     system_application_menu "pymazon" "pymazon %f" "/usr/share/pixmaps/20468992281869356568.png" "Amazon MP3 Downloader" "Network;WebBrowser;"
-    packer_install "torrent-search"
     packer_install "steadyflow"
 fi
 
@@ -443,7 +448,7 @@ fi
 # Crypto
 if [ ${INSTALL_CRYPTO_APPS} -eq 1 ]; then
     pacman_install "truecrypt"
-    packer_install "pocket"
+    #packer_install "pocket"
 fi
 
 # IPMIView

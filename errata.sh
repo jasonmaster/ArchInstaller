@@ -18,14 +18,14 @@ fi
 
 # Remove Chrony and ntpd. Replaced by `openntpd`.
 HAS_CHRONY=`pacman -Qq chrony 2>/dev/null`
-if [ ${HAS_CHRONY} -eq 0 ]; then
+if [ $? -eq 0 ]; then
     system_ctl stop chrony
     system_ctl disable chrony
     pacman_remove "chrony"
 fi
 
 HAS_NTP=`pacman -Qq ntp 2>/dev/null`
-if [ ${HAS_NTP} -eq 0 ]; then
+if [ $? -eq 0 ]; then
     system_ctl stop ntp
     system_ctl disable ntp
     pacman_remove "ntp"

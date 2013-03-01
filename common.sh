@@ -137,7 +137,7 @@ check_vga() {
         #"options radeon modeset=1"
         # TODO - Add `radeon.pcie_gen2=1` if the card is PCIe.
         # http://wiki.x.org/wiki/RadeonFeature#Linux_kernel_parameters
-    elif [ -f /sys/kernel/debug/dri/0/vbios.rom ]; then
+    elif [ -f /sys/kernel/debug/dri/0/vma ]; then
         cecho Nvidia
         VIDEO_KMS="nouveau"
         VIDEO_DRI="nouveau-dri"
