@@ -140,6 +140,7 @@ fi
 
 # Configure init things
 update_early_modules ${VIDEO_KMS}
+rebuild_init
 
 # Configure kernel module options
 if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
@@ -277,7 +278,7 @@ if [ ${INSTALL_GENERAL_DEVELOPMENT} -eq 1 ]; then
 fi
 
 if [ ${INSTALL_ANDROID_DEVELOPMENT} -eq 1 ]; then
-    packer_install "jdk6 android-sdk-platform-tools"
+    packer_install "jdk6 android-sdk-platform-tools android-apktool"
 fi
 
 # Google Earth
@@ -394,7 +395,12 @@ fi
 # Remote Desktop
 if [ ${INSTALL_REMOTE_DESKTOP_APPS} -eq 1 ]; then
     #pacman_install "remmina freerdp nxproxy" # vinagre does what I need for now
-    pacman_install "nxclient rdesktop tigervnc"
+    pacman_install "opennx rdesktop tigervnc"
+    # Correct the OpenNX icons.
+    replaceinfile "Icon=opennx-admin" "Icon=\/usr\/share\/icons\/scalable\/apps\/opennx-admin\.svg" /usr/share/applications/innovidata-opennx-admin.desktop
+    replaceinfile "Icon=opennx-wizard" "Icon=\/usr\/share\/icons\/scalable\/apps\/opennx-wizard\.svg" /usr/share/applications/innovidata-opennx-wizard.desktop
+    replaceinfile "Icon=nx" "Icon=usr\/share\/icons\/scalable\/apps/nx\.svg" /usr/share/applications/innovidata-opennx.desktop
+    replaceinfile "Icon=nx" "Icon=usr\/share\/icons\/scalable\/apps/nx\.svg" /usr/share/applications/innovidata-opennx.directory
 fi
 
 # Network Tools

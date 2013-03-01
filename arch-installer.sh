@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+if [ -f common.sh ]; then
+    source common.sh
+else
+    echo "ERROR! Could not source 'common.sh'"
+    exit 1
+fi
+
 BASE_GROUPS="adm,audio,disk,lp,optical,storage,video,games,power,scanner"
 DSK=""
 NFS_CACHE=""
@@ -14,27 +21,59 @@ PASSWORD=""
 FS="ext4"
 PARTITION_TYPE="msdos"
 PARTITION_LAYOUT=""
-MINIMAL=0
-SERVER=0
+INSTALL_TYPE="standard"
 ENABLE_DISCARD=0
+MACHINE="pc"
+TARGET_PREFIX="/mnt"
+CPU=`uname -m`
+
+if [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]; then
+    if [ "${HOSTNAME}" != "archiso" ]; then
+        echo "PARACHUTE DEPLOYED! This script is not running from the Arch Linux install media."
+        echo " - Exitting now to prevent untold chaos."
+        exit 1
+    fi
+elif [ "${CPU}" == "armv6l" ]; then
+    if [ "${HOSTNAME}" != "alarmpi" ]; then
+        echo "PARACHUTE DEPLOYED! This script is not running from a support Arch Linux ARM distro."
+        echo " - Exitting now to prevent untold chaos."
+        exit 1
+    else        
+        MACHINE="pi"
+        DSK="mmcblk0" 
+        TARGET_PREFIX=""
+    fi
+else
+    echo "ERROR! `basename ${0}` is designed for armv6l, i686, x86_64 platforms only."
+    echo " - Contributions welcome - https://github.com/flexiondotorg/ArchInstaller/"
+    exit 1
+fi
 
 function usage() {
     echo
     echo "Usage"
-    echo "  ${0} -d sda -p bsrh -w P@ssw0rd -b ${PARTITION_TYPE} -f ${FS} -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
+    if [ "${MACHINE}" == "pc" ]; then   
+        echo "  ${0} -d sda -p bsrh -w P@ssw0rd -b ${PARTITION_TYPE} -f ${FS} -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
+    else
+        echo "  ${0} -w P@ssw0rd -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
+    fi
     echo
     echo "Required parameters"
-    echo "  -d : The target device. For example, 'sda'."
-    echo "  -p : The partition layout to use. One of: "
-    echo "         'bsrh' : /boot, swap, /root and /home"
-    echo "         'bsr'  : /boot, swap and /root"
-    echo "         'br'   : /boot and /root, no swap."
+    if [ "${MACHINE}" == "pc" ]; then
+        echo "  -d : The target device. For example, 'sda'."
+        echo "  -p : The partition layout to use. One of: "
+        echo "         'bsrh' : /boot, swap, /root and /home"
+        echo "         'bsr'  : /boot, swap and /root"
+        echo "         'br'   : /boot and /root, no swap."
+    fi        
     echo "  -w : The root password."
     echo
     echo "Optional parameters"
-    echo "  -b : The partition type to use. Defaults to '${PARTITION_TYPE}'. Can be 'msdos' or 'gpt'."
+    if [ "${MACHINE}" == "pc" ]; then
+        echo "  -b : The partition type to use. Defaults to '${PARTITION_TYPE}'. Can be 'msdos' or 'gpt'."
+        echo "  -f : The filesystem to use. 'btrfs', 'ext4', 'jfs', 'nilfs2' and 'xfs' are supported. Defaults to '${FS}'."        
+    fi
     echo "  -c : The NFS export to mount and use as the pacman cache."
-    echo "  -f : The filesystem to use. 'btrfs', 'ext4', 'jfs', 'nilfs2' and 'xfs' are supported. Defaults to '${FS}'."
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
     echo "  -m : Install a minimal system."
@@ -72,52 +111,53 @@ do
         h) usage;;
         k) KEYMAP=${OPTARG};;
         l) LANG=${OPTARG};;
-        m) MINIMAL=1;;
+        m) INSTALL_TYPE="minimal";;
         n) FQDN=${OPTARG};;
         p) PARTITION_LAYOUT=${OPTARG};;
         t) TIMEZONE=${OPTARG};;
-        s) SERVER=1;;
+        s) INSTALL_TYPE="server";;
         w) PASSWORD=${OPTARG};;
         *) usage;;
     esac
 done
-
 shift "$(( $OPTIND - 1 ))"
 
-if [ ! -b /dev/${DSK} ]; then
-    echo "ERROR! Target install disk not found."
-    echo " - See `basename ${0}` -h"
-    exit 1
-fi
+if [ "${MACHINE}" == "pc" ]; then
+    if [ ! -b /dev/${DSK} ]; then
+        echo "ERROR! Target install disk not found."
+        echo " - See `basename ${0}` -h"
+        exit 1
+    fi
 
-case ${FS} in
-    "btrfs")  MKFS="mkfs.btrfs";;
-    "ext2")   MKFS="mkfs.ext2 -F -m 0 -q";;
-    "ext3")   MKFS="mkfs.ext3 -F -m 0 -q";;
-    "ext4")   MKFS="mkfs.ext4 -F -m 0 -q";;
-    "jfs")    MKFS="mkfs.jfs -q";;
-    "nilfs2") MKFS="mkfs.nilfs2 -q";;
-    "xfs")    MKFS="mkfs.xfs -f -q";;
-    *) echo "ERROR! Filesystem ${FS} is not supported."
-       echo " - See `basename ${0}` -h"
-       exit 1
-       ;;
-esac
+    case ${FS} in
+        "btrfs")  MKFS="mkfs.btrfs";;
+        "ext2")   MKFS="mkfs.ext2 -F -m 0 -q";;
+        "ext3")   MKFS="mkfs.ext3 -F -m 0 -q";;
+        "ext4")   MKFS="mkfs.ext4 -F -m 0 -q";;
+        "jfs")    MKFS="mkfs.jfs -q";;
+        "nilfs2") MKFS="mkfs.nilfs2 -q";;
+        "xfs")    MKFS="mkfs.xfs -f -q";;
+        *) echo "ERROR! Filesystem ${FS} is not supported."
+           echo " - See `basename ${0}` -h"
+           exit 1
+           ;;
+    esac
 
-if [ "${PARTITION_TYPE}" != "msdos" ] && [ "${PARTITION_TYPE}" != "gpt" ]; then
-    echo "ERROR! Partition type ${PARTITION_TYPE} is not supported."
-    echo " - See `basename ${0}` -h"
-    exit 1
-fi
+    if [ "${PARTITION_TYPE}" != "msdos" ] && [ "${PARTITION_TYPE}" != "gpt" ]; then
+        echo "ERROR! Partition type ${PARTITION_TYPE} is not supported."
+        echo " - See `basename ${0}` -h"
+        exit 1
+    fi
+
+    if [ "${PARTITION_LAYOUT}" != "bsrh" ] && [ "${PARTITION_LAYOUT}" != "bsr" ] && [ "${PARTITION_LAYOUT}" != "br" ]; then
+        echo "ERROR! I don't know what to do with '${PARTITION_LAYOUT}' partition layout."
+        echo " - See `basename ${0}` -h"
+        exit 1
+    fi
+fi    
 
 if [ -z "${PASSWORD}" ]; then
     echo "ERROR! The 'root' password has not been provided."
-    echo " - See `basename ${0}` -h"
-    exit 1
-fi
-
-if [ "${PARTITION_LAYOUT}" != "bsrh" ] && [ "${PARTITION_LAYOUT}" != "bsr" ] && [ "${PARTITION_LAYOUT}" != "br" ]; then
-    echo "ERROR! I don't know what to do with '${PARTITION_LAYOUT}' partition layout."
     echo " - See `basename ${0}` -h"
     exit 1
 fi
@@ -142,13 +182,6 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-CPU=`uname -m`
-if [ "${CPU}" != "i686" ] && [ "${CPU}" != "x86_64" ]; then
-    echo "ERROR! `basename ${0}` is designed for i686 and x86_64 platforms only."
-    echo " - Contributions welcome - https://github.com/flexiondotorg/ArchInstaller/"
-    exit 1
-fi
-
 if [ -n "${NFS_CACHE}" ]; then
     systemctl start rpc-statd.service >/dev/null
     mount -t nfs ${NFS_CACHE} /var/cache/pacman/pkg >/dev/null
@@ -168,29 +201,25 @@ if [ -n "${NFS_CACHE}" ]; then
     fi
 fi
 
-if [ "${HOSTNAME}" != "archiso" ]; then
-    echo "PARACHUTE DEPLOYED! This script is not running from the Arch Linux install media."
-    echo " - Exitting now to prevent untold chaos."
-    exit 1
-fi
-
 echo
 echo "Installation Summary"
 echo
-echo " - Installation target : /dev/${DSK}"
-if [ `cat /sys/block/${DSK}/queue/rotational` == "0" ] && [ `cat /sys/block/${DSK}/removable` == "0" ]; then
-    if [ -n "$(hdparm -I /dev/${DSK} 2>&1 | grep 'TRIM supported')" ]; then
-        echo " -  Disk type           : Solid state with TRIM."
-        ENABLE_DISCARD=1
+if [ "${MACHINE}" == "pc" ]; then
+    echo " - Installation target : /dev/${DSK}"
+    if [ `cat /sys/block/${DSK}/queue/rotational` == "0" ] && [ `cat /sys/block/${DSK}/removable` == "0" ]; then
+        if [ -n "$(hdparm -I /dev/${DSK} 2>&1 | grep 'TRIM supported')" ]; then
+            echo " - Disk type           : Solid state with TRIM."
+            ENABLE_DISCARD=1
+        else
+            echo " - Disk type           : Solid state without TRIM."
+        fi
     else
-        echo " -  Disk type           : Solid state without TRIM."
+        echo " - Disk type           : Rotational"
     fi
-else
-    echo " - Disk type           : Rotational"
-fi
-echo " - Disk label          : ${PARTITION_TYPE}"
-echo " - Partition layout    : ${PARTITION_LAYOUT}"
-echo " - File System         : ${FS}"
+    echo " - Disk label          : ${PARTITION_TYPE}"
+    echo " - Partition layout    : ${PARTITION_LAYOUT}"
+    echo " - File System         : ${FS}"
+fi    
 echo " - CPU                 : ${CPU}"
 echo " - Hostname            : ${FQDN}"
 echo " - Timezone            : ${TIMEZONE}"
@@ -200,15 +229,7 @@ if [ -n "${NFS_CACHE}" ]; then
     echo " - NFS Cache           : ${NFS_CACHE}"
 fi
 
-if [ ${MINIMAL} -eq 0 ]; then
-    if [ ${SERVER} -eq 1 ]; then
-        echo " - Installation type   : Server"
-    else
-        echo " - Installation type   : Standard"
-    fi
-else
-    echo " - Installation type   : Minimal"
-fi
+echo " - Installation type   : ${INSTALL_TYPE}"
 
 if [ -f users.csv ]; then
     echo " - Provision users     : `cat users.csv | wc -l`"
@@ -223,175 +244,113 @@ else
 fi
 
 echo
-echo "WARNING: `basename ${0}` is about to destroy everything on /dev/${DSK}!"
+if [ "${MACHINE}" == "pc" ]; then
+    echo "WARNING: `basename ${0}` is about to destroy everything on /dev/${DSK}!"
+else
+    echo "WARNING: `basename ${0}` is about to start installing!"
+fi    
 echo "I make no guarantee that the installation of Arch Linux will succeed."
 echo "Press RETURN to try your luck or CTRL-C to cancel."
 read
 
 # Load the keymap and remove the PC speaker module.
 loadkeys -q ${KEYMAP}
-rmmod -s pcspkr 2>/dev/null
 
-# Partition the disk
-#  - https://bbs.archlinux.org/viewtopic.php?id=145678
-#  - http://sprunge.us/WATU
-echo "==> Initialising disk /dev/${DSK}: ${PARTITION_TYPE}"
-parted -s /dev/${DSK} mktable ${PARTITION_TYPE} >/dev/null
+if [ "${MACHINE}" == "pc" ]; then
+    # Partition the disk https://bbs.archlinux.org/viewtopic.php?id=145678 http://sprunge.us/WATU
+    echo "==> Initialising disk /dev/${DSK}: ${PARTITION_TYPE}"
+    parted -s /dev/${DSK} mktable ${PARTITION_TYPE} >/dev/null
 
-# Calculate common partition sizes.
-swap_size=`awk '/MemTotal/ {printf( "%.0f\n", $2 / 1000 )}' /proc/meminfo`
-boot_end=$(( 1 + 96 ))
-swap_end=$(( $boot_end + ${swap_size} ))
-max=$(( $(cat /sys/block/${DSK}/size) * 512 / 1024 / 1024 - 1 ))
+    # Calculate common partition sizes.
+    swap_size=`awk '/MemTotal/ {printf( "%.0f\n", $2 / 1000 )}' /proc/meminfo`
+    boot_end=$(( 1 + 96 ))
+    swap_end=$(( $boot_end + ${swap_size} ))
+    max=$(( $(cat /sys/block/${DSK}/size) * 512 / 1024 / 1024 - 1 ))
 
-if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-    # If the total space available is less than 'root_max' (in Gb) then make
-    # the /root partition half the total disk capcity.
-    root_max=24
-    if [ $(( $max )) -le $(( (${root_max} * 1024) + ${swap_size} )) ]; then
-        root_end=$(( $swap_end + ( $max / 2 )  ))
-    else
-        root_end=$(( $swap_end + ( $root_max * 1024 ) ))
-    fi
-else
-    root_end=$max
-fi
-
-# Partition the disk.
-# /boot
-echo "==> Creating /boot partition"
-parted -s /dev/${DSK} unit MiB mkpart primary 1 $boot_end >/dev/null
-
-if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
-    # swap and /root
-    ROOT_PARTITION="${DSK}3"
-    echo "==> Creating swap partition"
-    parted -s /dev/${DSK} unit MiB mkpart primary linux-swap $boot_end $swap_end >/dev/null
-    echo "==> Creating /root partition"
-    parted -s /dev/${DSK} unit MiB mkpart primary $swap_end $root_end >/dev/null
-    # /home
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-        echo "==> Creating /home partition"
-        parted -s /dev/${DSK} unit MiB mkpart primary $root_end $max >/dev/null
+        # If the total space available is less than 'root_max' (in Gb) then make
+        # the /root partition half the total disk capcity.
+        root_max=24
+        if [ $(( $max )) -le $(( (${root_max} * 1024) + ${swap_size} )) ]; then
+            root_end=$(( $swap_end + ( $max / 2 )  ))
+        else
+            root_end=$(( $swap_end + ( $root_max * 1024 ) ))
+        fi
+    else
+        root_end=$max
     fi
-elif [ "${PARTITION_LAYOUT}" = "br" ]; then
-    # /root
-    ROOT_PARTITION="${DSK}2"
-    echo "==> Creating /root partition"
-    parted -s /dev/${DSK} unit MiB mkpart primary $boot_end $root_end >/dev/null
-fi
 
-# Set boot flags
-echo "==> Setting /dev/${DSK} bootable"
-parted -s /dev/${DSK} toggle 1 boot >/dev/null
-if [ "${PARTITION_TYPE}" == "gpt" ]; then
-    sgdisk /dev/${DSK} --attributes=1:set:2 >/dev/null
-fi
+    echo "==> Creating /boot partition"
+    parted -s /dev/${DSK} unit MiB mkpart primary 1 $boot_end >/dev/null
 
-# Make the file systems.
-echo "==> Making /boot filesystem : ext2"
-mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}1 >/dev/null
-echo "==> Making /root filesystem : ${FS}"
-${MKFS} -L root /dev/${ROOT_PARTITION} >/dev/null
-if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-    echo "==> Making /home filesystem : ${FS}"
-    ${MKFS} -L home /dev/${DSK}4 >/dev/null
-fi
+    if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
+        ROOT_PARTITION="${DSK}3"
+        echo "==> Creating swap partition"
+        parted -s /dev/${DSK} unit MiB mkpart primary linux-swap $boot_end $swap_end >/dev/null
+        echo "==> Creating /root partition"
+        parted -s /dev/${DSK} unit MiB mkpart primary $swap_end $root_end >/dev/null
+        if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+            echo "==> Creating /home partition"
+            parted -s /dev/${DSK} unit MiB mkpart primary $root_end $max >/dev/null
+        fi
+    elif [ "${PARTITION_LAYOUT}" = "br" ]; then
+        ROOT_PARTITION="${DSK}2"
+        echo "==> Creating /root partition"
+        parted -s /dev/${DSK} unit MiB mkpart primary $boot_end $root_end >/dev/null
+    fi
 
-# Enable swap
-if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
-    echo -n "==> "
-    mkswap -f -L swap /dev/${DSK}2
-    swapon /dev/${DSK}2
-fi
+    echo "==> Setting /dev/${DSK} bootable"
+    parted -s /dev/${DSK} toggle 1 boot >/dev/null
+    if [ "${PARTITION_TYPE}" == "gpt" ]; then
+        sgdisk /dev/${DSK} --attributes=1:set:2 >/dev/null
+    fi
 
-# Mount
-echo "==> Mounting filesystems"
-mount /dev/${ROOT_PARTITION} /mnt >/dev/null
-mkdir -p /mnt/{boot,home}
-mount /dev/${DSK}1 /mnt/boot >/dev/null
-if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-    mount /dev/${DSK}4 /mnt/home >/dev/null
+    echo "==> Making /boot filesystem : ext2"
+    mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}1 >/dev/null
+    echo "==> Making /root filesystem : ${FS}"
+    ${MKFS} -L root /dev/${ROOT_PARTITION} >/dev/null
+    if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+        echo "==> Making /home filesystem : ${FS}"
+        ${MKFS} -L home /dev/${DSK}4 >/dev/null
+    fi
+
+    if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
+        echo -n "==> "
+        mkswap -f -L swap /dev/${DSK}2
+        swapon /dev/${DSK}2
+    fi
+
+    echo "==> Mounting filesystems"
+    mount /dev/${ROOT_PARTITION} ${TARGET_PREFIX} >/dev/null
+    mkdir -p ${TARGET_PREFIX}/{boot,home}
+    mount /dev/${DSK}1 ${TARGET_PREFIX}/boot >/dev/null
+    if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+        mount /dev/${DSK}4 ${TARGET_PREFIX}/home >/dev/null
+    fi
 fi
 
 # Base system
-BASE_SYSTEM="base base-devel syslinux terminus-font"
-pacstrap -c /mnt ${BASE_SYSTEM}
+if [ "${MACHINE}" == "pc" ]; then
+    pacstrap -c ${TARGET_PREFIX} base base-devel syslinux terminus-font
+else
+    pacman -S --noconfirm --needed base base-devel terminus-font
+fi    
 
-# Prevent unwanted cache purges
-#  - https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
-sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' /mnt/etc/pacman.conf
+if [ "${MACHINE}" == "pc" ]; then
+    # Uncomment the multilib repo on the install ISO and the target
+    if [ "${CPU}" == "x86_64" ]; then
+        sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
+        sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' ${TARGET_PREFIX}/etc/pacman.conf
+    fi
 
-# Uncomment the multilib repo on the install ISO and the target
-if [ "${CPU}" == "x86_64" ]; then
-    sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
-    sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /mnt/etc/pacman.conf
-fi
+    genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
+fi    
 
-# Create /etc/fstab
-genfstab -t UUID -p /mnt >> /mnt/etc/fstab
-# TODO - Test this works. None of my SSDs are TRIM compatible.
-if [ ${ENABLE_DISCARD} -eq 1 ]; then
-    :
-    #sed -i 's/rw,relatime/rw,relatime,discard/g' /mnt/etc/fstab
-fi
-
-# Configure the hostname.
-# This is the systemd way but doesn't seem to work in a `chroot`.
-#arch-chroot /mnt hostnamectl set-hostname --static ${FQDN}
-echo "${FQDN}" > /mnt/etc/hostname
-
-# Configure timezone and hwclock
-echo "${TIMEZONE}" > /mnt/etc/timezone
-arch-chroot /mnt ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
-arch-chroot /mnt hwclock --systohc --utc
-
-# Configure console font and keymap
-echo KEYMAP=${KEYMAP}     >  /mnt/etc/vconsole.conf
-echo FONT=${FONT}         >> /mnt/etc/vconsole.conf
-echo FONT_MAP=${FONT_MAP} >> /mnt/etc/vconsole.conf
-sed -i 's/filesystems usbinput fsck"/filesystems usbinput fsck consolefont keymap"/' /mnt/etc/mkinitcpio.conf
-
-# Configure locale
-sed -i "s/#${LANG}/${LANG}/" /mnt/etc/locale.gen
-echo LANG=${LANG}             >   /mnt/etc/locale.conf
-echo LC_COLLATE=${LC_COLLATE} >>  /mnt/etc/locale.conf
-arch-chroot /mnt locale-gen
-
-# Configure SYSLINUX
-cp splash.png /mnt/boot/syslinux/splash.png
-sed -i 's/UI menu.c32/#UI menu.c32/' /mnt/boot/syslinux/syslinux.cfg
-sed -i 's/#UI vesamenu.c32/UI vesamenu.c32/' /mnt/boot/syslinux/syslinux.cfg
-sed -i 's/#MENU BACKGROUND/MENU BACKGROUND/' /mnt/boot/syslinux/syslinux.cfg
-# Correct the root parition configuration
-sed -i "s/sda3/${ROOT_PARTITION}/g" /mnt/boot/syslinux/syslinux.cfg
-# Make the menu look pretty
-cat >>/mnt/boot/syslinux/syslinux.cfg<<ENDSYSMENU
-MENU WIDTH 78
-MENU MARGIN 4
-MENU ROWS 6
-MENU VSHIFT 10
-MENU TABMSGROW 14
-MENU CMDLINEROW 14
-MENU HELPMSGROW 16
-MENU HELPMSGENDROW 29
-ENDSYSMENU
-
-# Configure 'nano' as the system default
-echo "export EDITOR=nano" >> /mnt/etc/profile
-
-# Disable PC speaker - I hate that thing!
-echo "blacklist pcspkr" > /mnt/etc/modprobe.d/blacklist-pcspkr.conf
-
-# CPU Frequency scaling
-# - https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling
-modprobe -q acpi-cpufreq
-if [ $? -eq 0 ]; then
-    echo "acpi-cpufreq" > /mnt/etc/modules-load.d/acpi-cpufreq.conf
-fi
+# https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
+sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' ${TARGET_PREFIX}/etc/pacman.conf
 
 # Install and configure the extra packages
-if [ ${MINIMAL} -eq 0 ]; then
+if [ "${INSTALL_TYPE}" == "standard" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     # Install multilib-devel
     if [ "${CPU}" == "x86_64" ]; then
     echo "
@@ -399,55 +358,126 @@ Y
 Y
 Y
 Y
-Y" | pacstrap -c -i /mnt multilib-devel
+Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     fi
 
-    pacstrap -c /mnt `cat extra-packages.txt`
+    if [ "${MACHINE}" == "pc" ]; then
+        pacstrap -c ${TARGET_PREFIX} `cat extra-packages.txt`
+        EXTRA_RET=$?
+    else        
+        # Remove packages that are not available for Arch Linux ARM
+        pacman -S --noconfirm --needed `cat extra-packages.txt | grep -v pcmciautils | grep -v syslinux`
+        EXTRA_RET=$?        
+    fi
 
-    # Unmount /sys in the target
-    umount /mnt/sys/fs/cgroup/{systemd,} >/dev/null
-    umount /mnt/sys >/dev/null
+    if [ ${EXTRA_RET} -ne 0 ]; then
+        echo "ERROR! Installing extra-packages.txt failed. Try running `basename ${0}` again."
+        exit 1
+    fi
+fi
 
+# Configure mkinitcpio.conf
+check_vga
+update_early_hooks consolefont
+update_early_hooks keymap
+update_early_modules ${VIDEO_KMS}
+
+# Configure kernel module options
+if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
+    echo "${VIDEO_MODPROBE}" > ${TARGET_PREFIX}/etc/modprobe.d/${VIDEO_KMS}.conf
+fi   
+
+# Start building the configuration script
+start_config
+
+# Add offline discard cron here. None of my SSDs are TRIM compatible.
+if [ ${ENABLE_DISCARD} -eq 1 ]; then
+    :
+fi
+
+# Configure the hostname.
+add_config "echo ${FQDN} > /etc/hostname"
+add_config "hostnamectl set-hostname --static ${FQDN}"
+
+# Configure timezone and hwclock
+add_config "echo ${TIMEZONE} > /etc/timezone"
+
+if [ "${MACHINE}" == "pc" ]; then
+    add_config "hwclock --systohc --utc"
+else
+    add_config "rm /etc/localtime 2>/dev/null"
+fi    
+add_config "ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime"
+
+# Configure console font and keymap
+add_config "echo KEYMAP=${KEYMAP}     >  /etc/vconsole.conf"
+add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
+add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
+
+# Configure locale
+add_config "sed -i \"s/#${LANG}/${LANG}/\" /etc/locale.gen"
+add_config "echo LANG=${LANG}             >  /etc/locale.conf"
+add_config "echo LC_COLLATE=${LC_COLLATE} >> /etc/locale.conf"
+add_config "locale-gen"
+addlinetofile "export EDITOR=nano" ${TARGET_PREFIX}/etc/profile
+echo "blacklist pcspkr" > ${TARGET_PREFIX}/etc/modprobe.d/blacklist-pcspkr.conf
+
+# https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling
+modprobe -q acpi-cpufreq
+if [ $? -eq 0 ]; then
+    echo "acpi-cpufreq" > ${TARGET_PREFIX}/etc/modules-load.d/acpi-cpufreq.conf
+else
+    modprobe -q powernow_k8
+    if [ $? -eq 0 ]; then
+        echo "powernow_k8" > ${TARGET_PREFIX}/etc/modules-load.d/powernow_k8.conf
+    fi
+fi
+
+if [ "${INSTALL_TYPE}" == "standard" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     # Configure mDNS
-    sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /mnt/etc/nsswitch.conf
+    sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' ${TARGET_PREFIX}/etc/nsswitch.conf
     # Members of the `wheel` group are sudoers.
-    sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /mnt/etc/sudoers
-    arch-chroot /mnt systemctl start sshdgenkeys.service
-    arch-chroot /mnt systemctl enable ntpd.service
-    arch-chroot /mnt systemctl enable sshd.service
-
-    # These services should not be enable for a "server".
-    if [ ${SERVER} -eq 0 ]; then
-        arch-chroot /mnt systemctl enable avahi-daemon.service
-        arch-chroot /mnt systemctl enable rpc-statd.service
+    sed -i '/%wheel ALL=(ALL) ALL/s/^#//' ${TARGET_PREFIX}/etc/sudoers
+    add_config "systemctl start sshdgenkeys.service"
+    add_config "systemctl enable sshd.service"
+    add_config "systemctl enable openntpd.service"    
+    if [ "${INSTALL_TYPE}" != "server" ]; then
+        add_config "systemctl enable avahi-daemon.service"
+        add_config "systemctl enable rpc-statd.service"
     fi
 
     # Install `packer` and `pacman-color`.
-    cp packer-installer.sh /mnt/usr/local/bin/packer-installer.sh
-    chmod +x /mnt/usr/local/bin/packer-installer.sh
-    arch-chroot /mnt /usr/local/bin/packer-installer.sh
-    rm /mnt/usr/local/bin/packer-installer.sh
+    if [ "${MACHINE}" == "pc" ]; then
+        add_config "wget http://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz"
+        add_config 'if [ $? -ne 0 ]; then'
+        add_config "    echo \"ERROR! Couldn't downloading packer.tar.gz. Aborting packer install.\""
+        add_config "    exit 1"
+        add_config "fi"
+        add_config "cd /usr/local/src"
+        add_config "tar zxvf packer.tar.gz"
+        add_config "cd packer"
+        add_config "makepkg --asroot -s --noconfirm"
+        add_config 'pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`'
+        add_config "packer -S --noconfirm --noedit pacman-color"    
+    else
+        add_config "pacman -S --noconfirm packer"
+    fi        
 
     # Install my dot files and configure the root user shell.
+    rm -rf /tmp/dot-files 2>/dev/null
     git clone https://github.com/flexiondotorg/dot-files.git /tmp/dot-files
     rm -rf /tmp/dot-files/{.git,*.txt,*.md}
-    rsync -aq /tmp/dot-files/ /mnt/
-    rsync -aq /tmp/dot-files/etc/skel/ /mnt/root/
+    rsync -aq /tmp/dot-files/ ${TARGET_PREFIX}/
+    rsync -aq /tmp/dot-files/etc/skel/ ${TARGET_PREFIX}/root/
 fi
 
-# Rebuild init and update SYSLINUX
-arch-chroot /mnt systemctl enable cronie.service
+add_config "systemctl enable cronie.service"
 
-arch-chroot /mnt mkinitcpio -p linux
-arch-chroot /mnt /usr/sbin/syslinux-install_update -iam
-
-# Configure the network if a configuration exists.
 if [ -f netcfg ]; then
-    cp netcfg /mnt/etc/network.d/mynetwork
-    arch-chroot /mnt systemctl enable netcfg@mynetwork
+    cp netcfg ${TARGET_PREFIX}/etc/network.d/mynetwork
+    add_config "systemctl enable netcfg@mynetwork"
 fi
 
-# Provision accounts if there is a `users.csv` file.
 if [ -f users.csv ]; then
     IFS=$'\n';
     for USER in `cat users.csv`
@@ -457,40 +487,41 @@ if [ -f users.csv ]; then
         _CRYPTPASSWD=`openssl passwd -crypt ${_PLAINPASSWD}`
         _COMMENT=`echo ${USER} | cut -d',' -f3`
         _EXTRA_GROUPS=`echo ${USER} | cut -d',' -f4`
-        _BASE_GROUPS=${BASE_GROUPS}
         if [ "${_EXTRA_GROUPS}" != "" ]; then
-            _GROUPS=${_BASE_GROUPS},${_EXTRA_GROUPS}
+            _GROUPS=${BASE_GROUPS},${_EXTRA_GROUPS}
         else
-            _GROUPS=${_BASE_GROUPS}
+            _GROUPS=${BASE_GROUPS}
         fi
-        arch-chroot /mnt useradd --password ${_CRYPTPASSWD} --comment "${_COMMENT}" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}
-
-        # Put ArchInstaller in the home directory of users in the `wheel` group.
-        PROVISION_ARCHINSTALLER=`echo ${_GROUPS} | grep wheel`
-        if [ $? -eq 0 ]; then
-            mkdir -p /mnt/home/${_USERNAME}/Source/flexiondotrg/ArchInstaller/
-            rsync -aq `pwd`/ /mnt/home/${_USERNAME}/Source/flexiondotorg/ArchInstaller/
-            arch-chroot /mnt chown -R ${_USERNAME}:users /home/${_USERNAME}
-        fi
+        add_config "useradd --password ${_CRYPTPASSWD} --comment \"${_COMMENT}\" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}"
+        #add_config "usermod --password ${_CRYPTPASSWD} --comment \"${_COMMENT}\" --groups ${_GROUPS} --shell /bin/bash --create-home -g users --append ${_USERNAME}"
     done
 fi
 
-# Change root password.
 PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
-arch-chroot /mnt usermod --password ${PASSWORD_CRYPT} root
+add_config "usermod --password ${PASSWORD_CRYPT} root"
 
-# Unmount
-sync
+if [ "${MACHINE}" == "pc" ]; then
+    add_config "mkinitcpio -p linux"
+    add_config "syslinux-install_update -iam"
+    arch-chroot ${TARGET_PREFIX} /usr/local/bin/arch-config.sh
+    cp {splash.png,terminus.psf,syslinux.cfg} ${TARGET_PREFIX}/boot/syslinux/
+else
+    /usr/local/bin/arch-config.sh
+fi
+
+swapoff -a && sync
 if [ -n "${NFS_CACHE}" ]; then
-    echo "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,noauto,x-systemd.automount 0 0" >> /mnt/etc/fstab
-    umount /var/cache/pacman/pkg
+    addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,noauto,x-systemd.automount 0 0" ${TARGET_PREFIX}/etc/fstab
+    if [ "${MACHINE}" == "pc" ]; then
+        umount -fv /var/cache/pacman/pkg
+    fi        
 fi
-if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-    umount /mnt/home
-fi
-umount /mnt/sys/fs/cgroup/{systemd,} >/dev/null
-umount /mnt/sys >/dev/null
-umount /mnt/{boot,}
-swapoff -a
+
+if [ "${MACHINE}" == "pc" ]; then
+    if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+        umount -fv ${TARGET_PREFIX}/home
+    fi
+    umount -fv ${TARGET_PREFIX}/{boot,}
+fi    
 
 echo "All done!"
