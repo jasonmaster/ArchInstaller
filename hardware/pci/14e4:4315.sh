@@ -7,6 +7,6 @@ else
     exit 1
 fi
 
-packer_install "b43-firmware"
+packer_install "broadcom-wl"
 
 exit 0

@@ -338,8 +338,8 @@ fi
 # Music
 if [ ${INSTALL_MUSIC_APPS} -eq 1 ]; then
     #pacman_install "rhythmbox libgpod libdmapsharing"
-    pacman_install "clementine"
-    #pacman_install "banshee"
+    #pacman_install "clementine"
+    pacman_install "banshee"
     pacman_install "abcde mp3gain"
     pacman_install "picard chromaprint libdiscid"
     packer_install "picard-plugins google-musicmanager" #nuvolaplayer"
@@ -362,29 +362,29 @@ if [ ${INSTALL_VIDEO_PLAYER_APPS} -eq 1 ]; then
     wget_install_generic "http://vlc-bluray.whoknowsmy.name/files/KEYDB.cfg" "/home/${SUDO_USER}/.config/aacs/"
     chown -R ${SUDO_USER}:users /home/${SUDO_USER}/.config
 
-    #addlinetofile "[archnetflix]" /etc/pacman.conf
-    #addlinetofile "SigLevel = Required DatabaseOptional TrustedOnly" /etc/pacman.conf
-    #addlinetofile 'Server = http://demizerone.com/$repo/$arch' /etc/pacman.conf
+    addlinetofile "[archnetflix]" /etc/pacman.conf
+    addlinetofile "SigLevel = Required DatabaseOptional TrustedOnly" /etc/pacman.conf
+    addlinetofile 'Server = http://demizerone.com/$repo/community/$arch' /etc/pacman.conf
 
     # TODO - move to common.sh
-    #ncecho " [x] Getting key 0EE7A126 "
-    #pacman-key --recv-keys 0EE7A126 >>"$log" 2>&1 &
-    #pid=$!;progress $pid
+    ncecho " [x] Getting key 0EE7A126 "
+    pacman-key --recv-keys 0EE7A126 >>"$log" 2>&1 &
+    pid=$!;progress $pid
 
     # TODO - move to common.sh
-    #ncecho " [x] Signing key 0EE7A126 "
-    #pacman-key --lsign-key 0EE7A126 >>"$log" 2>&1 &
-    #pid=$!;progress $pid
+    ncecho " [x] Signing key 0EE7A126 "
+    pacman-key --lsign-key 0EE7A126 >>"$log" 2>&1 &
+    pid=$!;progress $pid
 
-    #ncecho " [x] Syncing (arch) "
-    #pacman -Syy >>"$log" 2>&1 &
-    #pid=$!;progress $pid
-    #pacman_install "netflix-desktop"
+    ncecho " [x] Syncing (arch) "
+    pacman -Syy >>"$log" 2>&1 &
+    pid=$!;progress $pid
+    pacman_install "netflix-desktop"
 fi
 
 if [ ${INSTALL_VIDEO_RIPPER_APPS} -eq 1 ]; then
     pacman_install "handbrake mediainfo mkvtoolnix-cli mkvtoolnix-gtk"
-    packer_install "get_iplayer makemkv tsmuxer-gui"
+    packer_install "get_iplayer makemkv" #tsmuxer-gui"
 fi
 
 if [ ${INSTALL_VIDEO_EDITOR_APPS} -eq 1 ]; then
