@@ -183,6 +183,9 @@ system_ctl enable firewalld
 # Printing
 pacman_install "cups foomatic-db foomatic-db-engine foomatic-db-nonfree \
 foomatic-filters gutenprint"
+if [ "${CPU}" == "x86_64" ]; then
+    pacman_install "lib32-libcups"
+fi
 system_ctl enable cups.service
 
 # Dropbox
@@ -286,10 +289,6 @@ fi
 if [ ${INSTALL_GOOGLE_EARTH} -eq 1 ]; then
     packer_install "ld-lsb"
     packer_install "google-earth"
-    # TODO - Remove this work around when bugs in current version are fixed.
-    if [ -f /etc/fonts/conf.d/65-fonts-persian.conf ]; then
-        mv /etc/fonts/conf.d/65-fonts-persian.conf /etc/fonts/conf.d/65-fonts-persian.conf.breaks-google-earth
-    fi
 fi
 
 # Make sure we are not a VirtualBox Guest

@@ -440,7 +440,7 @@ if [ "${INSTALL_TYPE}" == "standard" ] || [ "${INSTALL_TYPE}" == "server" ]; the
     sed -i '/%wheel ALL=(ALL) ALL/s/^#//' ${TARGET_PREFIX}/etc/sudoers
     add_config "systemctl start sshdgenkeys.service"
     add_config "systemctl enable sshd.service"
-    add_config "systemctl enable openntpd.service"    
+    add_config "systemctl enable openntpd.service"
     if [ "${INSTALL_TYPE}" != "server" ]; then
         add_config "systemctl enable avahi-daemon.service"
         add_config "systemctl enable rpc-statd.service"
@@ -458,10 +458,10 @@ if [ "${INSTALL_TYPE}" == "standard" ] || [ "${INSTALL_TYPE}" == "server" ]; the
         add_config "cd packer"
         add_config "makepkg --asroot -s --noconfirm"
         add_config 'pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`'
-        add_config "packer -S --noconfirm --noedit pacman-color"    
+        add_config "packer -S --noconfirm --noedit pacman-color"
     else
         add_config "pacman -S --noconfirm packer"
-    fi        
+    fi
 
     # Install my dot files and configure the root user shell.
     rm -rf /tmp/dot-files 2>/dev/null
