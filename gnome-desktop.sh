@@ -28,6 +28,7 @@ INSTALL_BOXES=0
 INSTALL_CHAT_APPS=0
 INSTALL_GRAPHIC_APPS=0
 INSTALL_3D_APPS=0
+INSTALL_EVERPAD=0
 INSTALL_PHOTO_APPS=0
 INSTALL_MUSIC_APPS=0
 INSTALL_VIDEO_PLAYER_APPS=0
@@ -327,6 +328,11 @@ fi
 # 3D Graphics
 if [ ${INSTALL_3D_APPS} -eq 1 ]; then
     packer_install "sweethome3d"
+fi
+
+# Everpad
+if [ ${INSTALL_EVERPAD} -eq 1 ]; then
+    packer_install "everpad"
 fi
 
 # Photo Managers
