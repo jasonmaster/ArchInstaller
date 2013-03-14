@@ -18,6 +18,7 @@ check_vga
 
 pacman_sync
 
+INSTALL_GAMES=0
 INSTALL_BROWSERS=0
 INSTALL_LIBREOFFICE=0
 INSTALL_GENERAL_DEVELOPMENT=0
@@ -243,6 +244,11 @@ do
         pid=$!;progress $pid
     fi
 done
+
+# Games
+if [ ${INSTALL_GAMES} -eq 1 ]; then
+    packer_install "gameplay-football"
+fi
 
 # Browsers
 if [ ${INSTALL_BROWSERS} -eq 1 ]; then
