@@ -155,6 +155,7 @@ that is already present, so subsequent runs are quicker.
     * <https://github.com/helmuthdu/aui>
     * <http://www.winpe.com/page04.html>
     * <http://blog.burntsushi.net/lenovo-thinkpad-t430-archlinux>
+    * <http://worldofgnome.org/speed-up-gnome-in-systemd-distributions/>
   * UEFI support - waiting for UEFI support in SYSLINUX.
   * Maybe add LVM and LUKS capability to disk partitioning.
   * Investigate zRAM and zSWAP.
