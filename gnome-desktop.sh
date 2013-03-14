@@ -286,6 +286,7 @@ if [ ${INSTALL_GENERAL_DEVELOPMENT} -eq 1 ]; then
 
     pacman_install "pgadmin3"
     packer_install "wingide"
+    packer_install "textadept-latest-stable textadept-modules"
 fi
 
 if [ ${INSTALL_ANDROID_DEVELOPMENT} -eq 1 ]; then

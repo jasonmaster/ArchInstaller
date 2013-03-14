@@ -137,6 +137,8 @@ that is already present, so subsequent runs are quicker.
 
   * Add automated root partition resizing magic to `arch-installer.sh` for Raspberry Pi.
     * <http://michael.otacoo.com/manuals/raspberry-pi/>
+  * Add `fstrim` cron job when TRIM supported detected.
+    * <http://www.webupd8.org/2013/01/enable-trim-on-ssd-solid-state-drives.html>
   * Add support for multiple desktop environments.
   * Add support for desktop environment installation profiles that determine what components to install.
   * Detect locale for dictionaries in desktop environment installs.
