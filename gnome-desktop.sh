@@ -273,7 +273,9 @@ if [ ${INSTALL_GENERAL_DEVELOPMENT} -eq 1 ]; then
 
     pacman_install "meld poedit pygtksourceview2"
     packer_install "bzr-fastimport kiki-re retext sqlite-manager winpdb wxhexeditor"
-    #packer_install "upslug2"
+    # ReText optionals
+    pacman_install "python-docutils python-markdown python-pyenchant"
+    packer_install "upslug2"
 
     # Gedit
     packer_install "gedit-advancedfind"
