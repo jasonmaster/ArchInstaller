@@ -446,7 +446,7 @@ if [ "${INSTALL_TYPE}" == "standard" ] || [ "${INSTALL_TYPE}" == "server" ]; the
         add_config "systemctl enable rpc-statd.service"
     fi
 
-    # Install `packer` and `pacman-color`.
+    # Install `packer`.
     if [ "${MACHINE}" == "pc" ]; then
         add_config "wget http://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz"
         add_config 'if [ $? -ne 0 ]; then'
@@ -458,7 +458,6 @@ if [ "${INSTALL_TYPE}" == "standard" ] || [ "${INSTALL_TYPE}" == "server" ]; the
         add_config "cd packer"
         add_config "makepkg --asroot -s --noconfirm"
         add_config 'pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`'
-        add_config "packer -S --noconfirm --noedit pacman-color"
     else
         add_config "pacman -S --noconfirm packer"
     fi
