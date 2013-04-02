@@ -16,6 +16,12 @@ if [ -d /etc/skel/.git ]; then
     rm -rf /etc/skel/.git
 fi
 
+# Remove pacman-color, since pacan 4.1 this is built-in.
+HAS_PACMAN_COLOR=`pacman -Qq pacman-color 2>/dev/null`
+if [ $? -eq 0 ]; then
+    pacman_remove "pacman-color"
+fi
+
 # Remove Chrony and ntpd. Replaced by `openntpd`.
 HAS_CHRONY=`pacman -Qq chrony 2>/dev/null`
 if [ $? -eq 0 ]; then
