@@ -52,16 +52,26 @@ INSTALL_BACKUP_APPS=0
 #pacman_upgrade
 #packer_upgrade
 
-# Make sure all the required packages are installed.
-pacman_install "`cat extra-packages.txt`"
-HAS_PACKER=`which packer 2>/dev/null`
-if [ $? -ne 0 ] && [ -x ./packer-installer.sh ]; then
-    /packer-installer.sh
-fi
-
 # I make mistakes and bad choices. This corrects them.
 if [ -x ./errata.sh ]; then
     ./errata.sh
+fi
+
+# Make sure all the required packages are installed.
+pacman_install "`cat extra-packages.txt`"
+HAS_PACKER=`which packer 2>/dev/null`
+if [ $? -ne 0 ]; then
+    wget http://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz
+    if [ $? -ne 0 ]; then
+        echo "ERROR! Couldn't downloading packer.tar.gz. Aborting packer install."
+        exit 1
+    fi
+    cd /usr/local/src
+    tar zxvf packer.tar.gz
+    cd packer
+    makepkg --asroot -s --noconfirm
+    pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`
+    packer -S --noconfirm --noedit pacman-color
 fi
 
 # Power Saving
@@ -158,14 +168,8 @@ packer_install "ttf-fixedsys-excelsior-linux ttf-ms-fonts ttf-source-code-pro"
 pacman_install_group "gnome"
 pacman_install_group "gnome-extra"
 pacman_install_group "telepathy"
-pacman_install "epiphany-extensions gedit-plugins gnome-tweak-tool networkmanager-pptp"
-packer_install "firewalld gnome-packagekit gnome-settings-daemon-updates polkit-gnome terminator"
-
-# Add some applications to the system settings.
-#replaceinfile "Categories=GNOME;GTK;System;" "Categories=X-GNOME-Settings-Panel;GNOME;GTK;System;" /usr/share/applications/gpk-application.desktop
-#addlinetofile "X-GNOME-Settings-Panel=system-software-install" /usr/share/applications/gpk-application.desktop
-#replaceinfile "Categories=System;Settings;Security;" "Categories=System;Settings;Security;" /usr/share/applications/firewall-config.desktop
-#addlinetofile "X-GNOME-Settings-Panel=firewall-config" /usr/share/applications/firewall-config.desktop
+pacman_install "epiphany-extensions gedit-plugins gnome-tweak-tool networkmanager-pptp ufw"
+packer_install "gnome-packagekit gnome-settings-daemon-updates polkit-gnome terminator gufw"
 
 # Gstreamer
 pacman_install "gst-plugins-base gst-plugins-base-libs gst-plugins-good \
@@ -179,8 +183,8 @@ system_ctl enable accounts-daemon.service
 system_ctl enable upower.service
 # Network Manager
 system_ctl enable NetworkManager.service
-# FirewallD
-system_ctl enable firewalld
+# Uncomplicated Firewall
+system_ctl enable ufw
 
 # Printing
 pacman_install "cups foomatic-db foomatic-db-engine foomatic-db-nonfree \
@@ -369,7 +373,7 @@ fi
 if [ ${INSTALL_VIDEO_PLAYER_APPS} -eq 1 ]; then
     # DVD & Blu-Ray
     pacman_install "libbluray libdvdread libdvdcss libdvdnav vlc"
-    #packer_install "libaacs"
+    packer_install "libaacs"
     # TODO - do this for all users
     wget_install_generic "http://vlc-bluray.whoknowsmy.name/files/KEYDB.cfg" "/home/${SUDO_USER}/.config/aacs/"
     chown -R ${SUDO_USER}:users /home/${SUDO_USER}/.config
@@ -396,7 +400,7 @@ fi
 
 if [ ${INSTALL_VIDEO_RIPPER_APPS} -eq 1 ]; then
     pacman_install "handbrake mediainfo mkvtoolnix-cli mkvtoolnix-gtk"
-    packer_install "get_iplayer makemkv" #tsmuxer-gui"
+    packer_install "get_iplayer makemkv subliminal tsmuxer-gui "
 fi
 
 if [ ${INSTALL_VIDEO_EDITOR_APPS} -eq 1 ]; then
@@ -407,13 +411,7 @@ fi
 
 # Remote Desktop
 if [ ${INSTALL_REMOTE_DESKTOP_APPS} -eq 1 ]; then
-    #pacman_install "remmina freerdp nxproxy" # vinagre does what I need for now
-    pacman_install "opennx rdesktop tigervnc"
-    # Correct the OpenNX icons.
-    replaceinfile "Icon=opennx-admin" "Icon=\/usr\/share\/icons\/scalable\/apps\/opennx-admin\.svg" /usr/share/applications/innovidata-opennx-admin.desktop
-    replaceinfile "Icon=opennx-wizard" "Icon=\/usr\/share\/icons\/scalable\/apps\/opennx-wizard\.svg" /usr/share/applications/innovidata-opennx-wizard.desktop
-    replaceinfile "Icon=nx" "Icon=usr\/share\/icons\/scalable\/apps\/nx\.svg" /usr/share/applications/innovidata-opennx.desktop
-    replaceinfile "Icon=nx" "Icon=usr\/share\/icons\/scalable\/apps\/nx\.svg" /usr/share/applications/innovidata-opennx.directory
+    pacman_install "freerdp nxproxy rdesktop remmina tingervnc"
 fi
 
 # Network Tools

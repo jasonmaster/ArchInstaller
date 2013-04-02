@@ -38,9 +38,9 @@ elif [ "${CPU}" == "armv6l" ]; then
         echo "PARACHUTE DEPLOYED! This script is not running from a support Arch Linux ARM distro."
         echo " - Exitting now to prevent untold chaos."
         exit 1
-    else        
+    else
         MACHINE="pi"
-        DSK="mmcblk0" 
+        DSK="mmcblk0"
         TARGET_PREFIX=""
     fi
 else
@@ -52,7 +52,7 @@ fi
 function usage() {
     echo
     echo "Usage"
-    if [ "${MACHINE}" == "pc" ]; then   
+    if [ "${MACHINE}" == "pc" ]; then
         echo "  ${0} -d sda -p bsrh -w P@ssw0rd -b ${PARTITION_TYPE} -f ${FS} -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
     else
         echo "  ${0} -w P@ssw0rd -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
@@ -65,7 +65,7 @@ function usage() {
         echo "         'bsrh' : /boot, swap, /root and /home"
         echo "         'bsr'  : /boot, swap and /root"
         echo "         'br'   : /boot and /root, no swap."
-    fi        
+    fi
     echo "  -w : The root password."
     echo
     echo "Optional parameters"
@@ -154,7 +154,7 @@ if [ "${MACHINE}" == "pc" ]; then
         echo " - See `basename ${0}` -h"
         exit 1
     fi
-fi    
+fi
 
 if [ -z "${PASSWORD}" ]; then
     echo "ERROR! The 'root' password has not been provided."
@@ -219,7 +219,7 @@ if [ "${MACHINE}" == "pc" ]; then
     echo " - Disk label          : ${PARTITION_TYPE}"
     echo " - Partition layout    : ${PARTITION_LAYOUT}"
     echo " - File System         : ${FS}"
-fi    
+fi
 echo " - CPU                 : ${CPU}"
 echo " - Hostname            : ${FQDN}"
 echo " - Timezone            : ${TIMEZONE}"
@@ -248,7 +248,7 @@ if [ "${MACHINE}" == "pc" ]; then
     echo "WARNING: `basename ${0}` is about to destroy everything on /dev/${DSK}!"
 else
     echo "WARNING: `basename ${0}` is about to start installing!"
-fi    
+fi
 echo "I make no guarantee that the installation of Arch Linux will succeed."
 echo "Press RETURN to try your luck or CTRL-C to cancel."
 read
@@ -334,7 +334,7 @@ if [ "${MACHINE}" == "pc" ]; then
     pacstrap -c ${TARGET_PREFIX} base base-devel syslinux terminus-font
 else
     pacman -S --noconfirm --needed base base-devel terminus-font
-fi    
+fi
 
 if [ "${MACHINE}" == "pc" ]; then
     # Uncomment the multilib repo on the install ISO and the target
@@ -344,7 +344,7 @@ if [ "${MACHINE}" == "pc" ]; then
     fi
 
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
-fi    
+fi
 
 # https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
 sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' ${TARGET_PREFIX}/etc/pacman.conf
@@ -364,10 +364,10 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     if [ "${MACHINE}" == "pc" ]; then
         pacstrap -c ${TARGET_PREFIX} `cat extra-packages.txt`
         EXTRA_RET=$?
-    else        
+    else
         # Remove packages that are not available for Arch Linux ARM
         pacman -S --noconfirm --needed `cat extra-packages.txt | grep -v pcmciautils | grep -v syslinux`
-        EXTRA_RET=$?        
+        EXTRA_RET=$?
     fi
 
     if [ ${EXTRA_RET} -ne 0 ]; then
@@ -385,7 +385,7 @@ update_early_modules ${VIDEO_KMS}
 # Configure kernel module options
 if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
     echo "${VIDEO_MODPROBE}" > ${TARGET_PREFIX}/etc/modprobe.d/${VIDEO_KMS}.conf
-fi   
+fi
 
 # Start building the configuration script
 start_config
@@ -406,7 +406,7 @@ if [ "${MACHINE}" == "pc" ]; then
     add_config "hwclock --systohc --utc"
 else
     add_config "rm /etc/localtime 2>/dev/null"
-fi    
+fi
 add_config "ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime"
 
 # Configure console font and keymap
