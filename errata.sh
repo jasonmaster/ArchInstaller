@@ -29,17 +29,27 @@ if [ $? -eq 0 ]; then
     system_ctl stop ntp
     system_ctl disable ntp
     pacman_remove "ntp"
-fi    
+fi
 pacman_install "openntpd"
 system_ctl enable openntpd
 system_ctl start openntpd
 
-# Remove ufw/gufw
-HAS_GUFW=`which gufw 2>/dev/null`
+# Remove firewalld
+HAS_GUFW=`which firewalld 2>/dev/null`
 if [ $? -eq 0 ]; then
-    system_ctl stop ufw
-    system_ctl disable ufw
-    pacman_remove "gufw ufw"
+    system_ctl stop firewalld
+    system_ctl disable firewalls
+    pacman_remove "firewalld"
+fi
+
+# Remove OpenNX and nxclient
+HAS_NTP=`pacman -Qq ntp 2>/dev/null`
+if [ $? -eq 0 ]; then
+    pacman_remove "opennx nxclient"
+    rm /usr/share/applications/innovidata-opennx-admin.desktop 2>/dev/null
+    rm /usr/share/applications/innovidata-opennx-wizard.desktop 2>/dev/null
+    rm /usr/share/applications/innovidata-opennx.desktop 2>/dev/null
+    rm /usr/share/applications/innovidata-opennx.directory 2>/dev/null
 fi
 
 # Remove laptop-mode-tools. It has been replaced by TLP.
