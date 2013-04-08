@@ -413,7 +413,7 @@ fi
 
 # Remote Desktop
 if [ ${INSTALL_REMOTE_DESKTOP_APPS} -eq 1 ]; then
-    pacman_install "freerdp nxproxy rdesktop remmina tingervnc"
+    pacman_install "freerdp nxproxy rdesktop remmina tigervnc"
 fi
 
 # Network Tools

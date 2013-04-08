@@ -239,7 +239,7 @@ Power management is implemented.
   * <https://wiki.archlinux.org/index.php/ATI#Powersaving>
   * <http://www.overclock.net/t/731469/how-to-power-saving-with-the-radeon-driver>
 
-Need to enable Glamor.
+Need to enable Glamor. This has been runnning fine for months but cause X to segfault from March 28th 2012.
 
 I still need to detect AGP radeon cards and add the kernel options to
 `/etc/modprobe.d/radeon.conf`.
