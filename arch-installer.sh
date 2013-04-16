@@ -473,8 +473,10 @@ fi
 add_config "systemctl enable cronie.service"
 
 if [ -f netcfg ]; then
-    cp netcfg ${TARGET_PREFIX}/etc/network.d/mynetwork
-    add_config "systemctl enable netcfg@mynetwork"
+    #TODO - Migrate this to netctl.
+    #cp netcfg ${TARGET_PREFIX}/etc/network.d/mynetwork
+    #add_config "systemctl enable netcfg@mynetwork"
+    :
 fi
 
 if [ -f users.csv ]; then

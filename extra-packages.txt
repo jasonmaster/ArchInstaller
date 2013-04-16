@@ -77,7 +77,7 @@ mtools
 namcap
 nano
 nbd
-netcfg
+netctl
 nfs-utils
 nilfs-utils
 nmap
