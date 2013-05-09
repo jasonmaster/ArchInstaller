@@ -196,6 +196,7 @@ system_ctl enable cups.service
 
 # Dropbox
 packer_install "dropbox dropbox-dark-panel-icons"
+addlinetofile "fs.inotify.max_user_watches = 100000" /etc/sysctl.conf
 
 # Flash & Java
 pacman_install "nspluginwrapper flashplugin"
@@ -331,6 +332,7 @@ fi
 if [ ${INSTALL_CHAT_APPS} -eq 1 ]; then
     # TODO - Skype notifications
     pacman_install "skype xchat"
+    pacman_install "lib32-alsa-plugins"
 fi
 
 # Graphics
