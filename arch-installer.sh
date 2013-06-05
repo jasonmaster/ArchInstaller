@@ -71,7 +71,7 @@ function usage() {
     echo "Optional parameters"
     if [ "${MACHINE}" == "pc" ]; then
         echo "  -b : The partition type to use. Defaults to '${PARTITION_TYPE}'. Can be 'msdos' or 'gpt'."
-        echo "  -f : The filesystem to use. 'btrfs', 'ext4', 'jfs', 'nilfs2' and 'xfs' are supported. Defaults to '${FS}'."        
+        echo "  -f : The filesystem to use. 'btrfs', 'ext4', 'f2fs, 'jfs', 'nilfs2' and 'xfs' are supported. Defaults to '${FS}'."        
     fi
     echo "  -c : The NFS export to mount and use as the pacman cache."
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
@@ -135,7 +135,7 @@ if [ "${MACHINE}" == "pc" ]; then
         "ext2")   MKFS="mkfs.ext2 -F -m 0 -q";;
         "ext3")   MKFS="mkfs.ext3 -F -m 0 -q";;
         "ext4")   MKFS="mkfs.ext4 -F -m 0 -q";;
-        "f2fs")   MKFS="mkfs.f2fs -o 0"
+        "f2fs")   MKFS="mkfs.f2fs"
                   MKFS_L="-l";;
         "jfs")    MKFS="mkfs.jfs -q";;
         "nilfs2") MKFS="mkfs.nilfs2 -q";;
