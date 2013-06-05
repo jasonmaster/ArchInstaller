@@ -135,7 +135,7 @@ if [ "${MACHINE}" == "pc" ]; then
         "ext2")   MKFS="mkfs.ext2 -F -m 0 -q";;
         "ext3")   MKFS="mkfs.ext3 -F -m 0 -q";;
         "ext4")   MKFS="mkfs.ext4 -F -m 0 -q";;
-        "f2fs")   MKFS="mkfs.f2fs"
+        "f2fs")   MKFS="mkfs.f2fs -o 0"
                   MKFS_L="-l";;
         "jfs")    MKFS="mkfs.jfs -q";;
         "nilfs2") MKFS="mkfs.nilfs2 -q";;
