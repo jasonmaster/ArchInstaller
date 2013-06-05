@@ -129,11 +129,14 @@ if [ "${MACHINE}" == "pc" ]; then
         exit 1
     fi
 
+    MKFS_L="-L"
     case ${FS} in
         "btrfs")  MKFS="mkfs.btrfs";;
         "ext2")   MKFS="mkfs.ext2 -F -m 0 -q";;
         "ext3")   MKFS="mkfs.ext3 -F -m 0 -q";;
         "ext4")   MKFS="mkfs.ext4 -F -m 0 -q";;
+        "f2fs")   MKFS="mkfs.f2fs"
+                  MKFS_L="-l";;
         "jfs")    MKFS="mkfs.jfs -q";;
         "nilfs2") MKFS="mkfs.nilfs2 -q";;
         "xfs")    MKFS="mkfs.xfs -f -q";;
@@ -308,10 +311,10 @@ if [ "${MACHINE}" == "pc" ]; then
     echo "==> Making /boot filesystem : ext2"
     mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}1 >/dev/null
     echo "==> Making /root filesystem : ${FS}"
-    ${MKFS} -L root /dev/${ROOT_PARTITION} >/dev/null
+    ${MKFS} ${MKFS_L} root /dev/${ROOT_PARTITION} >/dev/null
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
         echo "==> Making /home filesystem : ${FS}"
-        ${MKFS} -L home /dev/${DSK}4 >/dev/null
+        ${MKFS} ${MKFS_L} home /dev/${DSK}4 >/dev/null
     fi
 
     if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
