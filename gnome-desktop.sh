@@ -113,22 +113,6 @@ ENDBRIGHTNESS
     chmod +x /etc/pm/power.d/display-brightness
     system_ctl enable tlp-init
 
-    # Install PHC
-    IS_INTEL_CPU=`grep GenuineIntel /proc/cpuinfo`
-    if [ $? -eq 0 ]; then
-        pacman_install "linux-headers"
-        packer_install "phc-intel"
-        if [ ! -f /lib/modules/extramodules-`uname -r | cut -d'.' -f1-2`-ARCH/phc-intel.ko ]; then
-            ncecho " [x] Building phc_intel kernel module "
-            phc-intel setup >>"$log" 2>&1 &
-            pid=$!;progress $pid
-        fi
-        if [ "${CPU}" == "x86_64" ]; then
-            packer_install "mprime"
-        else
-            packer_install "mprime-bin"
-        fi
-    fi
 fi
 
 # Install video driver (DRI)
