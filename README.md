@@ -162,8 +162,12 @@ that is already present, so subsequent runs are quicker.
 
 ## Power Management
 
-At some point I want these scripts to provision an Arch Linux system with a
-ready to run power management configuration.
+Power management is fairly complete right now.
+
+I've opted to use [TLP](http://linrunner.de/en/tlp/tlp.html) for power
+management as it provides a comprehensive collection of power management
+scripts. `pm-utils` is still being used for suspend/hibernate and resume
+functions, but its `power.d` scripts are disabled by `gnome-desktop.sh`.
 
 The following are useful sources of reference.
 
@@ -174,52 +178,23 @@ The following are useful sources of reference.
   * <http://www.thinkwiki.org/wiki/How_to_reduce_power_consumption>
   * <http://linrunner.de/en/tlp/docs/tlp-faq.html>
 
-I've opted to use [TLP](http://linrunner.de/en/tlp/tlp.html) for power
-management as it provides a comprehensive collection of power management
-scripts. pm-utils is still being used for suspend/hibernate and resume
-functions, but its `power.d` scripts are disabled by `gnome-desktop.sh`.
+### Power Management - TODO
 
-### Power Management TODO
-
-Power management is fairly complete right now, but the following still needs
-attention.
+The following still needs attention.
 
   * Suspend hook for `/dev/mmcblk0`
   * SATA ALPM is disabled by `gnome-desktop.sh` due to the risk of data corruption.
-    * https://bugs.launchpad.net/ubuntu/+source/linux/+bug/539467
-    * https://wiki.ubuntu.com/Kernel/PowerManagementALPM
+    * <https://bugs.launchpad.net/ubuntu/+source/linux/+bug/539467>
+    * <https://wiki.ubuntu.com/Kernel/PowerManagementALPM>
   * Active State Power Management.
     * Add capability to set `pcie_aspm=force`.
-    * https://bbs.archlinux.org/viewtopic.php?id=120640
-    * http://smackerelofopinion.blogspot.co.uk/2011/03/making-sense-of-pcie-aspm.html
-    * http://crunchbang.org/forums/viewtopic.php?id=23445
+      * <https://bbs.archlinux.org/viewtopic.php?id=120640>
+      * <http://smackerelofopinion.blogspot.co.uk/2011/03/making-sense-of-pcie-aspm.html>
+      * <http://crunchbang.org/forums/viewtopic.php?id=23445>
     * I've submitted a pull request to `laptop-mode-tools`.
       * <https://github.com/rickysarraf/laptop-mode-tools/pull/7>
     * TLP has this capability.
   * Nouveau power management, see below.
-
-#### PHC
-
-PHC is installed on laptops with Intel processors. I'll add AMD support when I
-get a chance to test it. Automating it further than that is not sensible.
-
-Use the `phc-mprime.sh` script in `contrib` to undervolt your CPU.
-
-  * Dell Mini 9
-    * `12:39 10:31 8:23 6:15` - Defaults
-    * `12:26 10:19 8:2  6:2`  - Tuned
-  * IBM Thinkpad T43p
-    * `17:43 14:37 12:32 10:28 8:23 6:18` - Default
-    * `17:29 14:22 12:15 10:12  8:6  6:4` - Tuned (Do NOT work)
-
-Futher reading.
-
-  * <https://wiki.archlinux.org/index.php/PHC>
-  * <https://bbs.archlinux.org/viewtopic.php?id=146454>
-  * <https://aur.archlinux.org/packages/linux-phc-optimize/>
-  * <http://openmindedbrain.info/09/05/2010/undervolting-in-ubuntu-10-04-lucid-lts/>
-  * <http://www.thinkwiki.org/wiki/Pentium_M_undervolting_and_underclocking>
-  * <http://www.thinkwiki.org/wiki/Undervolt_Stress_Testing_Script>
 
 #### i915
 
@@ -229,8 +204,6 @@ Power management is implemented.
   * <http://www.phoronix.com/scan.php?page=article&item=intel_i915_power&num=1>
   * <http://www.scribd.com/doc/73071712/Intel-Linux-Graphics>
 
-Need to enable SNA.
-
 #### Radeon
 
 Power management is implemented.
@@ -238,37 +211,6 @@ Power management is implemented.
   * <http://www.x.org/wiki/RadeonFeature#KMS_Power_Management_Options>
   * <https://wiki.archlinux.org/index.php/ATI#Powersaving>
   * <http://www.overclock.net/t/731469/how-to-power-saving-with-the-radeon-driver>
-
-Need to enable Glamor. This has been runnning fine for months but cause X to segfault from March 28th 2012.
-
-I still need to detect AGP radeon cards and add the kernel options to
-`/etc/modprobe.d/radeon.conf`.
-
-    radeon.agpmode=x
-    radeon.gartsize=yy
-
-Where x is:
-
-  * -1 = Enable PCI mode on the GPU disable all AGP.
-  * 1, 2, 4, 8 = Enable AGP speed.
-
-And yy is the GART size.
-
-Also create a sensible `/etc/X11/xorg.conf.d/20-radeon.conf`. Options for consideration:
-
-    Section "Device"
-        Identifier  "My Graphics Card"
-        Option  "AccelMethod"           "glamor" # default is EXA
-        Option  "AGPMode"               "8"   #not used when KMS is on
-        Option  "AGPFastWrite"          "off" #could cause instabilities enable it at your own risk
-        Option  "RenderAccel"           "on"  #enabled by default on all radeon hardware
-        Option  "EXAVSync"              "off" #default is off, otherwise on
-        Option  "EXAPixmaps"            "on"  #when on icreases 2D performance, but may also cause artifacts on some old cards
-        Option  "AccelDFS"              "on"  #default is off, read the radeon manpage for more information
-    EndSection
-
-Enable Hyper-Z. For the pre-R500 hardware, the support can be easily enabled
-at this time through setting the `RADEON_HYPERZ` environment variable.
 
 #### Nouveau
 
@@ -287,58 +229,3 @@ No power management stuff at the moment, just figure out how to get it working.
   * <https://bbs.archlinux.org/viewtopic.php?pid=1201986>
   * <http://www.openchrome.org/>
   * <http://unichrome.sourceforge.net/>
-
-### Power management tools
-
-Some notes I gathered while researching what power management tools to use.
-
-### TLP
-
-[TLP](http://linrunner.de/en/tlp/tlp.html) is a suitable alternaive to
-laptop-mode-tools and it now installed by `gnome-installer.sh`. It has the
-same features as laptop-mode-tools with the following differences:
-
-  * Includes device specific support for Thinkpads.
-  * Include support for PCIe ASPM.
-  * Includes support for Radeon power profiles.
-  * Includes support for Intel `i915` power management. Although I'm not sure the implementation is entirely correct.
-  * Missing LCD brightness controls.
-
-Find out more here.
-
-  * <https://github.com/linrunner/TLP>
-  * <https://wiki.archlinux.org/index.php/TLP>
-  * <https://aur.archlinux.org/packages.php?ID=48464>
-
-My tests demonstrated that TLP resulted in lower power consumption on a
-Thinkpad T43p running on battery when compared to laptop-mode-tools.
-
-#### Laptop mode Tools
-
-I was originally using laptop-mode-tool for power management. It offers
-comprehensive power control, but I found TLP did more.
-
-Find out more here.
-
-  * http://samwel.tk/laptop_mode/
-  * https://github.com/rickysarraf/laptop-mode-tools
-
-#### Powerdown
-
-[Powerdown](https://github.com/taylorchu/powerdown) could be a viable
-alternative to laptop-mode-tools, but it entirely replaces pm-utils when
-installed from the AUR. pm-utils which is required by GNOME and Powerdown
-doesn't have the depth of support for suspend/resume operations that pm-utils
-does. Still interesting though.
-
-Find out more here.
-
-  * <https://github.com/taylorchu/powerdown>
-  * <https://wiki.archlinux.org/index.php/Powerdown>
-  * <https://aur.archlinux.org/packages/powerdown/>
-
-#### sysconf
-
-Find out more here.
-
-  * [sysconf](https://bbs.archlinux.org/viewtopic.php?id=144507)
