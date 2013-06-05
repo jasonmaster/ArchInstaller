@@ -383,7 +383,7 @@ fi
 check_vga
 update_early_hooks consolefont
 update_early_hooks keymap
-update_early_modules ${VIDEO_KMS}
+#update_early_modules ${VIDEO_KMS}
 
 # Configure kernel module options
 if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
@@ -518,7 +518,7 @@ if [ -n "${NFS_CACHE}" ]; then
     addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,noauto,x-systemd.automount 0 0" ${TARGET_PREFIX}/etc/fstab
     if [ "${MACHINE}" == "pc" ]; then
         umount -fv /var/cache/pacman/pkg
-    fi        
+    fi
 fi
 
 if [ "${MACHINE}" == "pc" ]; then
@@ -526,6 +526,6 @@ if [ "${MACHINE}" == "pc" ]; then
         umount -fv ${TARGET_PREFIX}/home
     fi
     umount -fv ${TARGET_PREFIX}/{boot,}
-fi    
+fi
 
 echo "All done!"
