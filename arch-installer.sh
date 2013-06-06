@@ -191,6 +191,8 @@ if [ $? -ne 0 ]; then
 fi
 
 if [ -n "${NFS_CACHE}" ]; then
+    echo
+    echo "Testing NFS cache : ${NFS_CACHE}"
     systemctl start rpc-statd.service >/dev/null
     mount -t nfs ${NFS_CACHE} /var/cache/pacman/pkg >/dev/null
     if [ $? -ne 0 ]; then
