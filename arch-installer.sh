@@ -313,10 +313,10 @@ if [ "${MACHINE}" == "pc" ]; then
     fi
 
     echo "==> Setting /dev/${DSK} bootable"
-    parted -a optimal -s /dev/${DSK} set 1 boot on >/dev/null #toggle 1 boot >/dev/null
-    #if [ "${PARTITION_TYPE}" == "gpt" ]; then
-    #    sgdisk /dev/${DSK} --attributes=1:set:2 >/dev/null
-    #fi
+    parted -a optimal -s /dev/${DSK} set 1 boot on >/dev/null
+    if [ "${PARTITION_TYPE}" == "gpt" ]; then
+        sgdisk /dev/${DSK} --attributes=1:set:2 >/dev/null
+    fi
 
     echo "==> Making /boot filesystem : ext2"
     mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}1 >/dev/null
@@ -341,6 +341,12 @@ if [ "${MACHINE}" == "pc" ]; then
         mount /dev/${DSK}4 ${TARGET_PREFIX}/home >/dev/null
     fi
 fi
+
+# Update and fix pacman keys
+echo "==> Updating pacman keys"
+pacman-key --refresh-keys >/dev/null
+echo "==> Enabling key : 182ADEA0"
+gpg --homedir /etc/pacman.d/gnupg --edit-key 182ADEA0 enable quit >/dev/null
 
 # Base system
 if [ "${MACHINE}" == "pc" ]; then
