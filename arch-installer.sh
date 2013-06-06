@@ -71,7 +71,7 @@ function usage() {
     echo "Optional parameters"
     if [ "${MACHINE}" == "pc" ]; then
         echo "  -b : The partition type to use. Defaults to '${PARTITION_TYPE}'. Can be 'msdos' or 'gpt'."
-        echo "  -f : The filesystem to use. 'btrfs', 'ext4', 'f2fs, 'jfs', 'nilfs2' and 'xfs' are supported. Defaults to '${FS}'."        
+        echo "  -f : The filesystem to use. 'bfs', 'btrfs', 'ext4', 'f2fs, 'jfs', 'nilfs2', 'ntfs', 'vfat' and 'xfs' are supported. Defaults to '${FS}'."
     fi
     echo "  -c : The NFS export to mount and use as the pacman cache."
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
@@ -131,6 +131,8 @@ if [ "${MACHINE}" == "pc" ]; then
 
     MKFS_L="-L"
     case ${FS} in
+        "bfs")    MKFS="mkfs.bfs"
+                  MKFS_L="-V";;
         "btrfs")  MKFS="mkfs.btrfs";;
         "ext2")   MKFS="mkfs.ext2 -F -m 0 -q";;
         "ext3")   MKFS="mkfs.ext3 -F -m 0 -q";;
@@ -139,6 +141,9 @@ if [ "${MACHINE}" == "pc" ]; then
                   MKFS_L="-l";;
         "jfs")    MKFS="mkfs.jfs -q";;
         "nilfs2") MKFS="mkfs.nilfs2 -q";;
+        "ntfs")   MKFS="mkfs.ntfs -q";;
+        "vfat")   MKFS="mkfs.vfat"
+                  MKFS="-n";;
         "xfs")    MKFS="mkfs.xfs -f -q";;
         *) echo "ERROR! Filesystem ${FS} is not supported."
            echo " - See `basename ${0}` -h"
@@ -260,6 +265,11 @@ read
 loadkeys -q ${KEYMAP}
 
 if [ "${MACHINE}" == "pc" ]; then
+    echo "==> Clearing partition table on /dev/${DSK}"
+    sgdisk --zap /dev/${DSK} #&>/dev/null
+    echo "==> Destroying magic strings and signatures on /dev/${DSK}"
+    dd if=/dev/zero of=/dev/${DSK} bs=512 count=2048 #>/dev/null 2>&1
+    wipefs -a /dev/${DSK}
     # Partition the disk https://bbs.archlinux.org/viewtopic.php?id=145678 http://sprunge.us/WATU
     echo "==> Initialising disk /dev/${DSK}: ${PARTITION_TYPE}"
     parted -s /dev/${DSK} mktable ${PARTITION_TYPE} >/dev/null
@@ -284,29 +294,29 @@ if [ "${MACHINE}" == "pc" ]; then
     fi
 
     echo "==> Creating /boot partition"
-    parted -s /dev/${DSK} unit MiB mkpart primary 1 $boot_end >/dev/null
+    parted -a optimal -s /dev/${DSK} unit MiB mkpart primary 1 $boot_end >/dev/null
 
     if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
         ROOT_PARTITION="${DSK}3"
         echo "==> Creating swap partition"
-        parted -s /dev/${DSK} unit MiB mkpart primary linux-swap $boot_end $swap_end >/dev/null
+        parted -a optimal -s /dev/${DSK} unit MiB mkpart primary linux-swap $boot_end $swap_end >/dev/null
         echo "==> Creating /root partition"
-        parted -s /dev/${DSK} unit MiB mkpart primary $swap_end $root_end >/dev/null
+        parted -a optinmal -s /dev/${DSK} unit MiB mkpart primary $swap_end $root_end >/dev/null
         if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
             echo "==> Creating /home partition"
-            parted -s /dev/${DSK} unit MiB mkpart primary $root_end $max >/dev/null
+            parted -a optimal -s /dev/${DSK} unit MiB mkpart primary $root_end $max >/dev/null
         fi
     elif [ "${PARTITION_LAYOUT}" = "br" ]; then
         ROOT_PARTITION="${DSK}2"
         echo "==> Creating /root partition"
-        parted -s /dev/${DSK} unit MiB mkpart primary $boot_end $root_end >/dev/null
+        parted -a optimal -s /dev/${DSK} unit MiB mkpart primary $boot_end $root_end >/dev/null
     fi
 
     echo "==> Setting /dev/${DSK} bootable"
-    parted -s /dev/${DSK} toggle 1 boot >/dev/null
-    if [ "${PARTITION_TYPE}" == "gpt" ]; then
-        sgdisk /dev/${DSK} --attributes=1:set:2 >/dev/null
-    fi
+    parted -a optimal -s /dev/${DSK} set 1 boot on >/dev/null #toggle 1 boot >/dev/null
+    #if [ "${PARTITION_TYPE}" == "gpt" ]; then
+    #    sgdisk /dev/${DSK} --attributes=1:set:2 >/dev/null
+    #fi
 
     echo "==> Making /boot filesystem : ext2"
     mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}1 >/dev/null
