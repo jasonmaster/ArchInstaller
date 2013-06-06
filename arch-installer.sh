@@ -266,10 +266,10 @@ loadkeys -q ${KEYMAP}
 
 if [ "${MACHINE}" == "pc" ]; then
     echo "==> Clearing partition table on /dev/${DSK}"
-    sgdisk --zap /dev/${DSK} #&>/dev/null
+    sgdisk --zap /dev/${DSK} >/dev/null 2>&1
     echo "==> Destroying magic strings and signatures on /dev/${DSK}"
-    dd if=/dev/zero of=/dev/${DSK} bs=512 count=2048 #>/dev/null 2>&1
-    wipefs -a /dev/${DSK}
+    dd if=/dev/zero of=/dev/${DSK} bs=512 count=2048 >/dev/null 2>&1
+    wipefs -a /dev/${DSK} 2>/dev/null
     # Partition the disk https://bbs.archlinux.org/viewtopic.php?id=145678 http://sprunge.us/WATU
     echo "==> Initialising disk /dev/${DSK}: ${PARTITION_TYPE}"
     parted -s /dev/${DSK} mktable ${PARTITION_TYPE} >/dev/null
@@ -301,7 +301,7 @@ if [ "${MACHINE}" == "pc" ]; then
         echo "==> Creating swap partition"
         parted -a optimal -s /dev/${DSK} unit MiB mkpart primary linux-swap $boot_end $swap_end >/dev/null
         echo "==> Creating /root partition"
-        parted -a optinmal -s /dev/${DSK} unit MiB mkpart primary $swap_end $root_end >/dev/null
+        parted -a optimal -s /dev/${DSK} unit MiB mkpart primary $swap_end $root_end >/dev/null
         if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
             echo "==> Creating /home partition"
             parted -a optimal -s /dev/${DSK} unit MiB mkpart primary $root_end $max >/dev/null
