@@ -313,7 +313,7 @@ if [ "${MACHINE}" == "pc" ]; then
     fi
 
     echo "==> Setting /dev/${DSK} bootable"
-    parted -a optimal -s /dev/${DSK} set 1 boot on >/dev/null
+    parted -a optimal -s /dev/${DSK} toggle 1 boot >/dev/null
     if [ "${PARTITION_TYPE}" == "gpt" ]; then
         sgdisk /dev/${DSK} --attributes=1:set:2 >/dev/null
     fi
@@ -344,9 +344,9 @@ fi
 
 # Update and fix pacman keys
 echo "==> Updating pacman keys"
-pacman-key --refresh-keys >/dev/null
+pacman-key --refresh-keys >/dev/null 2>&1
 echo "==> Enabling key : 182ADEA0"
-gpg --homedir /etc/pacman.d/gnupg --edit-key 182ADEA0 enable quit >/dev/null
+gpg --homedir /etc/pacman.d/gnupg --edit-key 182ADEA0 enable quit >/dev/null 2>&1
 
 # Base system
 if [ "${MACHINE}" == "pc" ]; then
