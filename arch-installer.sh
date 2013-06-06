@@ -320,6 +320,15 @@ if [ "${MACHINE}" == "pc" ]; then
         sgdisk /dev/${DSK} --attributes=1:set:2 >/dev/null
     fi
 
+    partprobe /dev/${DSK}
+    if [[ $? -gt 0 ]]; then
+        echo "ERROR! Partitioning /dev/${DSK} failed."
+        exit 1
+    fi
+
+    # Wait until `/dev` has initialized correct devices
+    udevadm settle
+
     echo "==> Making /boot filesystem : ext2"
     mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}1 >/dev/null
     echo "==> Making /root filesystem : ${FS}"
