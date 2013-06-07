@@ -406,12 +406,12 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
         pacstrap -c ${TARGET_PREFIX} `pacman -Qq | grep -Ev "gcc-libs|grub|gummi|ntpd"`
         EXTRA_RET=$?
         pacstrap -c ${TARGET_PREFIX} `cat packages-extra.txt`
-        EXTRA_RET=((${EXTRA_RET} + $?))
+        EXTRA_RET=$((${EXTRA_RET} + $?))
     else
         pacman -S --noconfirm --needed `cat packages-basic.txt | grep -v pcmciautils | grep -v syslinux`
         EXTRA_RET=$?
         pacman -S --noconfirm --needed `cat packages-extra.txt`
-        EXTRA_RET=((${EXTRA_RET} + $?))
+        EXTRA_RET=$((${EXTRA_RET} + $?))
     fi
 
     if [ ${EXTRA_RET} -ne 0 ]; then
@@ -421,15 +421,8 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
 fi
 
 # Configure mkinitcpio.conf
-#check_vga
 update_early_hooks consolefont
 update_early_hooks keymap
-#update_early_modules ${VIDEO_KMS}
-
-# Configure kernel module options
-#if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
-#    echo "${VIDEO_MODPROBE}" > ${TARGET_PREFIX}/etc/modprobe.d/${VIDEO_KMS}.conf
-#fi
 
 # Add offline discard cron here. None of my SSDs are TRIM compatible.
 #  - http://www.webupd8.org/2013/01/enable-trim-on-ssd-solid-state-drives.html
