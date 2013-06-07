@@ -26,7 +26,7 @@ ENABLE_DISCARD=0
 MACHINE="pc"
 TARGET_PREFIX="/mnt"
 CPU=`uname -m`
-DE="none"
+DE="shell"
 
 if [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]; then
     if [ "${HOSTNAME}" != "archiso" ]; then
@@ -75,7 +75,7 @@ function usage() {
         echo "  -f : The filesystem to use. 'bfs', 'btrfs', 'ext4', 'f2fs, 'jfs', 'nilfs2', 'ntfs', 'vfat' and 'xfs' are supported. Defaults to '${FS}'."
     fi
     echo "  -c : The NFS export to mount and use as the pacman cache."
-    echo "  -e : The desktop environment to install. Default to '${DE}'. Can be 'none', 'xorg' or 'gnome'."
+    echo "  -e : The desktop environment to install. Defaults to '${DE}'. Can be 'shell', 'xorg' or 'gnome'."
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
     echo "  -n : The hostname to use. Defaults to '${FQDN}'"
@@ -182,7 +182,7 @@ if [ "${INSTALL_TYPE}" != "desktop" ] && [ "${INSTALL_TYPE}" != "server" ] && [ 
     exit 1
 fi
 
-if [ "${DE}" != "none" ] && [ "${DE}" != "xorg" ] && [ "${DE}" != "gnome" ]; then
+if [ "${DE}" != "shell" ] && [ "${DE}" != "xorg" ] && [ "${DE}" != "gnome" ]; then
     echo "ERROR! '${DE}' is not a supported desktop environemt."
     exit 1
 fi
@@ -251,6 +251,7 @@ if [ -n "${NFS_CACHE}" ]; then
 fi
 
 echo " - Installation type   : ${INSTALL_TYPE}"
+echo " - Desktop Environment : ${DE}"
 
 if [ -f users.csv ]; then
     echo " - Provision users     : `cat users.csv | wc -l`"
@@ -403,7 +404,7 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     fi
 
     if [ "${MACHINE}" == "pc" ]; then
-        pacstrap -c ${TARGET_PREFIX} `pacman -Qq | grep -Ev "gcc-libs|grub|gummi|ntpd"`
+        pacstrap -c ${TARGET_PREFIX} `pacman -Qq | grep -Ev "gcc-libs|grub|gummi|ntp"`
         EXTRA_RET=$?
         pacstrap -c ${TARGET_PREFIX} `cat packages-extra.txt`
         EXTRA_RET=$((${EXTRA_RET} + $?))
@@ -513,7 +514,7 @@ fi
 add_config "systemctl enable cronie.service"
 add_config "systemctl enable syslog-ng"
 if [ "${INSTALL_TYPE}" == "desktop" ]; then
-    if [ "${DE}" != "none" ]; then
+    if [ "${DE}" != "shell" ]; then
         add_config "pacman -S --noconfirm --needed xorg"
         if [ "${DE}" != "gnome" ]; then
             add_config "pacman -S --noconfirm --needed gnome"
