@@ -26,6 +26,7 @@ ENABLE_DISCARD=0
 MACHINE="pc"
 TARGET_PREFIX="/mnt"
 CPU=`uname -m`
+DE="none"
 
 if [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]; then
     if [ "${HOSTNAME}" != "archiso" ]; then
@@ -74,6 +75,7 @@ function usage() {
         echo "  -f : The filesystem to use. 'bfs', 'btrfs', 'ext4', 'f2fs, 'jfs', 'nilfs2', 'ntfs', 'vfat' and 'xfs' are supported. Defaults to '${FS}'."
     fi
     echo "  -c : The NFS export to mount and use as the pacman cache."
+    echo "  -e : The desktop environment to install. Default to '${DE}'. Can be 'none', 'xorg' or 'gnome'."
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
     echo "  -n : The hostname to use. Defaults to '${FQDN}'"
@@ -99,13 +101,14 @@ function usage() {
     exit 1
 }
 
-OPTSTRING=b:c:d:f:hk:l:n:p:r:t:w:
+OPTSTRING=b:c:d:e:f:hk:l:n:p:r:t:w:
 while getopts ${OPTSTRING} OPT
 do
     case ${OPT} in
         b) PARTITION_TYPE=${OPTARG};;
         c) NFS_CACHE=${OPTARG};;
         d) DSK=${OPTARG};;
+        e) DE=${OPTARG};;
         f) FS=${OPTARG};;
         h) usage;;
         k) KEYMAP=${OPTARG};;
@@ -176,6 +179,11 @@ fi
 
 if [ "${INSTALL_TYPE}" != "desktop" ] && [ "${INSTALL_TYPE}" != "server" ] && [ "${INSTALL_TYPE}" != "minimal" ]; then
     echo "ERROR! '${INSTALL_TYPE}' is not a supported computer role."
+    exit 1
+fi
+
+if [ "${DE}" != "none" ] && [ "${DE}" != "xorg" ] && [ "${DE}" != "gnome" ]; then
+    echo "ERROR! '${DE}' is not a supported desktop environemt."
     exit 1
 fi
 
@@ -511,6 +519,21 @@ fi
 
 add_config "systemctl enable cronie.service"
 add_config "systemctl enable syslog-ng"
+if [ "${INSTALL_TYPE}" == "desktop" ]; then
+    if [ "${DE}" != "none" ]; then
+        add_config "pacman -S --noconfirm --needed xorg"
+        if [ "${DE}" != "gnome" ]; then
+            add_config "pacman -S --noconfirm --needed gnome"
+            add_config "pacman -S --noconfirm --needed gnome-extra"
+            add_config "pacman -S --noconfirm --needed telepathy"
+            add_config "pacman -S --noconfirm --needed gnome-tweak-tool terminator"
+            add_config "systemctl enable gdm.service"
+            add_config "systemctl enable accounts-daemon.service"
+            add_config "systemctl enable upower.service"
+            add_config "systemctl enable NetworkManager.service"
+        fi
+    fi
+fi
 
 if [ -f netctl ]; then
     cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
