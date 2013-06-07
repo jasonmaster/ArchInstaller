@@ -1,0 +1,15 @@
+gnome
+gnome-extra
+gnome-tweak-tool
+gst-plugins-base
+gst-plugins-base-libs
+gst-plugins-good
+gst-plugins-bad
+gst-plugins-ugly
+gst-ffmpeg
+telepathy
+epiphany-extensions
+gedit-plugins
+networkmanager-openvpn
+networkmanager-pptp
+terminator

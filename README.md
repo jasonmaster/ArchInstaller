@@ -151,6 +151,7 @@ that is already present, so subsequent runs are quicker.
     * <https://bbs.archlinux.org/viewtopic.php?id=147160>
   * Review the links below, see if there is anything I can re-use.
     * <https://github.com/helmuthdu/aui>
+    * <https://github.com/Antergos/Cnchi>
     * <http://www.winpe.com/page04.html>
     * <http://blog.burntsushi.net/lenovo-thinkpad-t430-archlinux>
     * <http://worldofgnome.org/speed-up-gnome-in-systemd-distributions/>

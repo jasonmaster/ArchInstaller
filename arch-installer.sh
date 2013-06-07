@@ -373,7 +373,7 @@ gpg --homedir /etc/pacman.d/gnupg --edit-key 182ADEA0 enable quit >/dev/null 2>&
 
 # Base system
 if [ "${MACHINE}" == "pc" ]; then
-    pacstrap -c ${TARGET_PREFIX} base base-devel syslinux terminus-font
+    pacstrap -c ${TARGET_PREFIX} `cat packages-base-pc.txt`
 else
     pacman -S --noconfirm --needed base base-devel terminus-font
 fi
@@ -514,49 +514,24 @@ fi
 add_config "systemctl enable cronie.service"
 add_config "systemctl enable syslog-ng"
 
+if [ -f netctl ]; then
+    cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
+    add_config "netctl enable mynetwork"
+fi
+
 if [ "${INSTALL_TYPE}" == "desktop" ]; then
     if [ "${DE}" != "shell" ]; then
-        pacstrap -c ${TARGET_PREFIX} xorg xorg-apps
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt`
         if [ "${DE}" == "xorg" ]; then
-            pacstrap -c ${TARGET_PREFIX} xorg-xinit xterm
+            pacstrap -c ${TARGET_PREFIX} `cat packages-xinit.txt`
         elif [ "${DE}" == "gnome" ]; then
-            pacstrap -c ${TARGET_PREFIX} gnome gnome-extra telepathy gnome-tweak-tool terminator
+            pacstrap -c ${TARGET_PREFIX} `cat packages-gnome.txt`
             add_config "systemctl enable gdm.service"
             add_config "systemctl enable accounts-daemon.service"
             add_config "systemctl enable upower.service"
             add_config "systemctl enable NetworkManager.service"
         fi
     fi
-fi
-
-#if [ "${INSTALL_TYPE}" == "desktop" ]; then
-#    if [ "${DE}" != "shell" ]; then
-#        if [ -n "${NFS_CACHE}" ]; then
-#            mount --bind /var/cache/pacman/pkg/ ${TARGET}/var/cache/pacman/pkg/
-#        fi
-#        add_config "pacman -S --noconfirm --needed xorg"
-#        add_config "pacman -S --noconfirm --needed xorg-apps"
-#        if [ "${DE}" == "xorg" ]; then
-#            add_config "pacman -S --noconfirm --needed xorg-xinit xterm"
-#        elif [ "${DE}" == "gnome" ]; then
-#            add_config "pacman -S --noconfirm --needed gnome"
-#            add_config "pacman -S --noconfirm --needed gnome-extra"
-#            add_config "pacman -S --noconfirm --needed telepathy"
-#            add_config "pacman -S --noconfirm --needed gnome-tweak-tool terminator"
-#            add_config "systemctl enable gdm.service"
-#            add_config "systemctl enable accounts-daemon.service"
-#            add_config "systemctl enable upower.service"
-#            add_config "systemctl enable NetworkManager.service"
-#        fi
-#        if [ -n "${NFS_CACHE}" ]; then
-#            umount -f ${TARGET}/var/cache/pacman/pkg/
-#        fi
-#    fi
-#fi
-
-if [ -f netctl ]; then
-    cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
-    add_config "netctl enable mynetwork"
 fi
 
 if [ -f users.csv ]; then
