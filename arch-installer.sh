@@ -395,12 +395,20 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     fi
 
     if [ "${MACHINE}" == "pc" ]; then
-        pacstrap -c ${TARGET_PREFIX} `pacman -Qq | grep -Ev "gcc-libs|grub|gummi"`
+        pacstrap -c ${TARGET_PREFIX} `pacman -Qq | grep -Ev "gcc-libs|grub|gummi|ntpd"`
         EXTRA_RET=$?
-        if [ ${EXTRA_RET} -ne 0 ]; then
-            echo "ERROR! Installing extra packages failed. Try running `basename ${0}` again."
-            exit 1
-        fi
+        pacstrap -c ${TARGET_PREFIX} `cat packages-extra.txt`
+        EXTRA_RET=((${EXTRA_RET} + $?))
+    else
+        pacman -S --noconfirm --needed `cat packages-basic.txt | grep -v pcmciautils | grep -v syslinux`
+        EXTRA_RET=$?
+        pacman -S --noconfirm --needed `cat packages-extra.txt`
+        EXTRA_RET=((${EXTRA_RET} + $?))
+    fi
+
+    if [ ${EXTRA_RET} -ne 0 ]; then
+        echo "ERROR! Installing extra packages failed. Try running `basename ${0}` again."
+        exit 1
     fi
 fi
 
