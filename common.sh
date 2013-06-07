@@ -458,3 +458,49 @@ start_config() {
 add_config() {
     echo "${1}" >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
 }
+
+detect_laptop() {
+    # Are we a mac?
+    if test -d /proc/pmu; then
+        batteries=$(grep Battery /proc/pmu/info | cut -f2 -d:)
+        if test "$batteries" -ne 0; then
+            exit 0
+        fi
+        exit 1
+    fi
+
+    #if [ -r /dev/mem -a -x /usr/sbin/dmidecode ]; then
+        # dmidecode to grab the Chassis type
+    #    dmitype=$(dmidecode --string chassis-type)
+
+    #    if test "$dmitype" = "Notebook" || test "$dmitype" = "Portable"; then
+    #        exit 0
+    #    fi
+    #fi
+
+    # check for any ACPI batteries
+    /sbin/modprobe battery 2> /dev/null || true
+    if [ -d /sys/class/power_supply ]; then
+        if grep -q Battery /sys/class/power_supply/*/type 2>/dev/null; then
+            return 0
+        fi
+    fi
+    # old interface:
+    if [ -d /proc/acpi/battery ]; then
+            results=`find /proc/acpi/battery -mindepth 1 -type d`
+            if [ ! -z "$results" ]; then
+                return 0
+            fi
+    fi
+
+    # check for APM batteries. This sucks, because we'll only get a valid response
+    # if the laptop has a battery fitted at the time
+    if [ -f /proc/apm ]; then
+        battery=`awk '{print $6}' </proc/apm`
+        if [ "$battery" != "0xff" ] && [ "$battery" != "0x80" ]; then
+            return 0
+        fi
+    fi
+
+    return 1
+}
