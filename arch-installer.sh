@@ -497,8 +497,8 @@ if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     fi
 
     # Install dot files and configure the root user shell.
-    rsync -aq /skel/ ${TARGET_PREFIX}/etc/skel/
-    rsync -aq /skel/ ${TARGET_PREFIX}/root/
+    rsync -aq skel/ ${TARGET_PREFIX}/etc/skel/
+    rsync -aq skel/ ${TARGET_PREFIX}/root/
 fi
 
 add_config "systemctl enable cronie.service"
