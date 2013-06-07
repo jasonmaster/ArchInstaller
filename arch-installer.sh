@@ -395,22 +395,17 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     fi
 
     if [ "${MACHINE}" == "pc" ]; then
-        pacstrap -c ${TARGET_PREFIX} `cat extra-packages.txt`
+        pacstrap -c ${TARGET_PREFIX} `pacman -Qq | grep -Ev "grub|gummi"`
         EXTRA_RET=$?
-    else
-        # Remove packages that are not available for Arch Linux ARM
-        pacman -S --noconfirm --needed `cat extra-packages.txt | grep -v pcmciautils | grep -v syslinux`
-        EXTRA_RET=$?
-    fi
-
-    if [ ${EXTRA_RET} -ne 0 ]; then
-        echo "ERROR! Installing extra-packages.txt failed. Try running `basename ${0}` again."
-        exit 1
+        if [ ${EXTRA_RET} -ne 0 ]; then
+            echo "ERROR! Installing extra packages failed. Try running `basename ${0}` again."
+            exit 1
+        fi
     fi
 fi
 
 # Configure mkinitcpio.conf
-check_vga
+#check_vga
 update_early_hooks consolefont
 update_early_hooks keymap
 #update_early_modules ${VIDEO_KMS}

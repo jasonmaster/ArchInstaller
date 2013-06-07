@@ -1,0 +1,24 @@
+# Git Configuration
+# vim:ft=gitconfig:noet:nowrap:sts=4:sw=4:ts=4
+[alias]
+    br = branch
+    ci = commit
+    co = checkout
+    di = diff
+    st = status
+    sta = stash
+    lg = log --abbrev-commit --date=relative --date-order --graph --pretty=format:'%C(red)%h%C(reset) -%C(yellow)%d%C(reset) %s %C(green)(%cr) %C(bold blue)<%an>%C(reset)'
+    gr = log --date-order --decorate --graph --oneline
+    graph = log --branches --date-order --decorate --graph --oneline
+    graph-all = log --all --date-order --decorate --graph --oneline
+    human = name-rev --name-only --refs=refs/heads/*
+[color]
+    ui = auto
+[core]
+    whitespace = trailing-space,space-before-tab
+[credential]
+    helper = cache --timeout 3600
+[push]
+    default = matching
+[rebase]
+    autosquash = true
