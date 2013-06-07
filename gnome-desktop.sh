@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+echo "DEFUNCT! This script is being replaced. Please don't use it."
+exit 1
+
 if [ -f common.sh ]; then
     source common.sh
 else
