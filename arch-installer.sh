@@ -21,7 +21,7 @@ PASSWORD=""
 FS="ext4"
 PARTITION_TYPE="msdos"
 PARTITION_LAYOUT=""
-INSTALL_TYPE="standard"
+INSTALL_TYPE="desktop"
 ENABLE_DISCARD=0
 MACHINE="pc"
 TARGET_PREFIX="/mnt"
@@ -76,9 +76,8 @@ function usage() {
     echo "  -c : The NFS export to mount and use as the pacman cache."
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
-    echo "  -m : Install a minimal system."
     echo "  -n : The hostname to use. Defaults to '${FQDN}'"
-    echo "  -s : Install is for a server. -m overrides this."
+    echo "  -r : The computer role. Defaults to '${INSTALL_TYPE}'. Can be 'desktop', 'server', 'minimal'."
     echo "  -t : The timezone to use. Defaults to '${TIMEZONE}'. See '/usr/share/zoneinfo/' for options."
     echo
     echo "User provisioning"
@@ -100,7 +99,7 @@ function usage() {
     exit 1
 }
 
-OPTSTRING=b:c:d:f:hk:l:mn:p:t:sw:
+OPTSTRING=b:c:d:f:hk:l:n:p:r:t:w:
 while getopts ${OPTSTRING} OPT
 do
     case ${OPT} in
@@ -111,11 +110,10 @@ do
         h) usage;;
         k) KEYMAP=${OPTARG};;
         l) LANG=${OPTARG};;
-        m) INSTALL_TYPE="minimal";;
         n) FQDN=${OPTARG};;
         p) PARTITION_LAYOUT=${OPTARG};;
+        r) INSTALL_TYPE=${OPTARG};;
         t) TIMEZONE=${OPTARG};;
-        s) INSTALL_TYPE="server";;
         w) PASSWORD=${OPTARG};;
         *) usage;;
     esac
@@ -173,6 +171,11 @@ fi
 if [ ! -f /usr/share/zoneinfo/${TIMEZONE} ]; then
     echo "ERROR! I can't find the zone info for '${TIMEZONE}'."
     echo " - See `basename ${0}` -h"
+    exit 1
+fi
+
+if [ "${INSTALL_TYPE}" != "desktop" ] && [ "${INSTALL_TYPE}" != "server" ] && [ "${INSTALL_TYPE}" != "minimal" ]; then
+    echo "ERROR! '${INSTALL_TYPE}' is not a supported computer role."
     exit 1
 fi
 
@@ -380,7 +383,7 @@ fi
 sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' ${TARGET_PREFIX}/etc/pacman.conf
 
 # Install and configure the extra packages
-if [ "${INSTALL_TYPE}" == "standard" ] || [ "${INSTALL_TYPE}" == "server" ]; then
+if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     # Install multilib-devel
     if [ "${CPU}" == "x86_64" ]; then
     echo "
@@ -413,17 +416,23 @@ update_early_hooks keymap
 #update_early_modules ${VIDEO_KMS}
 
 # Configure kernel module options
-if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
-    echo "${VIDEO_MODPROBE}" > ${TARGET_PREFIX}/etc/modprobe.d/${VIDEO_KMS}.conf
+#if [ -n "${VIDEO_MODPROBE}" ] && [ -n "${VIDEO_KMS}" ]; then
+#    echo "${VIDEO_MODPROBE}" > ${TARGET_PREFIX}/etc/modprobe.d/${VIDEO_KMS}.conf
+#fi
+
+# Add offline discard cron here. None of my SSDs are TRIM compatible.
+#  - http://www.webupd8.org/2013/01/enable-trim-on-ssd-solid-state-drives.html
+if [ ${ENABLE_DISCARD} -eq 1 ]; then
+    addlinetofile "#!/usr/bin/env bash"                  ${TARGET_PREFIX}/etc/cron.daily/trim
+    addlinetofile "$(date -R)      >> /var/log/trim.log" ${TARGET_PREFIX}/etc/cron.daily/trim
+    addlinetofile "fstrim -v /     >> /var/log/trim.log" ${TARGET_PREFIX}/etc/cron.daily/trim
+    if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+        addlinetofile "fstrim -v /home >> /var/log/trim.log" ${TARGET_PREFIX}/etc/cron.daily/trim
+    fi
 fi
 
 # Start building the configuration script
 start_config
-
-# Add offline discard cron here. None of my SSDs are TRIM compatible.
-if [ ${ENABLE_DISCARD} -eq 1 ]; then
-    :
-fi
 
 # Configure the hostname.
 add_config "echo ${FQDN} > /etc/hostname"
@@ -463,7 +472,7 @@ else
     fi
 fi
 
-if [ "${INSTALL_TYPE}" == "standard" ] || [ "${INSTALL_TYPE}" == "server" ]; then
+if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     # Configure mDNS
     sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' ${TARGET_PREFIX}/etc/nsswitch.conf
     # Members of the `wheel` group are sudoers.
@@ -492,15 +501,13 @@ if [ "${INSTALL_TYPE}" == "standard" ] || [ "${INSTALL_TYPE}" == "server" ]; the
         add_config "pacman -S --noconfirm packer"
     fi
 
-    # Install my dot files and configure the root user shell.
-    rm -rf /tmp/dot-files 2>/dev/null
-    git clone https://github.com/flexiondotorg/dot-files.git /tmp/dot-files
-    rm -rf /tmp/dot-files/{.git,*.txt,*.md}
-    rsync -aq /tmp/dot-files/ ${TARGET_PREFIX}/
-    rsync -aq /tmp/dot-files/etc/skel/ ${TARGET_PREFIX}/root/
+    # Install dot files and configure the root user shell.
+    rsync -aq /skel/ ${TARGET_PREFIX}/etc/skel/
+    rsync -aq /skel/ ${TARGET_PREFIX}/root/
 fi
 
 add_config "systemctl enable cronie.service"
+add_config "systemctl enable syslog-ng"
 
 if [ -f netctl ]; then
     cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
