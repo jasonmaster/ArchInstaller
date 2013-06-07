@@ -8,6 +8,7 @@ colordiff
 cvs
 devtools
 dmidecode
+exfat-utils
 fsarchiver
 git
 hexedit

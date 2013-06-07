@@ -75,7 +75,7 @@ function usage() {
         echo "  -f : The filesystem to use. 'bfs', 'btrfs', 'ext4', 'f2fs, 'jfs', 'nilfs2', 'ntfs', 'vfat' and 'xfs' are supported. Defaults to '${FS}'."
     fi
     echo "  -c : The NFS export to mount and use as the pacman cache."
-    echo "  -e : The desktop environment to install. Defaults to '${DE}'. Can be 'shell', 'xorg' or 'gnome'."
+    echo "  -e : The desktop environment to install. Defaults to '${DE}'. Can be 'shell', 'xorg', 'gnome' or 'kde'"
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
     echo "  -n : The hostname to use. Defaults to '${FQDN}'"
@@ -182,7 +182,7 @@ if [ "${INSTALL_TYPE}" != "desktop" ] && [ "${INSTALL_TYPE}" != "server" ] && [ 
     exit 1
 fi
 
-if [ "${DE}" != "shell" ] && [ "${DE}" != "xorg" ] && [ "${DE}" != "gnome" ]; then
+if [ "${DE}" != "shell" ] && [ "${DE}" != "xorg" ] && [ "${DE}" != "gnome" ] && [ "${DE}" != "kde" ]; then
     echo "ERROR! '${DE}' is not a supported desktop environemt."
     exit 1
 fi
@@ -373,9 +373,9 @@ gpg --homedir /etc/pacman.d/gnupg --edit-key 182ADEA0 enable quit >/dev/null 2>&
 
 # Base system
 if [ "${MACHINE}" == "pc" ]; then
-    pacstrap -c ${TARGET_PREFIX} `cat packages-base-pc.txt`
+    pacstrap -c ${TARGET_PREFIX} `cat packages-base.txt`
 else
-    pacman -S --noconfirm --needed base base-devel terminus-font
+    pacman -S --noconfirm --needed `grep -v syslinux packages-base`
 fi
 
 if [ "${MACHINE}" == "pc" ]; then
@@ -390,6 +390,11 @@ fi
 
 # https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
 sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' ${TARGET_PREFIX}/etc/pacman.conf
+
+# F2FS does not currently have an `fsck` tool.
+if [ "${FS}" == "f2fs" ]; then
+    sed -i 's/keyboard fsck/keyboard/' ${TARGET_PREFIX}/etc/mkinitcpio.conf
+fi
 
 # Install and configure the extra packages
 if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
@@ -409,7 +414,7 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
         pacstrap -c ${TARGET_PREFIX} `cat packages-extra.txt`
         EXTRA_RET=$((${EXTRA_RET} + $?))
     else
-        pacman -S --noconfirm --needed `cat packages-basic.txt | grep -v pcmciautils | grep -v syslinux`
+        pacman -S --noconfirm --needed `cat packages-core.txt | grep -Ev "pcmciautils|syslinux"`
         EXTRA_RET=$?
         pacman -S --noconfirm --needed `cat packages-extra.txt`
         EXTRA_RET=$((${EXTRA_RET} + $?))
@@ -522,14 +527,30 @@ fi
 if [ "${INSTALL_TYPE}" == "desktop" ]; then
     if [ "${DE}" != "shell" ]; then
         pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt`
+        add_config "localectl set-keymap ${KEYMAP}"
         if [ "${DE}" == "xorg" ]; then
             pacstrap -c ${TARGET_PREFIX} `cat packages-xinit.txt`
         elif [ "${DE}" == "gnome" ]; then
             pacstrap -c ${TARGET_PREFIX} `cat packages-gnome.txt`
+            pacstrap -c ${TARGET_PREFIX} `cat packages-gst.txt`
             add_config "systemctl enable gdm.service"
             add_config "systemctl enable accounts-daemon.service"
             add_config "systemctl enable upower.service"
             add_config "systemctl enable NetworkManager.service"
+        elif [ "${DE}" == "kde" ]; then
+            LOCALE=`echo ${LANG} | cut -d'.' -f1`
+            if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
+                LOCALE_KDE=`echo ${LOCALE} | tr '[:upper:]' '[:lower:]'`
+            elif [ "${LOCALE}" == "en_US" ]; then
+                LOCALE_KDE="en_gb"
+            else
+                LOCALE_KDE=`echo ${LOCALE} | cut -d\_ -f1`
+            fi
+            echo "kde-l10n-${LOCALE_KDE}" >> packages-kde.txt
+            pacstrap -c ${TARGET_PREFIX} `cat packages-kde.txt`
+            pacstrap -c ${TARGET_PREFIX} `cat packages-gst.txt`
+            add_config "systemctl enable kdm.service"
+            add_config "systemctl enable upower.service"
         fi
     fi
 fi

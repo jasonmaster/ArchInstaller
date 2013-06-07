@@ -1,0 +1,5 @@
+kde
+kde-telepathy
+phonon-gstreamer
+telepathy
+xdg-user-dirs
