@@ -516,7 +516,7 @@ add_config "systemctl enable syslog-ng"
 if [ "${INSTALL_TYPE}" == "desktop" ]; then
     if [ "${DE}" != "shell" ]; then
         add_config "pacman -S --noconfirm --needed xorg"
-        if [ "${DE}" != "gnome" ]; then
+        if [ "${DE}" == "gnome" ]; then
             add_config "pacman -S --noconfirm --needed gnome"
             add_config "pacman -S --noconfirm --needed gnome-extra"
             add_config "pacman -S --noconfirm --needed telepathy"
