@@ -247,7 +247,7 @@ else
     echo " - Provision users     : DISABLED!"
 fi
 
-if [ -f netcfg ]; then
+if [ -f netctl ]; then
     echo " - Configure network   : Yes"
 else
     echo " - Configure network   : No"
@@ -502,11 +502,9 @@ fi
 
 add_config "systemctl enable cronie.service"
 
-if [ -f netcfg ]; then
-    #TODO - Migrate this to netctl.
-    #cp netcfg ${TARGET_PREFIX}/etc/network.d/mynetwork
-    #add_config "systemctl enable netcfg@mynetwork"
-    :
+if [ -f netctl ]; then
+    cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
+    add_config "netctl enable mynetwork"
 fi
 
 if [ -f users.csv ]; then
