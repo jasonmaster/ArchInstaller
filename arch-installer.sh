@@ -395,7 +395,7 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     fi
 
     if [ "${MACHINE}" == "pc" ]; then
-        pacstrap -c ${TARGET_PREFIX} `pacman -Qq | grep -Ev "grub|gummi"`
+        pacstrap -c ${TARGET_PREFIX} `pacman -Qq | grep -Ev "gcc-libs|grub|gummi"`
         EXTRA_RET=$?
         if [ ${EXTRA_RET} -ne 0 ]; then
             echo "ERROR! Installing extra packages failed. Try running `basename ${0}` again."
