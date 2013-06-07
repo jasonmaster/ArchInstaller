@@ -515,6 +515,9 @@ add_config "systemctl enable cronie.service"
 add_config "systemctl enable syslog-ng"
 if [ "${INSTALL_TYPE}" == "desktop" ]; then
     if [ "${DE}" != "shell" ]; then
+        if [ -n "${NFS_CACHE}" ]; then
+            mount --bind /var/cache/pacman/pkg/ ${TARGET}/var/cache/pacman/pkg/
+        fi
         add_config "pacman -S --noconfirm --needed xorg"
         add_config "pacman -S --noconfirm --needed xorg-apps"
         if [ "${DE}" == "xorg" ]; then
@@ -528,6 +531,9 @@ if [ "${INSTALL_TYPE}" == "desktop" ]; then
             add_config "systemctl enable accounts-daemon.service"
             add_config "systemctl enable upower.service"
             add_config "systemctl enable NetworkManager.service"
+        fi
+        if [ -n "${NFS_CACHE}" ]; then
+            umount -f ${TARGET}/var/cache/pacman/pkg/
         fi
     fi
 fi
