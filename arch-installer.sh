@@ -72,7 +72,7 @@ function usage() {
     echo "Optional parameters"
     if [ "${MACHINE}" == "pc" ]; then
         echo "  -b : The partition type to use. Defaults to '${PARTITION_TYPE}'. Can be 'msdos' or 'gpt'."
-        echo "  -f : The filesystem to use. 'bfs', 'btrfs', 'ext4', 'f2fs, 'jfs', 'nilfs2', 'ntfs', 'vfat' and 'xfs' are supported. Defaults to '${FS}'."
+        echo "  -f : The filesystem to use. 'bfs', 'btrfs', 'ext4', 'f2fs, 'jfs', 'nilfs2', 'ntfs' and 'xfs' are supported. Defaults to '${FS}'."
     fi
     echo "  -c : The NFS export to mount and use as the pacman cache."
     echo "  -e : The desktop environment to install. Defaults to '${DE}'. Can be 'shell', 'xorg', 'gnome' or 'kde'"
@@ -143,8 +143,6 @@ if [ "${MACHINE}" == "pc" ]; then
         "jfs")    MKFS="mkfs.jfs -q";;
         "nilfs2") MKFS="mkfs.nilfs2 -q";;
         "ntfs")   MKFS="mkfs.ntfs -q";;
-        "vfat")   MKFS="mkfs.vfat"
-                  MKFS="-n";;
         "xfs")    MKFS="mkfs.xfs -f -q";;
         *) echo "ERROR! Filesystem ${FS} is not supported."
            echo " - See `basename ${0}` -h"
@@ -375,7 +373,7 @@ gpg --homedir /etc/pacman.d/gnupg --edit-key 182ADEA0 enable quit >/dev/null 2>&
 if [ "${MACHINE}" == "pc" ]; then
     pacstrap -c ${TARGET_PREFIX} `cat packages-base.txt`
 else
-    pacman -S --noconfirm --needed `grep -v syslinux packages-base`
+    pacman -S --noconfirm --needed `grep -Ev "syslinux" packages-base.txt`
 fi
 
 if [ "${MACHINE}" == "pc" ]; then
@@ -531,8 +529,7 @@ if [ "${INSTALL_TYPE}" == "desktop" ]; then
         if [ "${DE}" == "xorg" ]; then
             pacstrap -c ${TARGET_PREFIX} `cat packages-xinit.txt`
         elif [ "${DE}" == "gnome" ]; then
-            pacstrap -c ${TARGET_PREFIX} `cat packages-gnome.txt`
-            pacstrap -c ${TARGET_PREFIX} `cat packages-gst.txt`
+            pacstrap -c ${TARGET_PREFIX} `cat packages-gnome.txt packages-gst.txt`
             add_config "systemctl enable gdm.service"
             add_config "systemctl enable accounts-daemon.service"
             add_config "systemctl enable upower.service"
@@ -547,8 +544,7 @@ if [ "${INSTALL_TYPE}" == "desktop" ]; then
                 LOCALE_KDE=`echo ${LOCALE} | cut -d\_ -f1`
             fi
             echo "kde-l10n-${LOCALE_KDE}" >> packages-kde.txt
-            pacstrap -c ${TARGET_PREFIX} `cat packages-kde.txt`
-            pacstrap -c ${TARGET_PREFIX} `cat packages-gst.txt`
+            pacstrap -c ${TARGET_PREFIX} `cat packages-kde.txt packages-gst.txt`
             add_config "systemctl enable kdm.service"
             add_config "systemctl enable upower.service"
         fi
