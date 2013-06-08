@@ -3,10 +3,12 @@ gksu
 leafpad
 lxde
 midori
+network-manager-applet
+networkmanager
+networkmanager-openvpn
+networkmanager-pptp
 notification-daemon
 obconf
 terminator
 upower
-wicd
-wicd-gtk
 xdg-user-dirs
