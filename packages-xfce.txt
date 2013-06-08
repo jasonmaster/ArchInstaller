@@ -1,8 +1,6 @@
-gtk-engine-murrine
 lightdm-gtk3-greeter
-mate
-mate-extra
-mate-extras
+xfce4
+xfce4-goodies
 midori
 network-manager-applet
 networkmanager
