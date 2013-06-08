@@ -408,7 +408,7 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     fi
 
     if [ "${MACHINE}" == "pc" ]; then
-        pacstrap -c ${TARGET_PREFIX} `pacman -Qq | grep -Ev "gcc-libs|grub|gummi|ntp"`
+        pacstrap -c ${TARGET_PREFIX} `pacman -Qq | grep -Ev "gcc-libs|grub|gummi|nmap|ntp"`
         EXTRA_RET=$?
         pacstrap -c ${TARGET_PREFIX} `cat packages-extra.txt`
         EXTRA_RET=$((${EXTRA_RET} + $?))

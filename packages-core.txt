@@ -164,7 +164,6 @@ nettle
 nfs-utils
 nfsidmap
 nilfs-utils
-nmap
 nspr
 ntfs-3g
 openconnect
