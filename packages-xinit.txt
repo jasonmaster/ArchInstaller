@@ -1,2 +1,4 @@
+xorg-xconsole
+xorg-xdm
 xorg-xinit
 xterm

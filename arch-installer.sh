@@ -487,6 +487,7 @@ if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     sed -i '/%wheel ALL=(ALL) ALL/s/^#//' ${TARGET_PREFIX}/etc/sudoers
     add_config "systemctl start sshdgenkeys.service"
     add_config "systemctl enable sshd.service"
+    add_config "systemctl enable syslog-ng"
     add_config "systemctl enable openntpd.service"
     if [ "${INSTALL_TYPE}" != "server" ]; then
         add_config "systemctl enable avahi-daemon.service"
@@ -515,7 +516,6 @@ if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
 fi
 
 add_config "systemctl enable cronie.service"
-add_config "systemctl enable syslog-ng"
 
 if [ -f netctl ]; then
     cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
@@ -526,11 +526,13 @@ if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${DE}" != "shell" ]; then
     if [ "${DE}" == "xorg" ]; then
         pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-xinit.txt`
         add_config "localectl set-keymap ${KEYMAP}"
+        #add_config "systemctl enable xdm"
     elif [ "${DE}" == "gnome" ]; then
         pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-gnome.txt packages-gst.txt packages-cups.txt`
+        add_config "localectl set-keymap ${KEYMAP}"
         add_config "systemctl enable gdm.service"
-        add_config "systemctl enable accounts-daemon.service"
         add_config "systemctl enable upower.service"
+        add_config "systemctl enable accounts-daemon.service"
         add_config "systemctl enable NetworkManager.service"
         add_config "systemctl enable cups.service"
     elif [ "${DE}" == "kde" ]; then
@@ -544,12 +546,14 @@ if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${DE}" != "shell" ]; then
         fi
         echo "kde-l10n-${LOCALE_KDE}" >> packages-kde.txt
         pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-kde.txt packages-gst.txt packages-cups.txt`
+        add_config "localectl set-keymap ${KEYMAP}"
         add_config "systemctl enable kdm.service"
         add_config "systemctl enable upower.service"
         add_config "systemctl enable NetworkManager.service"
         add_config "systemctl enable cups.service"
     elif [ "${DE}" == "lxde" ]; then
         pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-lxde.txt packages-gst.txt packages-cups.txt`
+        add_config "localectl set-keymap ${KEYMAP}"
         add_config "systemctl enable lxdm.service"
         add_config "systemctl enable upower.service"
         add_config "systemctl enable wicd.service"
@@ -557,6 +561,7 @@ if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${DE}" != "shell" ]; then
     elif [ "${DE}" == "mate" ]; then
         echo -e '\n[mate]\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
         pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-mate.txt packages-gst.txt packages-cups.txt`
+        add_config "localectl set-keymap ${KEYMAP}"
         add_config "systemctl enable lxdm.service"
         add_config "systemctl enable upower.service"
         add_config "systemctl enable accounts-daemon.service"

@@ -1,4 +1,3 @@
-archlinux-lxdm-theme
 epdfview
 gksu
 leafpad

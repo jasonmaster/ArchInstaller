@@ -1,4 +1,3 @@
-archlinux-lxdm-theme
 lxdm
 mate
 mate-extra
