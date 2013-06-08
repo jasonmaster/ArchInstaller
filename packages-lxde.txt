@@ -1,0 +1,9 @@
+archlinux-lxdm-theme
+gksu
+leafpad
+lxde
+midori
+notification-daemon
+terminator
+wicd
+wicd-gtk
