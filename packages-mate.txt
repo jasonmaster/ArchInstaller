@@ -9,3 +9,4 @@ networkmanager
 networkmanager-openvpn
 networkmanager-pptp
 terminator
+xdg-user-dirs

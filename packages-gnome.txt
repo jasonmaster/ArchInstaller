@@ -6,3 +6,4 @@ networkmanager-openvpn
 networkmanager-pptp
 telepathy
 terminator
+xdg-user-dirs
