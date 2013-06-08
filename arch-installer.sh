@@ -551,14 +551,15 @@ if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${DE}" != "shell" ]; then
     elif [ "${DE}" == "lxde" ]; then
         pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-lxde.txt packages-gst.txt packages-cups.txt`
         add_config "systemctl enable lxdm.service"
+        add_config "systemctl enable upower.service"
         add_config "systemctl enable wicd.service"
         add_config "systemctl enable cups.service"
     elif [ "${DE}" == "mate" ]; then
         echo -e '\n[mate]\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
         pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-mate.txt packages-gst.txt packages-cups.txt`
         add_config "systemctl enable lxdm.service"
-        add_config "systemctl enable accounts-daemon.service"
         add_config "systemctl enable upower.service"
+        add_config "systemctl enable accounts-daemon.service"
         add_config "systemctl enable cups.service"
     fi
 fi

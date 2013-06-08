@@ -1,9 +1,13 @@
 archlinux-lxdm-theme
+epdfview
 gksu
 leafpad
 lxde
 midori
 notification-daemon
+obconf
 terminator
+upower
 wicd
 wicd-gtk
+xdg-user-dirs
