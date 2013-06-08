@@ -1,4 +1,6 @@
+archlinux-themes-kdm
 kde
+kdeplasma-applets-networkmanagement
 kde-telepathy
 phonon-gstreamer
 telepathy
