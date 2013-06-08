@@ -522,41 +522,38 @@ if [ -f netctl ]; then
     add_config "netctl enable mynetwork"
 fi
 
-if [ "${INSTALL_TYPE}" == "desktop" ]; then
-    if [ "${DE}" != "shell" ]; then
-        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt`
+if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${DE}" != "shell" ]; then
+    if [ "${DE}" == "xorg" ]; then
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-xinit.txt`
         add_config "localectl set-keymap ${KEYMAP}"
-        if [ "${DE}" == "xorg" ]; then
-            pacstrap -c ${TARGET_PREFIX} `cat packages-xinit.txt`
-        elif [ "${DE}" == "gnome" ]; then
-            pacstrap -c ${TARGET_PREFIX} `cat packages-gnome.txt packages-gst.txt packages-cups.txt`
-            add_config "systemctl enable gdm.service"
-            add_config "systemctl enable accounts-daemon.service"
-            add_config "systemctl enable upower.service"
-            add_config "systemctl enable NetworkManager.service"
-            add_config "systemctl enable cups.service"
-        elif [ "${DE}" == "kde" ]; then
-            LOCALE=`echo ${LANG} | cut -d'.' -f1`
-            if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
-                LOCALE_KDE=`echo ${LOCALE} | tr '[:upper:]' '[:lower:]'`
-            elif [ "${LOCALE}" == "en_US" ]; then
-                LOCALE_KDE="en_gb"
-            else
-                LOCALE_KDE=`echo ${LOCALE} | cut -d\_ -f1`
-            fi
-            echo "kde-l10n-${LOCALE_KDE}" >> packages-kde.txt
-            pacstrap -c ${TARGET_PREFIX} `cat packages-kde.txt packages-gst.txt packages-cups.txt`
-            add_config "systemctl enable kdm.service"
-            add_config "systemctl enable upower.service"
-            add_config "systemctl enable cups.service"
-        elif [ "${DE}" == "mate" ]; then
-            echo -e '\n[mate]\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET}/etc/pacman.conf
-            pacstrap -c ${TARGET_PREFIX} `cat packages-mate.txt packages-gst.txt packages-cups.txt`
-            add_config "systemctl enable lxdm.service"
-            add_config "systemctl enable accounts-daemon.service"
-            add_config "systemctl enable upower.service"
-            add_config "systemctl enable cups.service"
+    elif [ "${DE}" == "gnome" ]; then
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-gnome.txt packages-gst.txt packages-cups.txt`
+        add_config "systemctl enable gdm.service"
+        add_config "systemctl enable accounts-daemon.service"
+        add_config "systemctl enable upower.service"
+        add_config "systemctl enable NetworkManager.service"
+        add_config "systemctl enable cups.service"
+    elif [ "${DE}" == "kde" ]; then
+        LOCALE=`echo ${LANG} | cut -d'.' -f1`
+        if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
+            LOCALE_KDE=`echo ${LOCALE} | tr '[:upper:]' '[:lower:]'`
+        elif [ "${LOCALE}" == "en_US" ]; then
+            LOCALE_KDE="en_gb"
+        else
+            LOCALE_KDE=`echo ${LOCALE} | cut -d\_ -f1`
         fi
+        echo "kde-l10n-${LOCALE_KDE}" >> packages-kde.txt
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-kde.txt packages-gst.txt packages-cups.txt`
+        add_config "systemctl enable kdm.service"
+        add_config "systemctl enable upower.service"
+        add_config "systemctl enable cups.service"
+    elif [ "${DE}" == "mate" ]; then
+        echo -e '\n[mate]\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET}/etc/pacman.conf
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-mate.txt packages-gst.txt packages-cups.txt`
+        add_config "systemctl enable lxdm.service"
+        add_config "systemctl enable accounts-daemon.service"
+        add_config "systemctl enable upower.service"
+        add_config "systemctl enable cups.service"
     fi
 fi
 
