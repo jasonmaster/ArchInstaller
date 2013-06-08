@@ -7,4 +7,5 @@ networkmanager
 networkmanager-openvpn
 networkmanager-pptp
 terminator
+upower
 xdg-user-dirs

@@ -75,7 +75,7 @@ function usage() {
         echo "  -f : The filesystem to use. 'bfs', 'btrfs', 'ext4', 'f2fs, 'jfs', 'nilfs2', 'ntfs' and 'xfs' are supported. Defaults to '${FS}'."
     fi
     echo "  -c : The NFS export to mount and use as the pacman cache."
-    echo "  -e : The desktop environment to install. Defaults to '${DE}'. Can be 'shell', 'gnome', 'kde', 'lxde', 'mate' or 'xfce'"
+    echo "  -e : The desktop environment to install. Defaults to '${DE}'. Can be 'shell', 'enlightenment', 'gnome', 'kde', 'lxde', 'mate' or 'xfce'"
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
     echo "  -n : The hostname to use. Defaults to '${FQDN}'"
@@ -180,7 +180,7 @@ if [ "${INSTALL_TYPE}" != "desktop" ] && [ "${INSTALL_TYPE}" != "server" ] && [ 
     exit 1
 fi
 
-if [ "${DE}" != "shell" ] && [ "${DE}" != "gnome" ] && [ "${DE}" != "kde" ] && [ "${DE}" != "lxde" ] && [ "${DE}" != "mate" ] && [ "${DE}" != "xfce" ]; then
+if [ "${DE}" != "shell" ] && [ "${DE}" != "enlightenment" ] && [ "${DE}" != "gnome" ] && [ "${DE}" != "kde" ] && [ "${DE}" != "lxde" ] && [ "${DE}" != "mate" ] && [ "${DE}" != "xfce" ]; then
     echo "ERROR! '${DE}' is not a supported desktop environemt."
     exit 1
 fi
@@ -524,8 +524,15 @@ if [ -f netctl ]; then
 fi
 
 if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${DE}" != "shell" ]; then
-    if [ "${DE}" == "gnome" ]; then
-        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-gnome.txt packages-gst.txt packages-cups.txt`
+    if [ "${DE}" == "enlightenment" ]; then
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-enlightenment.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
+        add_config "localectl set-keymap ${KEYMAP}"
+        add_config "systemctl enable lightdm.service"
+        add_config "systemctl enable upower.service"
+        add_config "systemctl enable connman.service"
+        add_config "systemctl enable cups.service"
+    elif [ "${DE}" == "gnome" ]; then
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-gnome.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
         add_config "localectl set-keymap ${KEYMAP}"
         add_config "systemctl enable gdm.service"
         add_config "systemctl enable upower.service"
@@ -542,14 +549,14 @@ if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${DE}" != "shell" ]; then
             LOCALE_KDE=`echo ${LOCALE} | cut -d\_ -f1`
         fi
         echo "kde-l10n-${LOCALE_KDE}" >> packages-kde.txt
-        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-kde.txt packages-gst.txt packages-cups.txt`
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-kde.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
         add_config "localectl set-keymap ${KEYMAP}"
         add_config "systemctl enable kdm.service"
         add_config "systemctl enable upower.service"
         add_config "systemctl enable NetworkManager.service"
         add_config "systemctl enable cups.service"
     elif [ "${DE}" == "lxde" ]; then
-        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-lxde.txt packages-gst.txt packages-cups.txt`
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-lxde.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
         add_config "localectl set-keymap ${KEYMAP}"
         add_config "systemctl enable lxdm.service"
         add_config "systemctl enable upower.service"
@@ -557,7 +564,7 @@ if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${DE}" != "shell" ]; then
         add_config "systemctl enable cups.service"
     elif [ "${DE}" == "mate" ]; then
         echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
-        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-mate.txt packages-gst.txt packages-cups.txt`
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-mate.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
         add_config "localectl set-keymap ${KEYMAP}"
         add_config "systemctl enable lightdm.service"
         add_config "systemctl enable upower.service"
@@ -565,7 +572,7 @@ if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${DE}" != "shell" ]; then
         add_config "systemctl enable NetworkManager.service"
         add_config "systemctl enable cups.service"
     elif [ "${DE}" == "xfce" ]; then
-        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-xfce.txt packages-gst.txt packages-cups.txt`
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-xfce.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
         add_config "localectl set-keymap ${KEYMAP}"
         add_config "systemctl enable lightdm.service"
         add_config "systemctl enable upower.service"

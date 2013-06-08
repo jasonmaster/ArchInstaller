@@ -1,6 +1,5 @@
 cups
 cups-filters
-cups-pdf
 foomatic-db
 foomatic-db-engine
 foomatic-db-nonfree
