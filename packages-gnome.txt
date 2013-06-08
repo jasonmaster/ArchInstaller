@@ -1,8 +1,8 @@
+gedit-plugins
 gnome
 gnome-extra
 gnome-tweak-tool
-telepathy
-gedit-plugins
 networkmanager-openvpn
 networkmanager-pptp
+telepathy
 terminator
