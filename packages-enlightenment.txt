@@ -1,4 +1,0 @@
-connman
-enlightenment17
-lightdm-gtk3-greeter
-upower

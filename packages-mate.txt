@@ -1,9 +1,8 @@
 gtk-engine-murrine
-lightdm-gtk3-greeter
+lightdm-gtk2-greeter
 mate
 mate-extra
 mate-extras
-midori
 network-manager-applet
 networkmanager
 networkmanager-openvpn
