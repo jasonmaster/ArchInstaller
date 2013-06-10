@@ -1,0 +1,7 @@
+cinnamon
+lightdm-gtk3-greeter
+networkmanager-openvpn
+networkmanager-pptp
+terminator
+upower
+xdg-user-dirs
