@@ -468,19 +468,20 @@ fi
 # Dropbox and MiniDLNA will work correctly regardless of filesystem.
 echo "fs.inotify.max_user_watches = 131072" >> ${TARGET_PREFIX}/etc/sysctl.conf
 
+if [ "${MACHINE}" == "pc" ]; then
+    add_config "mkinitcpio -p linux"
+    add_config "hwclock --systohc --utc"
+else
+    add_config "rm /etc/localtime 2>/dev/null"
+fi
+add_config "ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime"
+
 # Configure the hostname.
 add_config "echo ${FQDN} > /etc/hostname"
 add_config "hostnamectl set-hostname --static ${FQDN}"
 
 # Configure timezone and hwclock
 add_config "echo ${TIMEZONE} > /etc/timezone"
-
-if [ "${MACHINE}" == "pc" ]; then
-    add_config "hwclock --systohc --utc"
-else
-    add_config "rm /etc/localtime 2>/dev/null"
-fi
-add_config "ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime"
 
 # Configure console font and keymap
 add_config "echo KEYMAP=${KEYMAP}     >  /etc/vconsole.conf"
@@ -493,6 +494,66 @@ add_config "echo LANG=${LANG}             >  /etc/locale.conf"
 add_config "echo LC_COLLATE=${LC_COLLATE} >> /etc/locale.conf"
 add_config "locale-gen"
 addlinetofile "export EDITOR=nano" ${TARGET_PREFIX}/etc/profile
+add_config "systemctl enable cronie.service"
+
+if [ -f netctl ]; then
+    cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
+    add_config "netctl enable mynetwork"
+fi
+
+if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${DE}" != "shell" ]; then
+    if [ "${DE}" == "cinnamon" ]; then
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-cinnamon.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
+        add_config "systemctl enable lightdm.service"
+        add_config "systemctl enable upower.service"
+        add_config "systemctl enable accounts-daemon.service"
+        add_config "systemctl enable NetworkManager.service"
+        add_config "systemctl enable cups.service"
+    elif [ "${DE}" == "gnome" ]; then
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-gnome.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
+        add_config "systemctl enable gdm.service"
+        add_config "systemctl enable upower.service"
+        add_config "systemctl enable accounts-daemon.service"
+        add_config "systemctl enable NetworkManager.service"
+        add_config "systemctl enable cups.service"
+    elif [ "${DE}" == "kde" ]; then
+        LOCALE=`echo ${LANG} | cut -d'.' -f1`
+        if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
+            LOCALE_KDE=`echo ${LOCALE} | tr '[:upper:]' '[:lower:]'`
+        elif [ "${LOCALE}" == "en_US" ]; then
+            LOCALE_KDE="en_gb"
+        else
+            LOCALE_KDE=`echo ${LOCALE} | cut -d\_ -f1`
+        fi
+        echo "kde-l10n-${LOCALE_KDE}" >> packages-kde.txt
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-kde.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
+        add_config "systemctl enable kdm.service"
+        add_config "systemctl enable upower.service"
+        add_config "systemctl enable NetworkManager.service"
+        add_config "systemctl enable cups.service"
+    elif [ "${DE}" == "lxde" ]; then
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-lxde.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
+        add_config "systemctl enable lxdm.service"
+        add_config "systemctl enable upower.service"
+        add_config "systemctl enable NetworkManager.service"
+        add_config "systemctl enable cups.service"
+    elif [ "${DE}" == "mate" ]; then
+        echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
+        echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-mate.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
+        add_config "systemctl enable lightdm.service"
+        add_config "systemctl enable upower.service"
+        add_config "systemctl enable accounts-daemon.service"
+        add_config "systemctl enable NetworkManager.service"
+        add_config "systemctl enable cups.service"
+    elif [ "${DE}" == "xfce" ]; then
+        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-xfce.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
+        add_config "systemctl enable lightdm.service"
+        add_config "systemctl enable upower.service"
+        add_config "systemctl enable NetworkManager.service"
+        add_config "systemctl enable cups.service"
+    fi
+fi
 
 if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     # Configure mDNS
@@ -573,67 +634,6 @@ if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     done
 fi
 
-add_config "systemctl enable cronie.service"
-
-if [ -f netctl ]; then
-    cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
-    add_config "netctl enable mynetwork"
-fi
-
-if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${DE}" != "shell" ]; then
-    if [ "${DE}" == "cinnamon" ]; then
-        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-cinnamon.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
-        add_config "systemctl enable lightdm.service"
-        add_config "systemctl enable upower.service"
-        add_config "systemctl enable accounts-daemon.service"
-        add_config "systemctl enable NetworkManager.service"
-        add_config "systemctl enable cups.service"
-    elif [ "${DE}" == "gnome" ]; then
-        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-gnome.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
-        add_config "systemctl enable gdm.service"
-        add_config "systemctl enable upower.service"
-        add_config "systemctl enable accounts-daemon.service"
-        add_config "systemctl enable NetworkManager.service"
-        add_config "systemctl enable cups.service"
-    elif [ "${DE}" == "kde" ]; then
-        LOCALE=`echo ${LANG} | cut -d'.' -f1`
-        if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
-            LOCALE_KDE=`echo ${LOCALE} | tr '[:upper:]' '[:lower:]'`
-        elif [ "${LOCALE}" == "en_US" ]; then
-            LOCALE_KDE="en_gb"
-        else
-            LOCALE_KDE=`echo ${LOCALE} | cut -d\_ -f1`
-        fi
-        echo "kde-l10n-${LOCALE_KDE}" >> packages-kde.txt
-        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-kde.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
-        add_config "systemctl enable kdm.service"
-        add_config "systemctl enable upower.service"
-        add_config "systemctl enable NetworkManager.service"
-        add_config "systemctl enable cups.service"
-    elif [ "${DE}" == "lxde" ]; then
-        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-lxde.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
-        add_config "systemctl enable lxdm.service"
-        add_config "systemctl enable upower.service"
-        add_config "systemctl enable NetworkManager.service"
-        add_config "systemctl enable cups.service"
-    elif [ "${DE}" == "mate" ]; then
-        echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
-        echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
-        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-mate.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
-        add_config "systemctl enable lightdm.service"
-        add_config "systemctl enable upower.service"
-        add_config "systemctl enable accounts-daemon.service"
-        add_config "systemctl enable NetworkManager.service"
-        add_config "systemctl enable cups.service"
-    elif [ "${DE}" == "xfce" ]; then
-        pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-xfce.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
-        add_config "systemctl enable lightdm.service"
-        add_config "systemctl enable upower.service"
-        add_config "systemctl enable NetworkManager.service"
-        add_config "systemctl enable cups.service"
-    fi
-fi
-
 if [ -f users.csv ]; then
     IFS=$'\n';
     for USER in `cat users.csv`
@@ -656,7 +656,6 @@ PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
 add_config "usermod --password ${PASSWORD_CRYPT} root"
 
 if [ "${MACHINE}" == "pc" ]; then
-    add_config "mkinitcpio -p linux"
     add_config "syslinux-install_update -iam"
     arch-chroot ${TARGET_PREFIX} /usr/local/bin/arch-config.sh
     cp {splash.png,terminus.psf,syslinux.cfg} ${TARGET_PREFIX}/boot/syslinux/
