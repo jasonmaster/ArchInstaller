@@ -22,7 +22,6 @@ FS="ext4"
 PARTITION_TYPE="msdos"
 PARTITION_LAYOUT=""
 INSTALL_TYPE="desktop"
-MACHINE="pc"
 TARGET_PREFIX="/mnt"
 CPU=`uname -m`
 DE="none"
@@ -39,7 +38,6 @@ elif [ "${CPU}" == "armv6l" ]; then
         echo " - Exitting now to prevent untold chaos."
         exit 1
     else
-        MACHINE="pi"
         DSK="mmcblk0"
         TARGET_PREFIX=""
     fi
@@ -52,14 +50,14 @@ fi
 function usage() {
     echo
     echo "Usage"
-    if [ "${MACHINE}" == "pc" ]; then
+    if [ "${HOSTANME}" == "archiso" ]; then
         echo "  ${0} -d sda -p bsrh -w P@ssw0rd -b ${PARTITION_TYPE} -f ${FS} -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
     else
         echo "  ${0} -w P@ssw0rd -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
     fi
     echo
     echo "Required parameters"
-    if [ "${MACHINE}" == "pc" ]; then
+    if [ "${HOSTNAME}" == "archiso" ]; then
         echo "  -d : The target device. For example, 'sda'."
         echo "  -p : The partition layout to use. One of: "
         echo "         'bsrh' : /boot, swap, /root and /home"
@@ -69,7 +67,7 @@ function usage() {
     echo "  -w : The root password."
     echo
     echo "Optional parameters"
-    if [ "${MACHINE}" == "pc" ]; then
+    if [ "${HOSTNAME}" == "archiso" ]; then
         echo "  -b : The partition type to use. Defaults to '${PARTITION_TYPE}'. Can be 'msdos' or 'gpt'."
         echo "  -f : The filesystem to use. 'bfs', 'btrfs', 'ext4', 'f2fs, 'jfs', 'nilfs2', 'ntfs' and 'xfs' are supported. Defaults to '${FS}'."
     fi
@@ -122,7 +120,7 @@ do
 done
 shift "$(( $OPTIND - 1 ))"
 
-if [ "${MACHINE}" == "pc" ]; then
+if [ "${HOSTNAME}" == "archiso" ]; then
 
     # Look for the VirtualBox Guest Service and add additional package and groups if required.
     VBOX_GUEST=`lspci -d 80ee:cafe`
@@ -261,7 +259,7 @@ fi
 echo
 echo "Installation Summary"
 echo
-if [ "${MACHINE}" == "pc" ]; then
+if [ "${HOSTNAME}" == "archiso" ]; then
     echo " - Installation target : /dev/${DSK}"
     if [ ${HAS_SSD} -eq 1 ]; then
         if [ ${HAS_TRIM} -eq 1 ]; then
@@ -300,8 +298,11 @@ else
     echo " - Configure network   : No"
 fi
 
+# Load the keymap and remove the PC speaker module.
+loadkeys -q ${KEYMAP}
+
 echo
-if [ "${MACHINE}" == "pc" ]; then
+if [ "${HOSTNAME}" == "archiso" ]; then
     echo "WARNING: `basename ${0}` is about to destroy everything on /dev/${DSK}!"
 else
     echo "WARNING: `basename ${0}` is about to start installing!"
@@ -310,10 +311,9 @@ echo "I make no guarantee that the installation of Arch Linux will succeed."
 echo "Press RETURN to try your luck or CTRL-C to cancel."
 read
 
-# Load the keymap and remove the PC speaker module.
-loadkeys -q ${KEYMAP}
 
-if [ "${MACHINE}" == "pc" ]; then
+
+if [ "${HOSTNAME}" == "archiso" ]; then
     echo "==> Clearing partition table on /dev/${DSK}"
     sgdisk --zap /dev/${DSK} >/dev/null 2>&1
     echo "==> Destroying magic strings and signatures on /dev/${DSK}"
@@ -407,20 +407,16 @@ echo "==> Enabling key : 182ADEA0"
 gpg --homedir /etc/pacman.d/gnupg --edit-key 182ADEA0 enable quit >/dev/null 2>&1
 
 # Base system
-if [ "${MACHINE}" == "pc" ]; then
+if [ "${HOSTNAME}" == "archiso" ]; then
     pacstrap -c ${TARGET_PREFIX} `cat packages-base.txt ${VBOX_PKGS}`
-else
-    pacman -S --noconfirm --needed `grep -Ev "syslinux" packages-base.txt`
-fi
-
-if [ "${MACHINE}" == "pc" ]; then
     # Uncomment the multilib repo on the install ISO and the target
     if [ "${CPU}" == "x86_64" ]; then
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' ${TARGET_PREFIX}/etc/pacman.conf
     fi
-
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
+else
+    pacman -S --noconfirm --needed `grep -Ev "syslinux" packages-base.txt`
 fi
 
 # https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
@@ -428,13 +424,13 @@ sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' ${TARGET_PREF
 sed -i 's/#Color/Color/' ${TARGET_PREFIX}/etc/pacman.conf
 
 # Install and configure the extra packages
-if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
+if [ "${INSTALL_TYPE}" != "minimal" ]; then
     # Install multilib-devel
     if [ "${CPU}" == "x86_64" ]; then
         echo -en "\nY\nY\nY\nY\nY\n" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     fi
 
-    if [ "${MACHINE}" == "pc" ]; then
+    if [ "${HOSTNAME}" == "archiso" ]; then
         pacstrap -c ${TARGET_PREFIX} `pacman -Qq | grep -Ev "gcc-libs|grub|gummi|nmap|ntp"`
         EXTRA_RET=$?
         pacstrap -c ${TARGET_PREFIX} `cat packages-core-extra.txt`
@@ -479,7 +475,7 @@ fi
 # Dropbox and MiniDLNA will work correctly regardless of filesystem.
 echo "fs.inotify.max_user_watches = 131072" >> ${TARGET_PREFIX}/etc/sysctl.conf
 
-if [ "${MACHINE}" == "pc" ]; then
+if [ "${HOSTNAME}" == "archiso" ]; then
     add_config "mkinitcpio -p linux"
     add_config "hwclock --systohc --utc"
 else
@@ -590,7 +586,7 @@ if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     fi
 
     # Install `packer`.
-    if [ "${MACHINE}" == "pc" ]; then
+    if [ "${HOSTNAME}" == "archiso" ]; then
         add_config "wget http://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz"
         add_config 'if [ $? -ne 0 ]; then'
         add_config "    echo \"ERROR! Couldn't downloading packer.tar.gz. Aborting packer install.\""
@@ -665,9 +661,9 @@ if [ -f users.csv ]; then
         _EXTRA_GROUPS=`echo ${USER} | cut -d',' -f4`
 
         if [ "${_EXTRA_GROUPS}" != "" ]; then
-            _GROUPS=${BASE_GROUPS},${_EXTRA_GROUPS}${VBOX_GROUP}
+            _GROUPS=${BASE_GROUPS},${_EXTRA_GROUPS} #${VBOX_GROUP}
         else
-            _GROUPS=${BASE_GROUPS}${VBOX_GROUP}
+            _GROUPS=${BASE_GROUPS} #${VBOX_GROUP}
         fi
         add_config "useradd --password ${_CRYPTPASSWD} --comment \"${_COMMENT}\" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}"
     done
@@ -676,7 +672,7 @@ fi
 PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
 add_config "usermod --password ${PASSWORD_CRYPT} root"
 
-if [ "${MACHINE}" == "pc" ]; then
+if [ "${HOSTNAME}" == "archiso" ]; then
     add_config "syslinux-install_update -iam"
     arch-chroot ${TARGET_PREFIX} /usr/local/bin/arch-config.sh
     cp {splash.png,terminus.psf,syslinux.cfg} ${TARGET_PREFIX}/boot/syslinux/
@@ -687,12 +683,12 @@ fi
 swapoff -a && sync
 if [ -n "${NFS_CACHE}" ]; then
     addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,relatime,noauto,x-systemd.automount,x-systemd.device-timeout=5s 0 0" ${TARGET_PREFIX}/etc/fstab
-    if [ "${MACHINE}" == "pc" ]; then
+    if [ "${HOSTNAME}" == "archiso" ]; then
         umount -fv /var/cache/pacman/pkg
     fi
 fi
 
-if [ "${MACHINE}" == "pc" ]; then
+if [ "${HOSTNAME}" == "archiso" ]; then
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
         umount -fv ${TARGET_PREFIX}/home
     fi
