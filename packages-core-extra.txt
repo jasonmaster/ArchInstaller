@@ -1,9 +1,7 @@
-aic94xx-firmware
 alsa-firmware
 arj
 avahi
 bash-completion
-bfa-firmware
 bluez-firmware
 bzr
 cabextract
