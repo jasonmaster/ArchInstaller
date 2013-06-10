@@ -424,7 +424,6 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
 fi
 
 # Install packages
-echo "${PACKAGES}"
 if [ "${HOSTNAME}" == "archiso" ]; then
     pacstrap -c ${TARGET_PREFIX} `cat ${PACKAGES} | grep -Ev "grub|gummi|nmap|^ntp"`
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
@@ -576,7 +575,7 @@ if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
         add_config "pacman -S --noconfirm packer"
     fi
 
-    # Install dot files and configure the root user shell.
+    # Install dot files.
     rsync -aq skel/ ${TARGET_PREFIX}/etc/skel/
     rsync -aq skel/ ${TARGET_PREFIX}/root/
 
