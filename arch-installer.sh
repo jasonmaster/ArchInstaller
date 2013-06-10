@@ -19,7 +19,7 @@ FONT="ter-116b"
 FONT_MAP="8859-1_to_uni"
 PASSWORD=""
 FS="ext4"
-PACKAGES="packages-base.txt"
+PACKAGES="base/packages-base.txt"
 PARTITION_TYPE="msdos"
 PARTITION_LAYOUT=""
 INSTALL_TYPE="desktop"
@@ -400,12 +400,11 @@ gpg --homedir /etc/pacman.d/gnupg --edit-key 182ADEA0 enable quit >/dev/null 2>&
 
 # Chain packages
 if [ -n "${VBOX_GUEST}" ]; then
-    PACKAGES="${PACKAGES} packages-virtualbox-guest.txt"
+    PACKAGES="${PACKAGES} packages/base/packages-virtualbox-guest.txt"
 fi
 if [ "${INSTALL_TYPE}" != "minimal" ]; then
-    PACKAGES="${PACKAGES} packages-core-extra.txt"
+    PACKAGES="${PACKAGES} packages/base/packages-core-extra.txt"
     if [ "${DE}" != "none" ] && [ "${INSTALL_TYPE}" == "desktop" ]; then
-        PACKAGES="${PACKAGES} packages-xorg.txt packages-${DE}.txt packages-gst.txt packages-cups.txt packages-ttf.txt"
         if [ "${DE}" == "kde" ]; then
             LOCALE=`echo ${LANG} | cut -d'.' -f1`
             if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
@@ -415,45 +414,26 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
             else
                 LOCALE_KDE=`echo ${LOCALE} | cut -d\_ -f1`
             fi
-            echo "kde-l10n-${LOCALE_KDE}" >> packages-kde.txt
+            echo "kde-l10n-${LOCALE_KDE}" >> packages/desktop/packages-kde.txt
         elif [ "${DE}" == "mate" ]; then
             echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
             echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
         fi
+        PACKAGES="${PACKAGES} packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt package/desktop/packages-ttf.txt"
     fi
 fi
 
-# Base system
+# Install packages
 if [ "${HOSTNAME}" == "archiso" ]; then
     pacstrap -c ${TARGET_PREFIX} `cat ${PACKAGES} | grep -Ev "gcc-libs|grub|gummi|nmap|ntp"`
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
-else
-    pacman -S --noconfirm --needed `cat ${PACKAGES} | grep -Ev "pcmciautils|syslinux"`
-fi
-
-# Install and configure the extra packages
-if [ "${INSTALL_TYPE}" != "minimal" ]; then
-    # Install multilib-devel
-    if [ "${CPU}" == "x86_64" ]; then
+    if [ "${INSTALL_TYPE}" != "minimal" ] && [ "${CPU}" == "x86_64" ]; then
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' ${TARGET_PREFIX}/etc/pacman.conf
         echo -en "\nY\nY\nY\nY\nY\n" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     fi
-
-    #if [ "${HOSTNAME}" == "archiso" ]; then
-    #    pacstrap -c ${TARGET_PREFIX} `pacman -Qq | grep -Ev "gcc-libs|grub|gummi|nmap|ntp"`
-    #    EXTRA_RET=$?
-    #    pacstrap -c ${TARGET_PREFIX} `cat packages-core-extra.txt`
-    #    EXTRA_RET=$((${EXTRA_RET} + $?))
-    #else
-    #    pacman -S --noconfirm --needed `cat packages-core.txt packages-core-extra.txt | grep -Ev "pcmciautils|syslinux"`
-    #    EXTRA_RET=$?
-    #fi
-
-    #if [ ${EXTRA_RET} -ne 0 ]; then
-    #    echo "ERROR! Installing core packages failed. Try running `basename ${0}` again."
-    #    exit 1
-    #fi
+else
+    pacman -S --noconfirm --needed `cat ${PACKAGES} | grep -Ev "pcmciautils|syslinux"`
 fi
 
 # Start building the configuration script
