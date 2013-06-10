@@ -123,6 +123,15 @@ done
 shift "$(( $OPTIND - 1 ))"
 
 if [ "${MACHINE}" == "pc" ]; then
+
+    # Look for the VirtualBox Guest Service
+    VBOX_GUEST=`lspci -d 80ee:cafe`
+    if [ -n "${VBOX_GUEST}" ]; then
+        VBOX_PKGS="packages-virtualbox-guest.txt"
+    else
+        VBOX_PKGS=""
+    fi
+
     if [ ! -b /dev/${DSK} ]; then
         echo "ERROR! Target install disk not found."
         echo " - See `basename ${0}` -h"
@@ -397,7 +406,7 @@ gpg --homedir /etc/pacman.d/gnupg --edit-key 182ADEA0 enable quit >/dev/null 2>&
 
 # Base system
 if [ "${MACHINE}" == "pc" ]; then
-    pacstrap -c ${TARGET_PREFIX} `cat packages-base.txt`
+    pacstrap -c ${TARGET_PREFIX} `cat packages-base.txt ${VBOX_PKGS}`
 else
     pacman -S --noconfirm --needed `grep -Ev "syslinux" packages-base.txt`
 fi
@@ -555,6 +564,15 @@ if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${DE}" != "shell" ]; then
     fi
 fi
 
+if [ -n "${VBOX_GUEST}" ]; then
+    add_config "systemctl enable vboxservice.service"
+    echo "vboxguest" >  ${TARGET_PREFIX}/etc/modules-load.d/virtualbox-guest.conf
+    echo "vboxsf"    >> ${TARGET_PREFIX}/etc/modules-load.d/virtualbox-guest.conf
+    echo "vboxvideo" >> ${TARGET_PREFIX}/etc/modules-load.d/virtualbox-guest.conf
+else
+    add_config "systemctl enable openntpd.service"
+fi
+
 if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     # Configure mDNS
     sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' ${TARGET_PREFIX}/etc/nsswitch.conf
@@ -563,7 +581,7 @@ if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     add_config "systemctl start sshdgenkeys.service"
     add_config "systemctl enable sshd.service"
     add_config "systemctl enable syslog-ng"
-    add_config "systemctl enable openntpd.service"
+
     if [ "${INSTALL_TYPE}" != "server" ]; then
         add_config "systemctl enable avahi-daemon.service"
         add_config "systemctl enable rpc-statd.service"
