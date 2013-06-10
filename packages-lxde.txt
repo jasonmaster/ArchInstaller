@@ -2,7 +2,6 @@ epdfview
 gksu
 leafpad
 lxde
-midori
 network-manager-applet
 networkmanager
 networkmanager-openvpn

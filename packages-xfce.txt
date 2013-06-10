@@ -1,7 +1,6 @@
 lightdm-gtk2-greeter
 xfce4
 xfce4-goodies
-midori
 network-manager-applet
 networkmanager
 networkmanager-openvpn
