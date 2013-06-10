@@ -1,9 +1,12 @@
 gedit-plugins
 gnome
+gnome-packagekit
+gnome-settings-daemon-updates
 gnome-extra
 gnome-tweak-tool
 networkmanager-openvpn
 networkmanager-pptp
+polkit-gnome
 telepathy
 terminator
 upower
