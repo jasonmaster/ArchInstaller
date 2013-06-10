@@ -128,7 +128,7 @@ if [ "${MACHINE}" == "pc" ]; then
     VBOX_GUEST=`lspci -d 80ee:cafe`
     if [ -n "${VBOX_GUEST}" ]; then
         VBOX_PKGS="packages-virtualbox-guest.txt"
-        VBOX_GROUP="vboxsf"
+        VBOX_GROUP=",vboxsf"
     else
         VBOX_PKGS=""
         VBOX_GROUP=""
@@ -665,15 +665,10 @@ if [ -f users.csv ]; then
         _EXTRA_GROUPS=`echo ${USER} | cut -d',' -f4`
 
         if [ "${_EXTRA_GROUPS}" != "" ]; then
-            _GROUPS=${BASE_GROUPS},${_EXTRA_GROUPS}
+            _GROUPS=${BASE_GROUPS},${_EXTRA_GROUPS}${VBOX_GROUP}
         else
-            _GROUPS=${BASE_GROUPS}
+            _GROUPS=${BASE_GROUPS}${VBOX_GROUP}
         fi
-
-        if [ "${VBOX_GROUP}" != "" ]; then
-            _GROUPS=${_GROUPS},${VBOX_GROUPS}
-        fi
-
         add_config "useradd --password ${_CRYPTPASSWD} --comment \"${_COMMENT}\" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}"
     done
 fi
