@@ -425,7 +425,6 @@ fi
 
 # Install packages
 echo "${PACKAGES}"
-read
 if [ "${HOSTNAME}" == "archiso" ]; then
     pacstrap -c ${TARGET_PREFIX} `cat ${PACKAGES} | grep -Ev "grub|gummi|nmap|^ntp"`
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
