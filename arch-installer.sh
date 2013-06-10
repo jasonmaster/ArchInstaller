@@ -22,7 +22,6 @@ FS="ext4"
 PARTITION_TYPE="msdos"
 PARTITION_LAYOUT=""
 INSTALL_TYPE="desktop"
-ENABLE_DISCARD=0
 MACHINE="pc"
 TARGET_PREFIX="/mnt"
 CPU=`uname -m`
@@ -130,19 +129,47 @@ if [ "${MACHINE}" == "pc" ]; then
         exit 1
     fi
 
+    if [ `cat /sys/block/${DSK}/queue/rotational` == "0" ] && [ `cat /sys/block/${DSK}/removable` == "0" ]; then
+        if [ -n "$(hdparm -I /dev/${DSK} 2>&1 | grep 'TRIM supported')" ]; then
+            HAS_TRIM=1
+            HAS_SSD=1
+        else
+            HAS_TRIM=0
+            HAS_SSD=1
+        fi
+    else
+        HAS_TRIM=0
+        HAS_SSD=0
+    fi
+
+    MOUNT_OPTS="-o relatime"
     MKFS_L="-L"
+    # TRIM is currently only supported on btrfs ext3 ext4 gfs2 jfs ocfs2 xfs
+    # Disable fstrim on filesystems that don't support TRIM, even if the hardware does.
     case ${FS} in
         "bfs")    MKFS="mkfs.bfs"
-                  MKFS_L="-V";;
-        "btrfs")  MKFS="mkfs.btrfs";;
-        "ext2")   MKFS="mkfs.ext2 -F -m 0 -q";;
+                  MKFS_L="-V"
+                  HAS_TRIM=0
+                  ;;
+        "btrfs")  MKFS="mkfs.btrfs"
+                  if [ ${HAS_SSD} -eq 1 ]; then
+                    MOUNT_OPTS=${MOUNT_OPTS}" compress=lzo"
+                  fi
+                  ;;
+        "ext2")   MKFS="mkfs.ext2 -F -m 0 -q"
+                  HAS_TRIM=0
+                  ;;
         "ext3")   MKFS="mkfs.ext3 -F -m 0 -q";;
         "ext4")   MKFS="mkfs.ext4 -F -m 0 -q";;
         "f2fs")   MKFS="mkfs.f2fs"
-                  MKFS_L="-l";;
+                  MKFS_L="-l"
+                  HAS_TRIM=0
+                  ;;
         "jfs")    MKFS="mkfs.jfs -q";;
-        "nilfs2") MKFS="mkfs.nilfs2 -q";;
-        "ntfs")   MKFS="mkfs.ntfs -q";;
+        "nilfs2") MKFS="mkfs.nilfs2 -q"
+                  HAS_TRIM=0;;
+        "ntfs")   MKFS="mkfs.ntfs -q"
+                  HAS_TRIM=0;;
         "xfs")    MKFS="mkfs.xfs -f -q";;
         *) echo "ERROR! Filesystem ${FS} is not supported."
            echo " - See `basename ${0}` -h"
@@ -225,10 +252,9 @@ echo "Installation Summary"
 echo
 if [ "${MACHINE}" == "pc" ]; then
     echo " - Installation target : /dev/${DSK}"
-    if [ `cat /sys/block/${DSK}/queue/rotational` == "0" ] && [ `cat /sys/block/${DSK}/removable` == "0" ]; then
-        if [ -n "$(hdparm -I /dev/${DSK} 2>&1 | grep 'TRIM supported')" ]; then
+    if [ ${HAS_SSD} -eq 1 ]; then
+        if [ ${HAS_TRIM} -eq 1 ]; then
             echo " - Disk type           : Solid state with TRIM."
-            ENABLE_DISCARD=1
         else
             echo " - Disk type           : Solid state without TRIM."
         fi
@@ -355,11 +381,11 @@ if [ "${MACHINE}" == "pc" ]; then
     fi
 
     echo "==> Mounting filesystems"
-    mount /dev/${ROOT_PARTITION} ${TARGET_PREFIX} >/dev/null
+    mount ${MOUNT_OPTS} /dev/${ROOT_PARTITION} ${TARGET_PREFIX} >/dev/null
     mkdir -p ${TARGET_PREFIX}/{boot,home}
     mount /dev/${DSK}1 ${TARGET_PREFIX}/boot >/dev/null
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-        mount /dev/${DSK}4 ${TARGET_PREFIX}/home >/dev/null
+        mount ${MOUNT_OPTS} /dev/${DSK}4 ${TARGET_PREFIX}/home >/dev/null
     fi
 fi
 
@@ -390,21 +416,17 @@ fi
 sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' ${TARGET_PREFIX}/etc/pacman.conf
 sed -i 's/#Color/Color/' ${TARGET_PREFIX}/etc/pacman.conf
 
-# F2FS does not currently have an `fsck` tool.
-if [ "${FS}" == "f2fs" ]; then
-    sed -i 's/keyboard fsck/keyboard/' ${TARGET_PREFIX}/etc/mkinitcpio.conf
-fi
-
 # Install and configure the extra packages
 if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     # Install multilib-devel
     if [ "${CPU}" == "x86_64" ]; then
-    echo "
-Y
-Y
-Y
-Y
-Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
+    #echo "
+#Y
+#Y
+#Y
+#Y
+#Y" 
+        yes | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     fi
 
     if [ "${MACHINE}" == "pc" ]; then
@@ -427,9 +449,10 @@ fi
 update_early_hooks consolefont
 update_early_hooks keymap
 
-# Add offline discard cron here. None of my SSDs are TRIM compatible.
-#  - http://www.webupd8.org/2013/01/enable-trim-on-ssd-solid-state-drives.html
-if [ ${ENABLE_DISCARD} -eq 1 ]; then
+# Add `fstrim` cron job here.
+#  - https://patrick-nagel.net/blog/archives/337
+#  - http://blog.neutrino.es/2013/howto-properly-activate-trim-for-your-ssd-on-linux-fstrim-lvm-and-dmcrypt/
+if [ ${HAS_TRIM} -eq 1 ]; then
     addlinetofile "#!/usr/bin/env bash"                  ${TARGET_PREFIX}/etc/cron.daily/trim
     addlinetofile "$(date -R)      >> /var/log/trim.log" ${TARGET_PREFIX}/etc/cron.daily/trim
     addlinetofile "fstrim -v /     >> /var/log/trim.log" ${TARGET_PREFIX}/etc/cron.daily/trim
@@ -440,6 +463,11 @@ fi
 
 # Start building the configuration script
 start_config
+
+# F2FS does not currently have a `fsck` tool.
+if [ "${FS}" == "f2fs" ]; then
+    add_config "sed -i 's/keyboard fsck/keyboard/' ${TARGET_PREFIX}/etc/mkinitcpio.conf"
+fi
 
 # Configure the hostname.
 add_config "echo ${FQDN} > /etc/hostname"
