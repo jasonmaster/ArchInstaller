@@ -18,5 +18,6 @@ if [ "${HOSTNAME}" != "archiso" ]; then
     systemctl start vboxservice
 fi
 systemctl disable openntpd
-systemctl enable vboxservice
+systemctl enable vbo
+VBoxClient-all
 read
