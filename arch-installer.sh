@@ -493,18 +493,6 @@ add_config "echo LANG=${LANG}             >  /etc/locale.conf"
 add_config "echo LC_COLLATE=${LC_COLLATE} >> /etc/locale.conf"
 add_config "locale-gen"
 addlinetofile "export EDITOR=nano" ${TARGET_PREFIX}/etc/profile
-echo "blacklist pcspkr" > ${TARGET_PREFIX}/etc/modprobe.d/blacklist-pcspkr.conf
-
-# https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling
-modprobe -q acpi-cpufreq
-if [ $? -eq 0 ]; then
-    echo "acpi-cpufreq" > ${TARGET_PREFIX}/etc/modules-load.d/acpi-cpufreq.conf
-else
-    modprobe -q powernow_k8
-    if [ $? -eq 0 ]; then
-        echo "powernow_k8" > ${TARGET_PREFIX}/etc/modules-load.d/powernow_k8.conf
-    fi
-fi
 
 if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     # Configure mDNS
@@ -539,6 +527,50 @@ if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     # Install dot files and configure the root user shell.
     rsync -aq skel/ ${TARGET_PREFIX}/etc/skel/
     rsync -aq skel/ ${TARGET_PREFIX}/root/
+
+    # Configure the hardware
+    echo "blacklist pcspkr" > ${TARGET_PREFIX}/etc/modprobe.d/blacklist-pcspkr.conf
+
+    # https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling
+    modprobe -q acpi-cpufreq
+    if [ $? -eq 0 ]; then
+        echo "acpi-cpufreq" > ${TARGET_PREFIX}/etc/modules-load.d/acpi-cpufreq.conf
+    else
+        modprobe -q powernow_k8
+        if [ $? -eq 0 ]; then
+            echo "powernow_k8" > ${TARGET_PREFIX}/etc/modules-load.d/powernow_k8.conf
+        fi
+    fi
+
+    # Configure PCI/USB device specific stuff
+    for BUS in pci usb
+    do
+        if [ "${BUS}" == "pci" ]; then
+            DEVICE_FINDER="lspci"
+        elif [ "${BUS}" == "usb" ]; then
+            DEVICE_FINDER="lsusb"
+        fi
+
+        # Make sure the bus works.
+        # For example, it is possible USB may not be available on virtualised hosts.
+        BUS_TEST=`${DEVICE_FINDER} 2>/dev/null`
+        BUS_WORKS=$?
+
+        if [ ${BUS_WORKS} -eq 0 ]; then
+            for DEVICE_CONFIG in hardware/${BUS}/*.sh
+            do
+                if [ -x ${DEVICE_CONFIG} ]; then
+                    DEVICE_ID=`echo ${DEVICE_CONFIG} | cut -f3 -d'/' | sed s'/\.sh//'`
+                    FOUND_DEVICE=`${DEVICE_FINDER} -d ${DEVICE_ID}`
+                    if [ -n "${FOUND_DEVICE}" ]; then
+                        # Add the hardware script to the configuration script.
+                        echo "#${DEVICE_ID}" >>${TARGET_PREFIX}/usr/local/bin/arch-config.sh
+                        grep -Ev "#!" ${DEVICE_CONFIG} >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
+                    fi
+                fi
+            done
+        fi
+    done
 fi
 
 add_config "systemctl enable cronie.service"
