@@ -404,31 +404,31 @@ if [ -n "${VBOX_GUEST}" ]; then
 fi
 if [ "${INSTALL_TYPE}" != "minimal" ]; then
     PACKAGES="${PACKAGES} packages-core-extra.txt"
-    if [ "${DE}" != "none" ]; then
+    if [ "${DE}" != "none" ] && [ "${INSTALL_TYPE}" == "desktop" ]; then
         PACKAGES="${PACKAGES} packages-xorg.txt packages-${DE}.txt packages-gst.txt packages-cups.txt packages-ttf.txt"
-    fi
-    if [ "${DE}" == "kde" ]; then
-        LOCALE=`echo ${LANG} | cut -d'.' -f1`
-        if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
-            LOCALE_KDE=`echo ${LOCALE} | tr '[:upper:]' '[:lower:]'`
-        elif [ "${LOCALE}" == "en_US" ]; then
-            LOCALE_KDE="en_gb"
-        else
-            LOCALE_KDE=`echo ${LOCALE} | cut -d\_ -f1`
+        if [ "${DE}" == "kde" ]; then
+            LOCALE=`echo ${LANG} | cut -d'.' -f1`
+            if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
+                LOCALE_KDE=`echo ${LOCALE} | tr '[:upper:]' '[:lower:]'`
+            elif [ "${LOCALE}" == "en_US" ]; then
+                LOCALE_KDE="en_gb"
+            else
+                LOCALE_KDE=`echo ${LOCALE} | cut -d\_ -f1`
+            fi
+            echo "kde-l10n-${LOCALE_KDE}" >> packages-kde.txt
+        elif [ "${DE}" == "mate" ]; then
+            echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
+            echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
         fi
-        echo "kde-l10n-${LOCALE_KDE}" >> packages-kde.txt
-    elif [ "${DE}" == "mate" ]; then
-        echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
-        echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
     fi
 fi
 
 # Base system
 if [ "${HOSTNAME}" == "archiso" ]; then
-    pacstrap -c ${TARGET_PREFIX} `cat "${PACKAGES}" | grep -Ev "gcc-libs|grub|gummi|nmap|ntp"`
+    pacstrap -c ${TARGET_PREFIX} `cat ${PACKAGES} | grep -Ev "gcc-libs|grub|gummi|nmap|ntp"`
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
 else
-    pacman -S --noconfirm --needed `cat "${PACKAGES}" | grep -Ev "pcmciautils|syslinux"`
+    pacman -S --noconfirm --needed `cat ${PACKAGES} | grep -Ev "pcmciautils|syslinux"`
 fi
 
 # Install and configure the extra packages
