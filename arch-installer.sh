@@ -463,6 +463,11 @@ if [ "${FS}" == "f2fs" ]; then
     add_config "sed -i 's/keyboard fsck/keyboard/' ${TARGET_PREFIX}/etc/mkinitcpio.conf"
 fi
 
+# By default the maximum number of watches is set to 8192, which is rather low.
+# Increasing this value will have no noticeable side effects and ensure things like
+# Dropbox and MiniDLNA will work correctly regardless of filesystem.
+echo "fs.inotify.max_user_watches = 131072" >> ${TARGET_PREFIX}/etc/sysctl.conf
+
 # Configure the hostname.
 add_config "echo ${FQDN} > /etc/hostname"
 add_config "hostnamectl set-hostname --static ${FQDN}"
