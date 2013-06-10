@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
-pacman -S --needed --noconfirm virtualbox-guest-utils
+pacman -S --needed --noconfirm virtualbox-guest-modules
+read
+depmod -a
 echo "vboxguest" >  /etc/modules-load.d/virtualbox-guest.conf
 echo "vboxsf"    >> /etc/modules-load.d/virtualbox-guest.conf
 echo "vboxvideo" >> /etc/modules-load.d/virtualbox-guest.conf
-echo "Press a key:"
+pacman -S --needed --noconfirm virtualbox-guest-utils
 read
 
 # Synchronise date/time to the host
@@ -17,5 +19,4 @@ if [ "${HOSTNAME}" != "archiso" ]; then
 fi
 systemctl disable openntpd
 systemctl enable vboxservice
-echo "Press a key:"
 read
