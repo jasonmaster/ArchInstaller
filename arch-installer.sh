@@ -410,17 +410,15 @@ Y" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     if [ "${MACHINE}" == "pc" ]; then
         pacstrap -c ${TARGET_PREFIX} `pacman -Qq | grep -Ev "gcc-libs|grub|gummi|nmap|ntp"`
         EXTRA_RET=$?
-        pacstrap -c ${TARGET_PREFIX} `cat packages-extra.txt`
+        pacstrap -c ${TARGET_PREFIX} `cat packages-core-extra.txt`
         EXTRA_RET=$((${EXTRA_RET} + $?))
     else
-        pacman -S --noconfirm --needed `cat packages-core.txt | grep -Ev "pcmciautils|syslinux"`
+        pacman -S --noconfirm --needed `cat packages-core.txt packages-core-extra.txt | grep -Ev "pcmciautils|syslinux"`
         EXTRA_RET=$?
-        pacman -S --noconfirm --needed `cat packages-extra.txt`
-        EXTRA_RET=$((${EXTRA_RET} + $?))
     fi
 
     if [ ${EXTRA_RET} -ne 0 ]; then
-        echo "ERROR! Installing extra packages failed. Try running `basename ${0}` again."
+        echo "ERROR! Installing core packages failed. Try running `basename ${0}` again."
         exit 1
     fi
 fi
