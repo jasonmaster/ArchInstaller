@@ -207,8 +207,8 @@ if [ "${INSTALL_TYPE}" != "desktop" ] && [ "${INSTALL_TYPE}" != "server" ] && [ 
     exit 1
 fi
 
-if [ "${DE}" != "shell" ] && [ "${DE}" != "cinnamon" ] && [ "${DE}" != "gnome" ] && [ "${DE}" != "kde" ] && [ "${DE}" != "lxde" ] && [ "${DE}" != "mate" ] && [ "${DE}" != "xfce" ]; then
-    echo "ERROR! '${DE}' is not a supported desktop environemt."
+if [ "${DE}" != "none" ] && [ "${DE}" != "cinnamon" ] && [ "${DE}" != "gnome" ] && [ "${DE}" != "kde" ] && [ "${DE}" != "lxde" ] && [ "${DE}" != "mate" ] && [ "${DE}" != "xfce" ]; then
+    echo "ERROR! '${DE}' is not a supported desktop environment."
     exit 1
 fi
 
