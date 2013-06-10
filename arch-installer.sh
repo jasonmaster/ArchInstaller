@@ -403,7 +403,7 @@ if [ -n "${VBOX_GUEST}" ]; then
     PACKAGES="${PACKAGES} packages/base/packages-virtualbox-guest.txt"
 fi
 if [ "${INSTALL_TYPE}" != "minimal" ]; then
-    PACKAGES="${PACKAGES} packages/base/packages-core.txt packages/base/packages-core-extra.txt"
+    PACKAGES="${PACKAGES} packages/base/packages-archiso.txt packages/base/packages-extra.txt"
     if [ "${DE}" != "none" ] && [ "${INSTALL_TYPE}" == "desktop" ]; then
         if [ "${DE}" == "kde" ]; then
             LOCALE=`echo ${LANG} | cut -d'.' -f1`
@@ -424,8 +424,10 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
 fi
 
 # Install packages
+echo "${PACKAGES}"
+read
 if [ "${HOSTNAME}" == "archiso" ]; then
-    pacstrap -c ${TARGET_PREFIX} `cat ${PACKAGES} | grep -Ev "gcc-libs|grub|gummi|nmap|ntp"`
+    pacstrap -c ${TARGET_PREFIX} `cat ${PACKAGES} | grep -Ev "grub|gummi|nmap|^ntp"`
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
     if [ "${INSTALL_TYPE}" != "minimal" ] && [ "${CPU}" == "x86_64" ]; then
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
@@ -433,7 +435,7 @@ if [ "${HOSTNAME}" == "archiso" ]; then
         echo -en "\nY\nY\nY\nY\nY\n" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     fi
 else
-    pacman -S --noconfirm --needed `cat ${PACKAGES} | grep -Ev "pcmciautils|syslinux"`
+    pacman -S --noconfirm --needed `cat ${PACKAGES} | grep -Ev "grub|gummi|nmap|^ntp|pcmciautils|syslinux"`
 fi
 
 # Start building the configuration script
@@ -495,7 +497,7 @@ fi
 # By default the maximum number of watches is set to 8192, which is rather low.
 # Increasing this value will have no noticeable side effects and ensure things like
 # Dropbox and MiniDLNA will work correctly regardless of filesystem.
-add_config 'echo "fs.inotify.max_user_watches = 131072" >> /etc/sysctl.conf"'
+add_config 'echo "fs.inotify.max_user_watches = 131072" >> /etc/sysctl.conf'
 
 if [ -f netctl ]; then
     cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
