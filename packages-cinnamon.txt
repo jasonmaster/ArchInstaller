@@ -1,8 +1,10 @@
 cinnamon
 cinnamon-control-center
 cinnamon-screensaver
-gdm
 gedit-plugins
+gksu
+lightdm-gtk3-greeter
+nemo
 networkmanager-openvpn
 networkmanager-pptp
 telepathy

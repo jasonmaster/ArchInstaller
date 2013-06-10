@@ -546,7 +546,7 @@ fi
 if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${DE}" != "shell" ]; then
     if [ "${DE}" == "cinnamon" ]; then
         pacstrap -c ${TARGET_PREFIX} `cat packages-xorg.txt packages-cinnamon.txt packages-gst.txt packages-cups.txt packages-ttf.txt`
-        add_config "systemctl enable gdm.service"
+        add_config "systemctl enable lightdm.service"
         add_config "systemctl enable upower.service"
         add_config "systemctl enable accounts-daemon.service"
         add_config "systemctl enable NetworkManager.service"
