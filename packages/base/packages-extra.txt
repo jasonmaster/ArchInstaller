@@ -40,5 +40,4 @@ unace
 unrar
 unzip
 uudeview
-zd1211-firmware
 zip

@@ -1,5 +1,4 @@
 base
 base-devel
-syslinux
 syslog-ng
 terminus-font
