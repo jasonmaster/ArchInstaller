@@ -124,12 +124,14 @@ shift "$(( $OPTIND - 1 ))"
 
 if [ "${MACHINE}" == "pc" ]; then
 
-    # Look for the VirtualBox Guest Service
+    # Look for the VirtualBox Guest Service and add additional package and groups if required.
     VBOX_GUEST=`lspci -d 80ee:cafe`
     if [ -n "${VBOX_GUEST}" ]; then
         VBOX_PKGS="packages-virtualbox-guest.txt"
+        VBOX_GROUP="vboxsf"
     else
         VBOX_PKGS=""
+        VBOX_GROUP=""
     fi
 
     if [ ! -b /dev/${DSK} ]; then
@@ -661,11 +663,17 @@ if [ -f users.csv ]; then
         _CRYPTPASSWD=`openssl passwd -crypt ${_PLAINPASSWD}`
         _COMMENT=`echo ${USER} | cut -d',' -f3`
         _EXTRA_GROUPS=`echo ${USER} | cut -d',' -f4`
+
         if [ "${_EXTRA_GROUPS}" != "" ]; then
             _GROUPS=${BASE_GROUPS},${_EXTRA_GROUPS}
         else
             _GROUPS=${BASE_GROUPS}
         fi
+
+        if [ "${VBOX_GROUP}" != "" ]; then
+            _GROUPS=${_GROUPS},${VBOX_GROUPS}
+        fi
+
         add_config "useradd --password ${_CRYPTPASSWD} --comment \"${_COMMENT}\" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}"
     done
 fi
