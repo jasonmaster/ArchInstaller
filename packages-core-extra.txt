@@ -1,6 +1,10 @@
+aic94xx-firmware
+alsa-firmware
 arj
 avahi
 bash-completion
+bfa-firmware
+bluez-firmware
 bzr
 cabextract
 cifs-utils
@@ -16,6 +20,8 @@ htop
 hub
 laptop-detect
 lesspipe
+libffado
+libraw1394
 lzop
 mercurial
 namcap
@@ -36,4 +42,5 @@ unace
 unrar
 unzip
 uudeview
+zd1211-firmware
 zip
