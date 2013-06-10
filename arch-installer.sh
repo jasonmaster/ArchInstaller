@@ -19,7 +19,7 @@ FONT="ter-116b"
 FONT_MAP="8859-1_to_uni"
 PASSWORD=""
 FS="ext4"
-PACKAGES="base/packages-base.txt"
+PACKAGES="packages/base/packages-base.txt"
 PARTITION_TYPE="msdos"
 PARTITION_LAYOUT=""
 INSTALL_TYPE="desktop"
@@ -403,7 +403,7 @@ if [ -n "${VBOX_GUEST}" ]; then
     PACKAGES="${PACKAGES} packages/base/packages-virtualbox-guest.txt"
 fi
 if [ "${INSTALL_TYPE}" != "minimal" ]; then
-    PACKAGES="${PACKAGES} packages/base/packages-core-extra.txt"
+    PACKAGES="${PACKAGES} packages/base/packages-core.txt packages/base/packages-core-extra.txt"
     if [ "${DE}" != "none" ] && [ "${INSTALL_TYPE}" == "desktop" ]; then
         if [ "${DE}" == "kde" ]; then
             LOCALE=`echo ${LANG} | cut -d'.' -f1`
