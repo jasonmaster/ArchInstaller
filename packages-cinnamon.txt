@@ -1,7 +1,11 @@
 cinnamon
-lightdm-gtk3-greeter
+cinnamon-control-center
+cinnamon-screensaver
+gdm
+gedit-plugins
 networkmanager-openvpn
 networkmanager-pptp
+telepathy
 terminator
 upower
 xdg-user-dirs
