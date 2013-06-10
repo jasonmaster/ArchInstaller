@@ -629,7 +629,7 @@ fi
 
 swapoff -a && sync
 if [ -n "${NFS_CACHE}" ]; then
-    addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,noauto,x-systemd.automount 0 0" ${TARGET_PREFIX}/etc/fstab
+    addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,relatime,noauto,x-systemd.automount,x-systemd.device-timeout=5s 0 0" ${TARGET_PREFIX}/etc/fstab
     if [ "${MACHINE}" == "pc" ]; then
         umount -fv /var/cache/pacman/pkg
     fi
