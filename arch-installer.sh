@@ -603,7 +603,8 @@ if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
         add_config "makepkg --asroot -s --noconfirm"
         add_config 'pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`'
         add_config "packer -S --noconfirm --noedit tlp"
-        add_config "ln -s /usr/lib/systemd/system/tlp.service /etc/systemd/system/graphical.target.wants/tlp.service"
+        add_config "mkdir -p /etc/systemd/system/graphical.target.wants/"
+        add_config "systemctl enable tlp.service"
         # Some SATA chipsets can corrupt data when ALPM is enabled. Disable it
         add_config "sed -i 's/SATA_LINKPWR/#SATA_LINKPWR/' /etc/default/tlp"
     else
