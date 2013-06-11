@@ -1,20 +1,33 @@
 # Introduction
 
-ArchInstaller is a suite a bash scripts to automate the installation and
-initial confiugration of [Arch Linux](http://www.archlinux.org).
-
-  * `arch-installer.sh` should be run from the [Arch Linux install ISO](https://www.archlinux.org/download/).
-  * `gnome-desktop.sh` should be run from a Arch Linux system that was installed using `arch-installer`.
+ArchInstaller is a `bash` script to automate the installation and
+initial configuration of [Arch Linux](http://www.archlinux.org).
+`arch-installer.sh` should be run from the [Arch Linux install ISO](https://www.archlinux.org/download/).
 
 ## Features
 
   * It works for me.
-  * Automated installation of base Arch Linux OS. Minimal install option, `-m`, available.
-  * `arch-installer.sh` works on PCs (x86 and x86_64) and Raspberry Pi.
-  * On x86_64 the `multi-lib` repository is automatically enabled and `multilib-devel` automatically installed.
-  * Automated installation/update of GNOME desktop OS.
-  * Automatically correct my screw ups (but you have to tell me I've screwed up first).
+  * Automated installation of base Arch Linux.
+  * Extensive filesystem support. Auto detects SSDs and TRIM and configures accordingly:
+    * bfs
+    * btrfs
+    * ext{2,3,4}
+    * f2fs
+    * jfs
+    * nilfs2
+    * ntfs
+    * reiserfs
+    * xfs
+  * Works on PCs (x86 and x86_64) and Raspberry Pi (no filesystem options on the Pi).
+  * On x86_64 desktops the `multi-lib` repository is automatically enabled and `multilib-devel` automatically installed.
+  * Automated installation of your preferred desktop environment, or none at all.
+    * Cinnamon
+    * GNOME
+    * LXDE
+    * MATE
+    * XFCE
   * Installations can be sped up via the use of an NFS cache. See below.
+  * Optional "minimal" installation is available which just install the base OS.
   * Power management *"out of the box"*.
   * Adheres to the Arch principle of K.I.S.S.
 
@@ -33,7 +46,7 @@ ArchInstaller.
     loadkeys uk
     wifi-menu
     dhcpcd
-    pacman -Syy git
+    pacman -Syy --noconfirm git
     git clone https://github.com/flexiondotorg/ArchInstaller.git
     cd ArchInstaller
 
@@ -46,17 +59,14 @@ for example.
 
 ## Raspberry Pi
 
-The Raspberry Pi mode doesn't do any disk partitioning and the image to
-ready to go, that the partition options are redundant on the Pi.
+The Raspberry Pi mode doesn't do any disk partitioning so the partition options
+are redundant on the Pi.
 
     ./arch-installer.sh -w pA55w0rd -n myhost.example.org
 
 You can get help with the following.
 
     ./arch-instaler.sh -h
-
-The `arch-installer.sh` will install a base system with some essential tools. It
-doesn't install X11 or any desktop environment.
 
 ## FONT and FONT_MAP
 
@@ -94,50 +104,8 @@ When you execute `arch-installer.sh` pass in the `-c` argument, for example:
 If you provide `arch-installer.sh` and NFS cache it will enable that cache in
 the installed system.
 
-# Install GNOME
-
-Once the system has been installed using `arch-installer.sh` a [GNOME](http://www.gnome.org)
-desktop can be installed.
-
-    sudo wifi-menu
-    sudo dhcpcd
-    cd ~/Source/Mine/ArchInstaller
-    sudo ./gnome-desktop.sh
-
-There are no command line switches to control how `gnome-desktop.sh` operates,
-but you can edit the script and toogle the following.
-
-    INSTALL_BROWSERS=0
-    INSTALL_LIBREOFFICE=0
-    INSTALL_GENERAL_DEVELOPMENT=0
-    INSTALL_ANDROID_DEVELOPMENT=0
-    INSTALL_GOOGLE_EARTH=0
-    INSTALL_VIRTUALBOX=0
-    INSTALL_CHAT_APPS=0
-    INSTALL_GRAPHIC_APPS=0
-    INSTALL_3D_APPS=0
-    INSTALL_PHOTO_APPS=0
-    INSTALL_MUSIC_APPS=0
-    INSTALL_VIDEO_PLAYER_APPS=0
-    INSTALL_VIDEO_EDITOR_APPS=0
-    INSTALL_VIDEO_RIPPER_APPS=0
-    INSTALL_REMOTE_DESKTOP_APPS=0
-    INSTALL_DOWNLOAD_APPS=0
-    INSTALL_ZIMBRA_DESKTOP=0
-    INSTALL_IPMIVIEW=0
-    INSTALL_RAIDAR=0
-    INSTALL_WINE=0
-    INSTALL_CRYPTO_APPS=0
-    INSTALL_BACKUP_APPS=0
-
-`gnome-desktop.sh` can be run multiple times. It will not re-install anything
-that is already present, so subsequent runs are quicker.
-
-# TODO
-
   * Add automated root partition resizing magic to `arch-installer.sh` for Raspberry Pi.
     * <http://michael.otacoo.com/manuals/raspberry-pi/>
-  * Add support for multiple desktop environments.
   * Add support for desktop environment installation profiles that determine what components to install.
   * Detect locale for dictionaries in desktop environment installs.
   * When the script changes something in a user home directory, make that change for all users.
@@ -156,7 +124,7 @@ that is already present, so subsequent runs are quicker.
     * <http://blog.burntsushi.net/lenovo-thinkpad-t430-archlinux>
     * <http://worldofgnome.org/speed-up-gnome-in-systemd-distributions/>
   * UEFI support - waiting for UEFI support in SYSLINUX.
-  * Maybe add putting `/home` on a different disk.
+  * Maybe allow locating `/home` on a different disk.
   * Maybe add LVM and LUKS capability to disk partitioning.
   * Investigate zRAM and zSWAP.
 
@@ -183,7 +151,7 @@ The following are useful sources of reference.
 The following still needs attention.
 
   * Suspend hook for `/dev/mmcblk0`
-  * SATA ALPM is disabled by `gnome-desktop.sh` due to the risk of data corruption.
+  * SATA ALPM is disabled due to the risk of data corruption.
     * <https://bugs.launchpad.net/ubuntu/+source/linux/+bug/539467>
     * <https://wiki.ubuntu.com/Kernel/PowerManagementALPM>
   * Active State Power Management.
