@@ -428,7 +428,7 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
         elif [ "${DE}" == "mate" ]; then
             echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
         fi
-        PACKAGES="${PACKAGES} packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt package/desktop/packages-ttf.txt"
+        PACKAGES="${PACKAGES} packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt"
     fi
 fi
 
