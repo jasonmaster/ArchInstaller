@@ -14,8 +14,8 @@ FQDN="arch.example.org"
 TIMEZONE="Europe/London"
 KEYMAP="uk"
 LANG="en_GB.UTF-8"
+LOCALE=`echo ${LANG} | cut -d'.' -f1`
 LC_COLLATE="C"
-FONT=""
 FONT_MAP="8859-1_to_uni"
 PASSWORD=""
 FS="ext4"
@@ -418,7 +418,6 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
     PACKAGES="${PACKAGES} packages/base/packages-archiso.txt packages/base/packages-extra.txt"
     if [ "${DE}" != "none" ] && [ "${INSTALL_TYPE}" == "desktop" ]; then
         if [ "${DE}" == "kde" ]; then
-            LOCALE=`echo ${LANG} | cut -d'.' -f1`
             if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
                 LOCALE_KDE=`echo ${LOCALE} | tr '[:upper:]' '[:lower:]'`
             elif [ "${LOCALE}" == "en_US" ]; then
@@ -463,20 +462,6 @@ fi
 # Start building the configuration script
 start_config
 
-# Keymap
-update_early_hooks keymap
-add_config "echo KEYMAP=${KEYMAP}     >  /etc/vconsole.conf"
-
-# Font and font map
-if [ ${INSTALL_TYPE} != "minimal" ]; then
-    FONT="ter-116b"
-    add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
-    update_early_hooks consolefont
-else
-    FONT=""
-fi
-add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
-
 if [ "${HOSTNAME}" == "archiso" ]; then
     add_config "depmod -a ${KERNEL_VER}-ARCH"
     add_config "mkinitcpio -p linux"
@@ -493,13 +478,25 @@ add_config "hostnamectl set-hostname --static ${FQDN}"
 # Configure timezone and hwclock
 add_config "echo ${TIMEZONE} > /etc/timezone"
 
-# Configure locale
+# Configure vconsole and locale
+update_early_hooks keymap
+add_config "echo KEYMAP=${KEYMAP}     >  /etc/vconsole.conf"
+add_config "localectl set-keymap ${KEYMAP}"
+
+# Font and font map
+if [ ${INSTALL_TYPE} != "minimal" ]; then
+    FONT="ter-116b"
+    add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
+    update_early_hooks consolefont
+else
+    FONT=""
+fi
+add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
 add_config "sed -i \"s/#${LANG}/${LANG}/\" /etc/locale.gen"
 add_config "echo LANG=${LANG}             >  /etc/locale.conf"
 add_config "echo LC_COLLATE=${LC_COLLATE} >> /etc/locale.conf"
 add_config "locale-gen"
 add_config 'echo "export EDITOR=nano" >> /etc/profile'
-add_config "systemctl enable cronie.service"
 
 # https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
 add_config "sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' /etc/pacman.conf"
@@ -533,6 +530,9 @@ if [ -f netctl ]; then
 fi
 
 if [ "${INSTALL_TYPE}" == "desktop" ]; then
+    if [ "${DE}" != "none" ]; then
+        add_config "localectl set-x11-keymap ${KEYMAP}"
+    fi
     if [ "${DE}" == "cinnamon" ]; then
         add_config "systemctl enable lightdm.service"
         add_config "systemctl enable upower.service"
@@ -584,7 +584,8 @@ if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
     add_config "sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /etc/sudoers"
     add_config "systemctl start sshdgenkeys.service"
     add_config "systemctl enable sshd.service"
-    add_config "systemctl enable syslog-ng"
+    add_config "systemctl enable syslog-ng.service"
+    add_config "systemctl enable cronie.service"
 
     if [ "${INSTALL_TYPE}" == "desktop" ]; then
         add_config "systemctl enable avahi-daemon.service"
