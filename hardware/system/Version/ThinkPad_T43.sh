@@ -5,7 +5,7 @@ sed -i 's/BAY_POWEROFF_ON_BAT=0/BAY_POWEROFF_ON_BAT=1/' /etc/default/tlp
 # Thinkpad T43
 #  - https://communities.bmc.com/communities/blogs/linux/2010/03/16/ubuntu-1004-and-the-t43
 #  - http://pc-freak.net/blog/controlling-fan-with-thinkfan-on-lenovo-thinkpad-r61-on-debian-gnulinux-adjusting-proper-fan-cycling/
-pacman -S --noconfirm --needed fprintd hdapsd tp_smapi
+pacman -S --noconfirm --needed hdapsd tp_smapi
 packer -S --noconfirm --noedit thinkfan hdaps-gl
 echo "options thinkpad_acpi fan_control=1" > /etc/modprobe.d/thinkpad_acpi.conf
 # On the T43p the x-axis is inverted.

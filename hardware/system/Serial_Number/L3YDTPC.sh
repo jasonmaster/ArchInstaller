@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 
-if [ -f common.sh ]; then
-    source common.sh
-else
-    echo "ERROR! Could not source 'common.sh'"
-    exit 1
-fi
+# My Thinkpad T43p
 
 # I don't use PCMCIA slots anymore.
 echo "blacklist pcmcia"       >  /etc/modprobe.d/blacklist-pcmcia.conf
