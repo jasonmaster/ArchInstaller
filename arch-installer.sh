@@ -469,7 +469,8 @@ update_early_hooks consolefont
 update_early_hooks keymap
 
 if [ "${HOSTNAME}" == "archiso" ]; then
-    add_config "depmod -a `ls -1 /usr/lib/modules | head -n1`"
+    add_config "depmod -a ${KERNEL_VER}"
+    add_config "sleep 10s"
     add_config "mkinitcpio -p linux"
     add_config "hwclock --systohc --utc"
 else
