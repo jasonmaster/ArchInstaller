@@ -435,6 +435,7 @@ fi
 if [ "${HOSTNAME}" == "archiso" ]; then
 
     pacstrap -c ${TARGET_PREFIX} `cat ${PACKAGES} | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp"`
+    echo $?
     read
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
     if [ "${DE}" == "mate" ]; then
