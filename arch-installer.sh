@@ -486,11 +486,11 @@ add_config "localectl set-keymap ${KEYMAP}"
 # Font and font map
 if [ ${INSTALL_TYPE} != "minimal" ]; then
     FONT="ter-116b"
-    add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
     update_early_hooks consolefont
 else
     FONT=""
 fi
+add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
 add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
 add_config "sed -i \"s/#${LANG}/${LANG}/\" /etc/locale.gen"
 add_config "echo LANG=${LANG}             >  /etc/locale.conf"
