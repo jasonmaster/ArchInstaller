@@ -427,7 +427,6 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
             echo "kde-l10n-${LOCALE_KDE}" >> packages/desktop/packages-kde.txt
         elif [ "${DE}" == "mate" ]; then
             echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
-            echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
         fi
         PACKAGES="${PACKAGES} packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt package/desktop/packages-ttf.txt"
     fi
@@ -437,6 +436,9 @@ fi
 if [ "${HOSTNAME}" == "archiso" ]; then
     pacstrap -c ${TARGET_PREFIX} `cat ${PACKAGES} | grep -Ev "darkhhtpd|grub|gummi|irssi|nmap|^ntp"`
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
+    if [ "${DE}" == "mate" ]; then
+            echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
+    fi
     if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${CPU}" == "x86_64" ]; then
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' ${TARGET_PREFIX}/etc/pacman.conf
