@@ -156,7 +156,7 @@ if [ "${HOSTNAME}" == "archiso" ]; then
                   ;;
         "btrfs")  MKFS="mkfs.btrfs"
                   #if [ ${HAS_SSD} -eq 1 ]; then
-                    MOUNT_OPTS=${MOUNT_OPTS}" compress=lzo"
+                    MOUNT_OPTS="${MOUNT_OPTS} compress=lzo"
                   #fi
                   ;;
         "ext2")   MKFS="mkfs.ext2 -F -m 0 -q"
@@ -381,11 +381,11 @@ if [ "${HOSTNAME}" == "archiso" ]; then
     fi
 
     echo "==> Mounting filesystems"
-    mount ${MOUNT_OPTS} /dev/${ROOT_PARTITION} ${TARGET_PREFIX} >/dev/null
+    mount "${MOUNT_OPTS}" /dev/${ROOT_PARTITION} ${TARGET_PREFIX} >/dev/null
     mkdir -p ${TARGET_PREFIX}/{boot,home}
     mount /dev/${DSK}1 ${TARGET_PREFIX}/boot >/dev/null
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-        mount ${MOUNT_OPTS} /dev/${DSK}4 ${TARGET_PREFIX}/home >/dev/null
+        mount "${MOUNT_OPTS}" /dev/${DSK}4 ${TARGET_PREFIX}/home >/dev/null
     fi
 fi
 
