@@ -480,7 +480,7 @@ fi
 add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
 
 if [ "${HOSTNAME}" == "archiso" ]; then
-    add_config "depmod -a ${KERNEL_VER}"
+    add_config "depmod -a ${KERNEL_VER}-ARCH"
     add_config "sleep 10s"
     add_config "mkinitcpio -p linux"
     add_config "hwclock --systohc --utc"
