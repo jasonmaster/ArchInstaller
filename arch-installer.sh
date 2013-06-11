@@ -15,7 +15,7 @@ TIMEZONE="Europe/London"
 KEYMAP="uk"
 LANG="en_GB.UTF-8"
 LC_COLLATE="C"
-FONT="ter-116b"
+FONT=""
 FONT_MAP="8859-1_to_uni"
 PASSWORD=""
 FS="ext4"
@@ -318,9 +318,10 @@ echo "I make no guarantee that the installation of Arch Linux will succeed."
 echo "Press RETURN to try your luck or CTRL-C to cancel."
 read
 
-echo "==> Updating the package database"
 pacman -Syy
 KERNEL_VER=`pacman -Si linux | grep Version | cut -d':' -f2 | sed 's/ //g'`
+echo ${KERNEL_VER}
+read
 
 if [ "${HOSTNAME}" == "archiso" ]; then
     echo "==> Clearing partition table on /dev/${DSK}"
@@ -464,9 +465,19 @@ fi
 # Start building the configuration script
 start_config
 
-# Configure mkinitcpio.conf
-update_early_hooks consolefont
+# Keymap
 update_early_hooks keymap
+add_config "echo KEYMAP=${KEYMAP}     >  /etc/vconsole.conf"
+
+# Font and font map
+if [ ${INSTALL_TYPE} != "minimal" ]; then
+    FONT=""
+else
+    FONT="ter-116b"
+    add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
+    update_early_hooks consolefont
+fi
+add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
 
 if [ "${HOSTNAME}" == "archiso" ]; then
     add_config "depmod -a ${KERNEL_VER}"
@@ -484,11 +495,6 @@ add_config "hostnamectl set-hostname --static ${FQDN}"
 
 # Configure timezone and hwclock
 add_config "echo ${TIMEZONE} > /etc/timezone"
-
-# Configure console font and keymap
-add_config "echo KEYMAP=${KEYMAP}     >  /etc/vconsole.conf"
-add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
-add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
 
 # Configure locale
 add_config "sed -i \"s/#${LANG}/${LANG}/\" /etc/locale.gen"

@@ -35,6 +35,8 @@ screen
 sharutils
 source-highlight
 subversion
+syslog-ng
+terminus-font
 tree
 unace
 unrar
