@@ -318,7 +318,7 @@ echo "Press RETURN to try your luck or CTRL-C to cancel."
 read
 
 # Install dmidecode and determine the current (not running) Kernel version
-pacman -Syy --noedit dmidecode
+pacman -Syy --noconfirm dmidecode
 KERNEL_VER=`pacman -Si linux | grep Version | cut -d':' -f2 | sed 's/ //g'`
 
 if [ "${HOSTNAME}" == "archiso" ]; then
