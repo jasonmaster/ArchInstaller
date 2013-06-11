@@ -305,7 +305,6 @@ else
     echo " - Configure network   : No"
 fi
 
-# Load the keymap and remove the PC speaker module.
 loadkeys -q ${KEYMAP}
 
 echo
@@ -413,6 +412,9 @@ gpg --homedir /etc/pacman.d/gnupg --edit-key 182ADEA0 enable quit >/dev/null 2>&
 # Chain packages
 if [ -n "${VBOX_GUEST}" ]; then
     PACKAGES="${PACKAGES} packages/base/packages-virtualbox-guest.txt"
+    VBOX_GROUP=",vboxsf"
+else
+    VBOX_GROUP=""
 fi
 if [ "${INSTALL_TYPE}" != "minimal" ]; then
     PACKAGES="${PACKAGES} packages/base/packages-archiso.txt packages/base/packages-extra.txt"
@@ -481,7 +483,6 @@ add_config "echo ${TIMEZONE} > /etc/timezone"
 # Configure vconsole and locale
 update_early_hooks keymap
 add_config "echo KEYMAP=${KEYMAP}     >  /etc/vconsole.conf"
-add_config "localectl set-keymap ${KEYMAP}"
 
 # Font and font map
 if [ ${INSTALL_TYPE} != "minimal" ]; then
@@ -530,9 +531,6 @@ if [ -f netctl ]; then
 fi
 
 if [ "${INSTALL_TYPE}" == "desktop" ]; then
-    if [ "${DE}" != "none" ]; then
-        add_config "localectl set-x11-keymap ${KEYMAP}"
-    fi
     if [ "${DE}" == "cinnamon" ]; then
         add_config "systemctl enable lightdm.service"
         add_config "systemctl enable upower.service"
@@ -667,9 +665,9 @@ if [ -f users.csv ]; then
         _EXTRA_GROUPS=`echo ${USER} | cut -d',' -f4`
 
         if [ "${_EXTRA_GROUPS}" != "" ]; then
-            _GROUPS=${BASE_GROUPS},${_EXTRA_GROUPS} #${VBOX_GROUP}
+            _GROUPS=${BASE_GROUPS},${_EXTRA_GROUPS}${VBOX_GROUP}
         else
-            _GROUPS=${BASE_GROUPS} #${VBOX_GROUP}
+            _GROUPS=${BASE_GROUPS}${VBOX_GROUP}
         fi
         add_config "useradd --password ${_CRYPTPASSWD} --comment \"${_COMMENT}\" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}"
     done
