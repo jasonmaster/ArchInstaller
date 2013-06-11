@@ -1,1 +1,1 @@
-virtualbox-guest-modules
+virtualbox-guest-utils
