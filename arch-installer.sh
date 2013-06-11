@@ -320,8 +320,6 @@ read
 
 pacman -Syy
 KERNEL_VER=`pacman -Si linux | grep Version | cut -d':' -f2 | sed 's/ //g'`
-echo ${KERNEL_VER}
-read
 
 if [ "${HOSTNAME}" == "archiso" ]; then
     echo "==> Clearing partition table on /dev/${DSK}"
@@ -471,17 +469,16 @@ add_config "echo KEYMAP=${KEYMAP}     >  /etc/vconsole.conf"
 
 # Font and font map
 if [ ${INSTALL_TYPE} != "minimal" ]; then
-    FONT=""
-else
     FONT="ter-116b"
     add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
     update_early_hooks consolefont
+else
+    FONT=""
 fi
 add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
 
 if [ "${HOSTNAME}" == "archiso" ]; then
     add_config "depmod -a ${KERNEL_VER}-ARCH"
-    add_config "sleep 10s"
     add_config "mkinitcpio -p linux"
     add_config "hwclock --systohc --utc"
 else
