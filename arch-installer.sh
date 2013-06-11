@@ -483,15 +483,15 @@ add_config "echo ${TIMEZONE} > /etc/timezone"
 
 # Configure vconsole and locale
 update_early_hooks keymap
-add_config "echo KEYMAP=${KEYMAP}     >  /etc/vconsole.conf"
 
 # Font and font map
-if [ ${INSTALL_TYPE} != "minimal" ]; then
+if [ "${INSTALL_TYPE}" != "minimal" ]; then
     FONT="ter-116b"
     update_early_hooks consolefont
 else
     FONT=""
 fi
+add_config "echo KEYMAP=${KEYMAP}      > /etc/vconsole.conf"
 add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
 add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
 add_config "sed -i \"s/#${LANG}/${LANG}/\" /etc/locale.gen"
@@ -605,7 +605,7 @@ if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
         add_config "packer -S --noconfirm --noedit tlp"
         add_config "systemctl enable tlp"
         # Some SATA chipsets can corrupt data when ALPM is enabled. Disable it
-        add_config "sed -i 's/SATA_LINKPWR/#SATA_LINKPWR/' /etc/default/tlp
+        add_config "sed -i 's/SATA_LINKPWR/#SATA_LINKPWR/' /etc/default/tlp"
     else
         add_config "pacman -S --noconfirm packer"
     fi
