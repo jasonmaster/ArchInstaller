@@ -23,6 +23,7 @@ initial configuration of [Arch Linux](http://www.archlinux.org).
   * Automated installation of your preferred desktop environment, or none at all.
     * Cinnamon
     * GNOME
+    * KDE
     * LXDE
     * MATE
     * XFCE

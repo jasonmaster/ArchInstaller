@@ -317,7 +317,8 @@ echo "I make no guarantee that the installation of Arch Linux will succeed."
 echo "Press RETURN to try your luck or CTRL-C to cancel."
 read
 
-pacman -Syy
+# Install dmidecode and determine the current (not running) Kernel version
+pacman -Syy --noedit dmidecode
 KERNEL_VER=`pacman -Si linux | grep Version | cut -d':' -f2 | sed 's/ //g'`
 
 if [ "${HOSTNAME}" == "archiso" ]; then
@@ -601,6 +602,10 @@ if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
         add_config "cd packer"
         add_config "makepkg --asroot -s --noconfirm"
         add_config 'pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`'
+        add_config "packer -S --noconfirm --noedit tlp"
+        add_config "systemctl enable tlp"
+        # Some SATA chipsets can corrupt data when ALPM is enabled. Disable it
+        add_config "sed -i 's/SATA_LINKPWR/#SATA_LINKPWR/' /etc/default/tlp
     else
         add_config "pacman -S --noconfirm packer"
     fi
@@ -650,6 +655,18 @@ if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
                     fi
                 fi
             done
+        fi
+    done
+
+    # Configure any system specific stuff
+    for IDENTITY in Product_Name Version Serial_Number UUID SKU_Number
+    do
+        FIELD=`echo ${IDENTITY} | sed 's/_/ /g'`
+        VALUE=`dmidecode --type system | grep "${FIELD}" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
+        if [ -x hardware/system/${IDENTITY}/${VALUE}.sh ]; then
+            # Add the hardware script to the configuration script.
+            echo -e "\n#${IDENTITY} - ${VALUE}\n" >>${TARGET_PREFIX}/usr/local/bin/arch-config.sh
+            grep -Ev "#!" hardware/system/${IDENTITY}/${VALUE}.sh >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
         fi
     done
 fi
