@@ -155,9 +155,9 @@ if [ "${HOSTNAME}" == "archiso" ]; then
                   HAS_TRIM=0
                   ;;
         "btrfs")  MKFS="mkfs.btrfs"
-                  if [ ${HAS_SSD} -eq 1 ]; then
+                  #if [ ${HAS_SSD} -eq 1 ]; then
                     MOUNT_OPTS=${MOUNT_OPTS}" compress=lzo"
-                  fi
+                  #fi
                   ;;
         "ext2")   MKFS="mkfs.ext2 -F -m 0 -q"
                   HAS_TRIM=0
@@ -311,7 +311,6 @@ if [ "${HOSTNAME}" == "archiso" ]; then
     echo "==> Destroying magic strings and signatures on /dev/${DSK}"
     dd if=/dev/zero of=/dev/${DSK} bs=512 count=2048 >/dev/null 2>&1
     wipefs -a /dev/${DSK} 2>/dev/null
-    # Partition the disk https://bbs.archlinux.org/viewtopic.php?id=145678 http://sprunge.us/WATU
     echo "==> Initialising disk /dev/${DSK}: ${PARTITION_TYPE}"
     parted -s /dev/${DSK} mktable ${PARTITION_TYPE} >/dev/null
 
@@ -364,10 +363,8 @@ if [ "${HOSTNAME}" == "archiso" ]; then
         echo "ERROR! Partitioning /dev/${DSK} failed."
         exit 1
     fi
-
     # Wait until `/dev` has initialized correct devices
     udevadm settle
-
     echo "==> Making /boot filesystem : ext2"
     mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}1 >/dev/null
     echo "==> Making /root filesystem : ${FS}"
@@ -427,7 +424,7 @@ fi
 if [ "${HOSTNAME}" == "archiso" ]; then
     pacstrap -c ${TARGET_PREFIX} `cat ${PACKAGES} | grep -Ev "grub|gummi|nmap|^ntp"`
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
-    if [ "${INSTALL_TYPE}" != "minimal" ] && [ "${CPU}" == "x86_64" ]; then
+    if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${CPU}" == "x86_64" ]; then
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' ${TARGET_PREFIX}/etc/pacman.conf
         echo -en "\nY\nY\nY\nY\nY\n" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
