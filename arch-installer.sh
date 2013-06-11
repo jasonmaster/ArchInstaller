@@ -433,15 +433,21 @@ fi
 
 # Install packages
 if [ "${HOSTNAME}" == "archiso" ]; then
-
     pacstrap -c ${TARGET_PREFIX} `cat ${PACKAGES} | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp"`
-    echo $?
-    read
-    genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
-    if [ "${DE}" == "mate" ]; then
-            echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
+    if [ $? -ne 0 ]; then
+        echo "ERROR! 'pacstrap' failed. Cleaning up and exitting."
+        swapoff -a
+        if [ -n "${NFS_CACHE}" ]; then
+            umount -fv /var/cache/pacman/pkg
+        fi
+        if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+            umount -fv ${TARGET_PREFIX}/home
+        fi
+        umount -fv ${TARGET_PREFIX}/{boot,}
+        exit 1
     fi
-    # Only install multilib on desktops. I have no need for it on my Arch "servers".
+    genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
+    # Only install multilib on workstations, I have no need for it on my Arch "servers".
     if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${CPU}" == "x86_64" ]; then
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' ${TARGET_PREFIX}/etc/pacman.conf
@@ -541,6 +547,7 @@ if [ "${INSTALL_TYPE}" == "desktop" ]; then
         add_config "systemctl enable NetworkManager.service"
         add_config "systemctl enable cups.service"
     elif [ "${DE}" == "mate" ]; then
+        echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
         add_config "systemctl enable lightdm.service"
         add_config "systemctl enable upower.service"
         add_config "systemctl enable accounts-daemon.service"
