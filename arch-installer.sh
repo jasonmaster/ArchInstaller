@@ -154,7 +154,7 @@ if [ "${HOSTNAME}" == "archiso" ]; then
                   MKFS_L="-V"
                   HAS_TRIM=0
                   ;;
-        "btrfs")  MKFS="mkfs.btrfs"
+        "btrfs")  MKFS="mkfs.btrfs -f"
                   #if [ ${HAS_SSD} -eq 1 ]; then
                   MOUNT_OPTS="${MOUNT_OPTS} compress=lzo"
                   #fi
