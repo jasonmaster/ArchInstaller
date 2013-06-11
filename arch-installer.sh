@@ -70,7 +70,7 @@ function usage() {
     echo "Optional parameters"
     if [ "${HOSTNAME}" == "archiso" ]; then
         echo "  -b : The partition type to use. Defaults to '${PARTITION_TYPE}'. Can be 'msdos' or 'gpt'."
-        echo "  -f : The filesystem to use. 'bfs', 'btrfs', 'ext4', 'f2fs, 'jfs', 'nilfs2', 'ntfs' and 'xfs' are supported. Defaults to '${FS}'."
+        echo "  -f : The filesystem to use. 'bfs', 'btrfs', 'ext4', 'f2fs, 'jfs', 'nilfs2', 'ntfs', 'reiserfs' and 'xfs' are supported. Defaults to '${FS}'."
     fi
     echo "  -c : The NFS export to mount and use as the pacman cache."
     echo "  -e : The desktop environment to install. Defaults to '${DE}'. Can be 'none', 'cinnamon', 'gnome', 'kde', 'lxde', 'mate' or 'xfce'"
@@ -146,34 +146,46 @@ if [ "${HOSTNAME}" == "archiso" ]; then
     fi
 
     MOUNT_OPTS="-o relatime"
+    if [ ${HAS_SSD} -eq 1 ]; then
+        # From `man mount` - In case of media with limited number of write cycles
+        # (e.g. some flash drives) "sync" may cause life-cycle shortening.
+        # Therefore use `async` on SSDs.
+        # http://www.blah-blah.ch/it/general/filesystem-performance-ssd/
+        MOUNT_OPTS="${MOUNT_OPTS},async"
+    fi
     MKFS_L="-L"
-    # TRIM is currently only supported on btrfs ext3 ext4 gfs2 jfs ocfs2 xfs
-    # Disable fstrim on filesystems that don't support TRIM, even if the hardware does.
+
+    # TRIM is currently only supported on `btrfs`, `ext3`, `ext4`, `jfs` and `xfs`.
+    # So, disable `fstrim` on filesystems that don't support TRIM, even if the hardware does.
     case ${FS} in
-        "bfs")    MKFS="mkfs.bfs"
-                  MKFS_L="-V"
-                  HAS_TRIM=0
-                  ;;
-        "btrfs")  MKFS="mkfs.btrfs -f"
-                  MOUNT_OPTS="${MOUNT_OPTS} compress=lzo"
-                  if [ ${HAS_SSD} -eq 1 ]; then
-                    MOUNT_OPTS="${MOUNT_OPTS} ssd"
-                  fi
-                  ;;
-        "ext2")   MKFS="mkfs.ext2 -F -m 0 -q"
-                  HAS_TRIM=0
-                  ;;
-        "ext3")   MKFS="mkfs.ext3 -F -m 0 -q";;
-        "ext4")   MKFS="mkfs.ext4 -F -m 0 -q";;
-        "f2fs")   MKFS="mkfs.f2fs"
-                  MKFS_L="-l"
-                  HAS_TRIM=0
-                  ;;
-        "jfs")    MKFS="mkfs.jfs -q";;
-        "nilfs2") MKFS="mkfs.nilfs2 -q"
-                  HAS_TRIM=0;;
-        "ntfs")   MKFS="mkfs.ntfs -q"
-                  HAS_TRIM=0;;
+        "bfs")      MKFS="mkfs.bfs"
+                    MKFS_L="-V"
+                    HAS_TRIM=0
+                    ;;
+        "btrfs")    MKFS="mkfs.btrfs -f"
+                    MOUNT_OPTS="${MOUNT_OPTS},compress=lzo"
+                    if [ ${HAS_SSD} -eq 1 ]; then
+                        MOUNT_OPTS="${MOUNT_OPTS},ssd"
+                    fi
+                    ;;
+        "ext2")     MKFS="mkfs.ext2 -F -m 0 -q"
+                    HAS_TRIM=0
+                    ;;
+        "ext3")     MKFS="mkfs.ext3 -F -m 0 -q";;
+        "ext4")     MKFS="mkfs.ext4 -F -m 0 -q";;
+        "f2fs")     MKFS="mkfs.f2fs"
+                    MKFS_L="-l"
+                    HAS_TRIM=0
+                    ;;
+        "jfs")      MKFS="mkfs.jfs -q";;
+        "nilfs2")   MKFS="mkfs.nilfs2 -q"
+                    HAS_TRIM=0;;
+        "ntfs")     MKFS="mkfs.ntfs -q"
+                    HAS_TRIM=0;;
+        "reiserfs") MKFS="mkfs.reiserfs --format 3.6 -f -q"
+                    MKFS_L="-l"
+                    HAS_TRIM=0
+                    ;;
         "xfs")    MKFS="mkfs.xfs -f -q";;
         *) echo "ERROR! Filesystem ${FS} is not supported."
            echo " - See `basename ${0}` -h"
@@ -317,7 +329,7 @@ if [ "${HOSTNAME}" == "archiso" ]; then
 
     # Calculate common partition sizes.
     swap_size=`awk '/MemTotal/ {printf( "%.0f\n", $2 / 1000 )}' /proc/meminfo`
-    boot_end=$(( 1 + 96 ))
+    boot_end=$(( 1 + 122 ))
     swap_end=$(( $boot_end + ${swap_size} ))
     max=$(( $(cat /sys/block/${DSK}/size) * 512 / 1024 / 1024 - 1 ))
 
@@ -369,9 +381,7 @@ if [ "${HOSTNAME}" == "archiso" ]; then
     echo "==> Making /boot filesystem : ext2"
     mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}1 >/dev/null
     echo "==> Making /root filesystem : ${FS}"
-    echo "${MKFS} ${MKFS_L} root /dev/${ROOT_PARTITION} >/dev/null"
     ${MKFS} ${MKFS_L} root /dev/${ROOT_PARTITION} >/dev/null
-    read
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
         echo "==> Making /home filesystem : ${FS}"
         ${MKFS} ${MKFS_L} home /dev/${DSK}4 >/dev/null
@@ -384,12 +394,11 @@ if [ "${HOSTNAME}" == "archiso" ]; then
     fi
 
     echo "==> Mounting filesystems"
-    mount "${MOUNT_OPTS}" /dev/${ROOT_PARTITION} ${TARGET_PREFIX} >/dev/null
-    read
+    mount ${MOUNT_OPTS} /dev/${ROOT_PARTITION} ${TARGET_PREFIX} >/dev/null
     mkdir -p ${TARGET_PREFIX}/{boot,home}
     mount /dev/${DSK}1 ${TARGET_PREFIX}/boot >/dev/null
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-        mount "${MOUNT_OPTS}" /dev/${DSK}4 ${TARGET_PREFIX}/home >/dev/null
+        mount ${MOUNT_OPTS} /dev/${DSK}4 ${TARGET_PREFIX}/home >/dev/null
     fi
 fi
 
