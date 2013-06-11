@@ -435,7 +435,7 @@ fi
 
 # Install packages
 if [ "${HOSTNAME}" == "archiso" ]; then
-    pacstrap -c ${TARGET_PREFIX} `cat ${PACKAGES} | grep -Ev "grub|gummi|nmap|^ntp"`
+    pacstrap -c ${TARGET_PREFIX} `cat ${PACKAGES} | grep -Ev "darkhhtpd|grub|gummi|irssi|nmap|^ntp"`
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
     if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${CPU}" == "x86_64" ]; then
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
@@ -443,7 +443,7 @@ if [ "${HOSTNAME}" == "archiso" ]; then
         echo -en "\nY\nY\nY\nY\nY\n" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     fi
 else
-    pacman -S --noconfirm --needed `cat ${PACKAGES} | grep -Ev "grub|gummi|nmap|^ntp|pcmciautils|syslinux"`
+    pacman -S --noconfirm --needed `cat ${PACKAGES} | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp|pcmciautils|syslinux"`
 fi
 
 # Start building the configuration script
