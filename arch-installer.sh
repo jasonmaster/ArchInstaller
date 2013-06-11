@@ -465,24 +465,13 @@ fi
 # Start building the configuration script
 start_config
 
-if [ "${HOSTNAME}" == "archiso" ]; then
-    add_config "depmod -a ${KERNEL_VER}-ARCH"
-    add_config "mkinitcpio -p linux"
-    add_config "hwclock --systohc --utc"
-else
-    add_config "rm /etc/localtime 2>/dev/null"
-fi
-add_config "ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime"
-
 # Configure the hostname.
 add_config "echo ${FQDN} > /etc/hostname"
 add_config "hostnamectl set-hostname --static ${FQDN}"
 
 # Configure timezone and hwclock
 add_config "echo ${TIMEZONE} > /etc/timezone"
-
-# Configure vconsole and locale
-update_early_hooks keymap
+add_config "ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime"
 
 # Font and font map
 if [ "${INSTALL_TYPE}" != "minimal" ]; then
@@ -491,6 +480,7 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
 else
     FONT=""
 fi
+update_early_hooks keymap
 add_config "echo KEYMAP=${KEYMAP}      > /etc/vconsole.conf"
 add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
 add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
@@ -500,8 +490,21 @@ add_config "echo LC_COLLATE=${LC_COLLATE} >> /etc/locale.conf"
 add_config "locale-gen"
 add_config 'echo "export EDITOR=nano" >> /etc/profile'
 
-# https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
-add_config "sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' /etc/pacman.conf"
+# DO NOT MOVE THIS - It has to be after the early module config ###############
+if [ "${HOSTNAME}" == "archiso" ]; then
+    add_config "depmod -a ${KERNEL_VER}-ARCH"
+    add_config "mkinitcpio -p linux"
+    add_config "hwclock --systohc --utc"
+else
+    add_config "rm /etc/localtime 2>/dev/null"
+fi
+###############################################################################
+
+# Pacman tweaks
+if [ -n "${NFS_CACHE}" ]; then
+    # https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
+    add_config "sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' /etc/pacman.conf"
+fi
 add_config "sed -i 's/#Color/Color/' /etc/pacman.conf"
 
 # F2FS does not currently have a `fsck` tool.
@@ -520,11 +523,6 @@ if [ ${HAS_TRIM} -eq 1 ]; then
         add_config 'echo "fstrim -v /home >> /var/log/trim.log" >> /etc/cron.daily/trim'
     fi
 fi
-
-# By default the maximum number of watches is set to 8192, which is rather low.
-# Increasing this value will have no noticeable side effects and ensure things like
-# Dropbox and MiniDLNA will work correctly regardless of filesystem.
-add_config 'echo "fs.inotify.max_user_watches = 131072" >> /etc/sysctl.conf'
 
 if [ -f netctl ]; then
     cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
@@ -578,13 +576,16 @@ else
     add_config "systemctl enable openntpd.service"
 fi
 
-if [ "${INSTALL_TYPE}" == "desktop" ] || [ "${INSTALL_TYPE}" == "server" ]; then
+if [ "${INSTALL_TYPE}" != "minimal" ]; then
     add_config "sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /etc/nsswitch.conf"
     add_config "sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /etc/sudoers"
     add_config "systemctl start sshdgenkeys.service"
     add_config "systemctl enable sshd.service"
     add_config "systemctl enable syslog-ng.service"
     add_config "systemctl enable cronie.service"
+    # By default the maximum number of watches is set to 8192, which is rather low.
+    # Increasing to ensure Dropbox and MiniDLNA will work correctly.
+    add_config 'echo "fs.inotify.max_user_watches = 131072" >> /etc/sysctl.conf'
 
     if [ "${INSTALL_TYPE}" == "desktop" ]; then
         add_config "systemctl enable avahi-daemon.service"
