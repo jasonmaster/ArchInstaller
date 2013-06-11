@@ -318,6 +318,10 @@ echo "I make no guarantee that the installation of Arch Linux will succeed."
 echo "Press RETURN to try your luck or CTRL-C to cancel."
 read
 
+echo "==> Updating the package database"
+pacman -Syy
+KERNEL_VER=`pacman -Si linux | grep Version | cut -d':' -f2 | sed 's/ //g'`
+
 if [ "${HOSTNAME}" == "archiso" ]; then
     echo "==> Clearing partition table on /dev/${DSK}"
     sgdisk --zap /dev/${DSK} >/dev/null 2>&1
@@ -465,6 +469,7 @@ update_early_hooks consolefont
 update_early_hooks keymap
 
 if [ "${HOSTNAME}" == "archiso" ]; then
+    add_config "depmod -a `ls -1 /usr/lib/modules | head -n1`"
     add_config "mkinitcpio -p linux"
     add_config "hwclock --systohc --utc"
 else
