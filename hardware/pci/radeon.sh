@@ -7,7 +7,7 @@ DRI="ati-dri"
 DDX="xf86-video-ati"
 DECODER="libva-vdpau-driver"
 
-pacman -S --noconfirm --needed ${DRI} ${DECODER}
+pacman -S --noconfirm --needed ${DRI} ${DECODER} libtxc_dxtn
 if [ "${UNAME_M}" == "x86_64" ]; then
     pacman -S --noconfirm --needed lib32-${DRI} lib32-mesa-libgl
 fi
