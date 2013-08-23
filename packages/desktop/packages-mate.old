@@ -1,0 +1,50 @@
+gtk-engine-murrine
+lightdm-gtk2-greeter
+mate
+mate-extra
+mate-extras
+network-manager-applet
+networkmanager
+networkmanager-openvpn
+networkmanager-pptp
+terminator
+upower
+xdg-user-dirs
+mate libmatekbd
+mate libmatekeyring
+mate libmateweather
+mate libmatewnck
+mate mate-backgrounds
+mate mate-common
+mate mate-control-center
+mate mate-desktop
+mate mate-dialogs
+mate mate-doc-utils
+mate mate-file-manager
+mate mate-icon-theme
+mate mate-keyring
+mate mate-menus
+mate mate-notification-daemon
+mate mate-panel
+mate mate-polkit
+mate mate-session-manager
+mate mate-settings-daemon
+mate mate-themes
+mate mate-window-manager
+mate-extra mate-calc
+mate-extra mate-character-map
+mate-extra mate-document-viewer
+mate-extras mate-applets
+mate-extras mate-bluetooth
+mate-extras mate-file-archiver
+mate-extras mate-file-manager-sendto
+mate-extras mate-file-manager-share
+mate-extras mate-image-viewer
+mate-extras mate-media
+mate-extras mate-menu-editor
+mate-extras mate-power-manager
+mate-extras mate-system-monitor
+mate-extras mate-terminal
+mate-extras mate-text-editor
+mate-extras mate-user-share
+mate-extras mate-utils
