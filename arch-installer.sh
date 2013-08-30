@@ -320,7 +320,7 @@ read
 pacman -Syy --noconfirm --needed dmidecode
 KERNEL_VER=`pacman -Si linux | grep Version | cut -d':' -f2 | sed 's/ //g'`
 
-if [ "${HOSTNAME}" == "archiso" ]; then
+function format_disks() {
     echo "==> Clearing partition table on /dev/${DSK}"
     sgdisk --zap /dev/${DSK} >/dev/null 2>&1
     echo "==> Destroying magic strings and signatures on /dev/${DSK}"
@@ -387,7 +387,9 @@ if [ "${HOSTNAME}" == "archiso" ]; then
         echo "==> Making /home filesystem : ${FS}"
         ${MKFS} ${MKFS_L} home /dev/${DSK}4 >/dev/null
     fi
+}
 
+function mount_disks() {
     if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
         echo -n "==> "
         mkswap -f -L swap /dev/${DSK}2
@@ -401,16 +403,19 @@ if [ "${HOSTNAME}" == "archiso" ]; then
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
         mount ${MOUNT_OPTS} /dev/${DSK}4 ${TARGET_PREFIX}/home >/dev/null
     fi
-fi
+}
 
+function fix_keys() {
 # Update and fix pacman keys
 echo "==> Updating pacman keys"
 pacman-key --refresh-keys >/dev/null 2>&1
 echo "==> Enabling key : 182ADEA0"
 gpg --homedir /etc/pacman.d/gnupg --edit-key 182ADEA0 enable quit >/dev/null 2>&1
+}
 
+function build_packages() {
 # Chain packages
-cp packages/base/packages-base.txt /tmp/packages.txt
+cat packages/base/packages-base.txt > /tmp/packages.txt
 
 if [ -n "${VBOX_GUEST}" ]; then
     cat packages/base/packages-virtualbox-guest.txt >> /tmp/packages.txt
@@ -441,13 +446,12 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
         fi
     fi
 fi
+}
 
-#grep -Ev /tmp/packages.txt "darkhttpd|grub|gummi|irssi|nmap|^ntp" > /tmp/install.txt
+function install_packages() {
 # Install packages
 if [ "${HOSTNAME}" == "archiso" ]; then
-    #cat ${PACKAGES} /tmp/packages.txt
-    pacstrap -c ${TARGET_PREFIX} < /tmp/packages.txt
-    #`cat ${PACKAGES} | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp"`
+    pacstrap -c ${TARGET_PREFIX} $(cat /tmp/packages.txt | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp")
     if [ $? -ne 0 ]; then
         echo "ERROR! 'pacstrap' failed. Cleaning up and exitting."
         swapoff -a
@@ -460,6 +464,12 @@ if [ "${HOSTNAME}" == "archiso" ]; then
         umount -fv ${TARGET_PREFIX}/{boot,}
         exit 1
     fi
+else
+    pacman -S --noconfirm --needed $(cat /tmp/packages.txt | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp|pcmciautils|syslinux")
+fi
+}
+
+function make_fstab() {
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
     # Only install multilib on workstations, I have no need for it on my Arch "servers".
     if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${CPU}" == "x86_64" ]; then
@@ -467,10 +477,9 @@ if [ "${HOSTNAME}" == "archiso" ]; then
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' ${TARGET_PREFIX}/etc/pacman.conf
         echo -en "\nY\nY\nY\nY\nY\n" | pacstrap -c -i ${TARGET_PREFIX} multilib-devel
     fi
-else
-    pacman -S --noconfirm --needed `cat ${PACKAGES} | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp|pcmciautils|syslinux"`
-fi
+}
 
+function build_configuration() {
 # Start building the configuration script
 start_config
 
@@ -711,7 +720,9 @@ fi
 
 PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
 add_config "usermod --password ${PASSWORD_CRYPT} root"
+}
 
+function apply_configuration() {
 if [ "${HOSTNAME}" == "archiso" ]; then
     add_config "syslinux-install_update -iam"
     arch-chroot ${TARGET_PREFIX} /usr/local/bin/arch-config.sh
@@ -719,7 +730,9 @@ if [ "${HOSTNAME}" == "archiso" ]; then
 else
     /usr/local/bin/arch-config.sh
 fi
+}
 
+function cleanup() {
 swapoff -a && sync
 if [ -n "${NFS_CACHE}" ]; then
     addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,relatime,noauto,x-systemd.automount,x-systemd.device-timeout=5s 0 0" ${TARGET_PREFIX}/etc/fstab
@@ -736,3 +749,29 @@ if [ "${HOSTNAME}" == "archiso" ]; then
 fi
 
 echo "All done!"
+#exit
+}
+
+
+# Stage 1
+if [ "${HOSTNAME}" == "archiso" ]; then
+	format_disks
+fi
+mount_disks
+mount
+read
+
+#fix_keys
+build_packages
+
+# Stage 2 - broken
+#install_packages
+echo 'pacstrap -c /mnt $(cat /tmp/packages.txt | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp")'
+exit
+
+
+# Stage 3
+make_fstab
+build_configuration
+apply_configuration
+cleanup
