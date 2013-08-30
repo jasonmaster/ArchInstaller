@@ -1,7 +1,6 @@
 gtk-engine-murrine
 lightdm-gtk2-greeter
 mate
-mate-extra
 mate-extras
 network-manager-applet
 networkmanager

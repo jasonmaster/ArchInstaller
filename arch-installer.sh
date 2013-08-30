@@ -19,7 +19,6 @@ LC_COLLATE="C"
 FONT_MAP="8859-1_to_uni"
 PASSWORD=""
 FS="ext4"
-PACKAGES="packages/base/packages-base.txt"
 PARTITION_TYPE="msdos"
 PARTITION_LAYOUT=""
 INSTALL_TYPE="desktop"
@@ -411,14 +410,16 @@ echo "==> Enabling key : 182ADEA0"
 gpg --homedir /etc/pacman.d/gnupg --edit-key 182ADEA0 enable quit >/dev/null 2>&1
 
 # Chain packages
+cp packages/base/packages-base.txt /tmp/packages.txt
+
 if [ -n "${VBOX_GUEST}" ]; then
-    PACKAGES="${PACKAGES} packages/base/packages-virtualbox-guest.txt"
+    cat packages/base/packages-virtualbox-guest.txt >> /tmp/packages.txt
     VBOX_GROUP=",vboxsf"
 else
     VBOX_GROUP=""
 fi
 if [ "${INSTALL_TYPE}" != "minimal" ]; then
-    PACKAGES="${PACKAGES} packages/base/packages-archiso.txt packages/base/packages-extra.txt"
+    cat packages/base/packages-archiso.txt packages/base/packages-extra.txt >> /tmp/packages.txt
     if [ "${DE}" != "none" ] && [ "${INSTALL_TYPE}" == "desktop" ]; then
         if [ "${DE}" == "kde" ]; then
             if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
@@ -434,16 +435,19 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
         fi
         # maui is based on Wayland/Weston
         if [ "${DE}" == "maui" ]; then
-            PACKAGES="${PACKAGES} packages/desktop/packages-wayland.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt"
+            cat packages/desktop/packages-wayland.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
         else
-            PACKAGES="${PACKAGES} packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt"
+            cat packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
         fi
     fi
 fi
 
+#grep -Ev /tmp/packages.txt "darkhttpd|grub|gummi|irssi|nmap|^ntp" > /tmp/install.txt
 # Install packages
 if [ "${HOSTNAME}" == "archiso" ]; then
-    pacstrap -c ${TARGET_PREFIX} `cat ${PACKAGES} | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp"`
+    #cat ${PACKAGES} /tmp/packages.txt
+    pacstrap -c ${TARGET_PREFIX} < /tmp/packages.txt
+    #`cat ${PACKAGES} | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp"`
     if [ $? -ne 0 ]; then
         echo "ERROR! 'pacstrap' failed. Cleaning up and exitting."
         swapoff -a
