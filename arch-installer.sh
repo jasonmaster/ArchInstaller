@@ -677,7 +677,7 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
             for DEVICE_CONFIG in hardware/${BUS}/*.sh
             do
                 if [ -x ${DEVICE_CONFIG} ]; then
-                    DEVICE_ID=`echo ${DEVICE_CONFIG} | cut -f3 -d'/' | sed s'/\.sh//'`
+                    DEVICE_ID=`echo ${DEVICE_CONFIG} | cut -f3 -d'/' | cut -d'.' -f1`
                     FOUND_DEVICE=`${DEVICE_FINDER} -d ${DEVICE_ID}`
                     if [ -n "${FOUND_DEVICE}" ]; then
                         # Add the hardware script to the configuration script.
