@@ -2,6 +2,7 @@ gtk-engine-murrine
 lightdm-gtk2-greeter
 mate
 mate-extras
+mate-screensaver
 network-manager-applet
 networkmanager
 networkmanager-openvpn
