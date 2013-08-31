@@ -15,7 +15,6 @@ fsarchiver
 git
 hexedit
 htop
-hub
 laptop-detect
 lesspipe
 libffado
@@ -27,7 +26,6 @@ nss-mdns
 nss-myhostname
 ntfsprogs
 openntpd
-p7zip
 pm-utils
 powertop
 rpmextract
