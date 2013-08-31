@@ -624,17 +624,17 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
     if [ "${HOSTNAME}" == "archiso" ]; then
         add_config "wget http://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz"
         add_config 'if [ $? -ne 0 ]; then'
-        add_config "    echo \"ERROR! Couldn't downloading packer.tar.gz. Aborting packer install.\""
-        add_config "    exit 1"
+        add_config "    echo \"ERROR! Couldn't downloading packer.tar.gz. Skipping packer install.\""
+        add_config "else"
+        add_config "    cd /usr/local/src"
+        add_config "    tar zxvf packer.tar.gz"
+        add_config "    cd packer"
+        add_config "    makepkg --asroot -s --noconfirm"
+        add_config '    pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`'
+        add_config "    packer -S --noconfirm --noedit tlp"
+        add_config "    mkdir -p /etc/systemd/system/graphical.target.wants/"
+        add_config "    systemctl enable tlp.service"
         add_config "fi"
-        add_config "cd /usr/local/src"
-        add_config "tar zxvf packer.tar.gz"
-        add_config "cd packer"
-        add_config "makepkg --asroot -s --noconfirm"
-        add_config 'pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`'
-        add_config "packer -S --noconfirm --noedit tlp"
-        add_config "mkdir -p /etc/systemd/system/graphical.target.wants/"
-        add_config "systemctl enable tlp.service"
         # Some SATA chipsets can corrupt data when ALPM is enabled. Disable it
         add_config "sed -i 's/SATA_LINKPWR/#SATA_LINKPWR/' /etc/default/tlp"
     else
@@ -764,7 +764,6 @@ mount_disks
 #fix_keys
 build_packages
 install_packages
-#echo 'pacstrap -c /mnt $(cat /tmp/packages.txt | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp")'
 make_fstab
 build_configuration
 apply_configuration
