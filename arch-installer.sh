@@ -405,14 +405,6 @@ function mount_disks() {
     fi
 }
 
-function fix_keys() {
-# Update and fix pacman keys
-echo "==> Updating pacman keys"
-pacman-key --refresh-keys >/dev/null 2>&1
-echo "==> Enabling key : 182ADEA0"
-gpg --homedir /etc/pacman.d/gnupg --edit-key 182ADEA0 enable quit >/dev/null 2>&1
-}
-
 function build_packages() {
 # Chain packages
 cat packages/base/packages-base.txt > /tmp/packages.txt
@@ -436,7 +428,7 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
             fi
             echo "kde-l10n-${LOCALE_KDE}" >> packages/desktop/packages-kde.txt
         elif [ "${DE}" == "mate" ]; then
-	    MATE_CHECK=`grep "\[mate\]" /etc/pacman.conf`
+            MATE_CHECK=`grep "\[mate\]" /etc/pacman.conf`
             if [ $? -ne 0 ]; then
                 echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
             fi
@@ -754,14 +746,10 @@ fi
 echo "All done!"
 }
 
-
-# Stage 1
 if [ "${HOSTNAME}" == "archiso" ]; then
     format_disks
 fi
-
 mount_disks
-#fix_keys
 build_packages
 install_packages
 make_fstab
