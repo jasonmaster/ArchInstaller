@@ -1,3 +1,4 @@
+accountsservice
 gtk-engine-murrine
 lightdm-gtk2-greeter
 mate
