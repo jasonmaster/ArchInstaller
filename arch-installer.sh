@@ -436,7 +436,10 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
             fi
             echo "kde-l10n-${LOCALE_KDE}" >> packages/desktop/packages-kde.txt
         elif [ "${DE}" == "mate" ]; then
-            echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
+	    MATE_CHECK=`grep "\[mate\]" /etc/pacman.conf`
+            if [ $? -ne 0 ]; then
+                echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
+            fi
         fi
         # maui is based on Wayland/Weston
         if [ "${DE}" == "maui" ]; then
@@ -749,28 +752,19 @@ if [ "${HOSTNAME}" == "archiso" ]; then
 fi
 
 echo "All done!"
-#exit
 }
 
 
 # Stage 1
 if [ "${HOSTNAME}" == "archiso" ]; then
-	format_disks
+    format_disks
 fi
-mount_disks
-mount
-read
 
+mount_disks
 #fix_keys
 build_packages
-
-# Stage 2 - broken
-#install_packages
-echo 'pacstrap -c /mnt $(cat /tmp/packages.txt | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp")'
-exit
-
-
-# Stage 3
+install_packages
+#echo 'pacstrap -c /mnt $(cat /tmp/packages.txt | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp")'
 make_fstab
 build_configuration
 apply_configuration
