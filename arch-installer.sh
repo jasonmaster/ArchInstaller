@@ -430,7 +430,7 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
         elif [ "${DE}" == "mate" ]; then
             MATE_CHECK=`grep "\[mate\]" /etc/pacman.conf`
             if [ $? -ne 0 ]; then
-                echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
+                echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://mate.flexion.org/$arch' >> /etc/pacman.conf
             fi
         fi
         # maui is based on Wayland/Weston
