@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if [ `id -u` -ne 0 ]; then
+    echo "ERROR! `basename ${0}` must be executed as root."
+    exit 1
+fi
+
 ./jre6.sh
 packer -S --noedit --noconfirm ipmiview
 wget -c ftp://ftp.supermicro.com/CDR-0010_2.10_IPMI_Server_Managment/res/smcc.ico -O /opt/SUPERMICRO/IPMIView/smcc.ico
