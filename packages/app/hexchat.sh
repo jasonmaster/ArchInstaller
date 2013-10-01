@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-pacman -S --needed --noconfirm hexchat
+pacman -S --needed --noconfirm hexchat enchant
