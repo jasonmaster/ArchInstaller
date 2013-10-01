@@ -626,6 +626,7 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
         add_config "    packer -S --noconfirm --noedit tlp"
         add_config "    mkdir -p /etc/systemd/system/graphical.target.wants/"
         add_config "    systemctl enable tlp.service"
+        add_config "    systemctl enable tlp-sleep.service"
         add_config "fi"
         # Some SATA chipsets can corrupt data when ALPM is enabled. Disable it
         add_config "sed -i 's/SATA_LINKPWR/#SATA_LINKPWR/' /etc/default/tlp"
