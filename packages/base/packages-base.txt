@@ -1,5 +1,6 @@
 base
 base-devel
 cpupower
-ntp
+openntpd
 syslinux
+wget

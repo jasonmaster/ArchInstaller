@@ -7,6 +7,7 @@ ipw2200-fw
 linux-firmware
 nss-mdns
 nss-myhostname
+openssh
 syslog-ng
 terminus-font
 zd1211-firmware

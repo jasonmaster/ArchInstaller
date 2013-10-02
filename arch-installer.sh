@@ -662,7 +662,7 @@ function build_configuration() {
     #        add_config "echo 'powernow_k8' > /etc/modules-load.d/powernow_k8.conf"
     #    fi
     #fi
-    add_config "systemctl enable ntp"
+    add_config "systemctl enable openntpd"
     add_config "systemctl enable cpupower"
     
     # Configure PCI/USB device specific stuff
@@ -692,7 +692,6 @@ function build_configuration() {
                     if [ -n "${FOUND_DEVICE}" ]; then
                         # Add the hardware script to the configuration script.
                         echo " - ${DEVICE_ID} detected, adding to config"
-                        echo -e "\n#${DEVICE_ID}\n"
                         echo -e "\n#${DEVICE_ID}\n" >>${TARGET_PREFIX}/usr/local/bin/arch-config.sh
                         grep -Ev "#!" ${DEVICE_CONFIG} >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
                     else
@@ -725,8 +724,7 @@ function build_configuration() {
             echo " - ${IDENTITY}/${VALUE}.sh not detected, moving on."
         fi
         echo
-    done        
-    
+    done    
 }
 
 function apply_configuration() {
