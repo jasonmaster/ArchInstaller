@@ -606,7 +606,7 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
     add_config "systemctl enable cronie.service"
     # By default the maximum number of watches is set to 8192, which is rather low.
     # Increasing to ensure Dropbox and MiniDLNA will work correctly.
-    add_config 'echo "fs.inotify.max_user_watches = 131072" >> /etc/sysctl.conf'
+    add_config 'echo "fs.inotify.max_user_watches = 131072" >> /etc/sysctl.d/98-fs.inotify.max_user_watches.conf'
 
     if [ "${INSTALL_TYPE}" == "desktop" ]; then
         add_config "systemctl enable avahi-daemon.service"
@@ -656,7 +656,6 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
     for BUS in pci usb
     do
         echo "Scanning: ${BUS}"
-        sleep 5
         if [ "${BUS}" == "pci" ]; then
             DEVICE_FINDER="lspci"
         elif [ "${BUS}" == "usb" ]; then
@@ -670,33 +669,26 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
 
         if [ ${BUS_WORKS} -eq 0 ]; then
             echo "${BUS} is working."
-            sleep 5
-            for DEVICE_CONFIG in hardware/${BUS}/*.sh
+            for DEVICE_CONFIG in hardware/${BUS}/*:*.sh
             do
-                echo "Checkng ${DEVICE_CONFIG}"
-                sleep 5
+                echo " - Checkng ${DEVICE_CONFIG}"
                 if [ -x ${DEVICE_CONFIG} ]; then
                     echo " - ${DEVICE_CONFIG} is executable"
-                    sleep 5
                     DEVICE_ID=`echo ${DEVICE_CONFIG} | cut -f3 -d'/' | cut -d'.' -f1`
-                    echo "Detected ${DEVICE_ID}"
-                    sleep 5
+                    echo " - Detected ${DEVICE_ID}"
                     FOUND_DEVICE=`${DEVICE_FINDER} -d ${DEVICE_ID}`
-                    echo "Found device : ${FOUND_DEVICE}"
-                    sleep 5
+                    echo " - Found device : ${FOUND_DEVICE}"
                     if [ -n "${FOUND_DEVICE}" ]; then
                         # Add the hardware script to the configuration script.
-                        echo "Adding ${DEVICE_ID} to config"
-                        sleep 5
+                        echo " - Adding ${DEVICE_ID} to config"
                         echo -e "\n#${DEVICE_ID}\n"
-                        sleep 5
                         echo -e "\n#${DEVICE_ID}\n" >>${TARGET_PREFIX}/usr/local/bin/arch-config.sh
                         grep -Ev "#!" ${DEVICE_CONFIG} >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
                     else
-                        echo "Device not found."
+                        echo " - Device not found."
                     fi
                 else
-                    echo "${DEVICE_CONFIG} is NOT executable, skipping."
+                    echo " - ${DEVICE_CONFIG} is not a valid script, skipping."
                 fi
             done
             echo
@@ -712,24 +704,20 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
     for IDENTITY in Product_Name Version Serial_Number UUID SKU_Number
     do
         echo "Checking ${IDENTIFY}"
-        sleep 5
         FIELD=`echo ${IDENTITY} | sed 's/_/ /g'`
         VALUE=`dmidecode --type system | grep "${FIELD}" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
-        echo "Field : ${FIELD}"
-        echo "Value : ${VALUE}"
-        sleep 5
+        echo " - Field : ${FIELD}"
+        echo " - Value : ${VALUE}"
         if [ -x hardware/system/${IDENTITY}/${VALUE}.sh ]; then
-            echo "hardware/system/${IDENTITY}/${VALUE}.sh is executable."
-            sleep 5
-            echo "Adding ${IDENTITY} - ${VALUE} to config."
-            sleep 5
+            echo " - ${IDENTITY}/${VALUE}.sh was found."
+            echo " - Adding ${IDENTITY} - ${VALUE} to config."
             # Add the hardware script to the configuration script.
             echo -e "\n#${IDENTITY} - ${VALUE}\n" >>${TARGET_PREFIX}/usr/local/bin/arch-config.sh
             grep -Ev "#!" hardware/system/${IDENTITY}/${VALUE}.sh >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
         else
-            echo "hardware/system/${IDENTITY}/${VALUE}.sh is NOT executable."
-            sleep 5
+            echo " - ${IDENTITY}/${VALUE}.sh not found, moving on."
         fi
+        echo
     done
     echo "Press any key."
     read
