@@ -1,3 +1,5 @@
 base
 base-devel
+cpupower
+ntp
 syslinux

@@ -5,4 +5,4 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --noconfirm --needed arj bzip2 gzip lha lzop sharutils tar unace unrar unzip xz zip
+pacman -S --needed --noconfirm devtools

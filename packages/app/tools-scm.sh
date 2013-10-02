@@ -5,5 +5,5 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --needed --noconfirm bzr
+pacman -S --needed --noconfirm cvs bzr git mercurial subversion
 packer -S --noedit --noconfirm bzr-fastimport

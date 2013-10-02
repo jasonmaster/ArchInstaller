@@ -6,4 +6,4 @@ if [ `id -u` -ne 0 ]; then
 fi
 
 packer -S --noedit --noconfirm dropbox
-echo "fs.inotify.max_user_watches = 131072" > /etc/sysctl.d/98-dropbox.conf
+echo "fs.inotify.max_user_watches = 131072" > /etc/sysctl.d/98-fs.inotify.max_user_watches.conf

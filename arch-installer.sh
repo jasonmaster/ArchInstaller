@@ -34,7 +34,7 @@ if [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]; then
     fi
 elif [ "${CPU}" == "armv6l" ]; then
     if [ "${HOSTNAME}" != "alarmpi" ]; then
-        echo "PARACHUTE DEPLOYED! This script is not running from a support Arch Linux ARM distro."
+        echo "PARACHUTE DEPLOYED! This script is not running from a supported Arch Linux ARM distro."
         echo " - Exitting now to prevent untold chaos."
         exit 1
     else
@@ -121,9 +121,6 @@ done
 shift "$(( $OPTIND - 1 ))"
 
 if [ "${HOSTNAME}" == "archiso" ]; then
-
-    # Look for the VirtualBox Guest Service and add additional package and groups if required.
-    VBOX_GUEST=`lspci -d 80ee:cafe`
 
     if [ ! -b /dev/${DSK} ]; then
         echo "ERROR! Target install disk not found."
@@ -406,66 +403,63 @@ function mount_disks() {
 }
 
 function build_packages() {
-# Chain packages
-cat packages/base/packages-base.txt > /tmp/packages.txt
+    # Chain packages
+    cat packages/base/packages-base.txt > /tmp/packages.txt
 
-if [ -n "${VBOX_GUEST}" ]; then
-    cat packages/base/packages-virtualbox-guest.txt >> /tmp/packages.txt
-    VBOX_GROUP=",vboxsf"
-else
-    VBOX_GROUP=""
-fi
-if [ "${INSTALL_TYPE}" != "minimal" ]; then
-    cat packages/base/packages-archiso.txt packages/base/packages-extra.txt >> /tmp/packages.txt
-    if [ "${DE}" != "none" ] && [ "${INSTALL_TYPE}" == "desktop" ]; then
-        if [ "${DE}" == "kde" ]; then
-            if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
-                LOCALE_KDE=`echo ${LOCALE} | tr '[:upper:]' '[:lower:]'`
-            elif [ "${LOCALE}" == "en_US" ]; then
-                LOCALE_KDE="en_gb"
+    if [ "${INSTALL_TYPE}" != "minimal" ]; then
+        cat packages/base/packages-extra.txt >> /tmp/packages.txt
+        if [ "${DE}" != "none" ] && [ "${INSTALL_TYPE}" == "desktop" ]; then
+            if [ "${DE}" == "kde" ]; then
+                if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
+                    LOCALE_KDE=`echo ${LOCALE} | tr '[:upper:]' '[:lower:]'`
+                elif [ "${LOCALE}" == "en_US" ]; then
+                    LOCALE_KDE="en_gb"
+                else
+                    LOCALE_KDE=`echo ${LOCALE} | cut -d\_ -f1`
+                fi
+                echo "kde-l10n-${LOCALE_KDE}" >> packages/desktop/packages-kde.txt
+            elif [ "${DE}" == "mate" ]; then
+                MATE_CHECK=`grep "\[mate\]" /etc/pacman.conf`
+                if [ $? -ne 0 ]; then
+                    echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
+                fi
+            fi
+            # maui is based on Wayland/Weston
+            if [ "${DE}" == "maui" ]; then
+                cat packages/desktop/packages-wayland.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
             else
-                LOCALE_KDE=`echo ${LOCALE} | cut -d\_ -f1`
+                cat packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
             fi
-            echo "kde-l10n-${LOCALE_KDE}" >> packages/desktop/packages-kde.txt
-        elif [ "${DE}" == "mate" ]; then
-            MATE_CHECK=`grep "\[mate\]" /etc/pacman.conf`
-            if [ $? -ne 0 ]; then
-                echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://mate.flexion.org/$arch' >> /etc/pacman.conf
-            fi
-        fi
-        # maui is based on Wayland/Weston
-        if [ "${DE}" == "maui" ]; then
-            cat packages/desktop/packages-wayland.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
-        else
-            cat packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
         fi
     fi
-fi
 }
 
 function install_packages() {
-# Install packages
-if [ "${HOSTNAME}" == "archiso" ]; then
-    pacstrap -c ${TARGET_PREFIX} $(cat /tmp/packages.txt | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp")
-    if [ $? -ne 0 ]; then
-        echo "ERROR! 'pacstrap' failed. Cleaning up and exitting."
-        swapoff -a
-        if [ -n "${NFS_CACHE}" ]; then
-            umount -fv /var/cache/pacman/pkg
+    # Install packages
+    if [ "${HOSTNAME}" == "archiso" ]; then
+        pacstrap -c ${TARGET_PREFIX} $(cat /tmp/packages.txt)
+        if [ $? -ne 0 ]; then
+            echo "ERROR! 'pacstrap' failed. Cleaning up and exitting."
+            swapoff -a
+            if [ -n "${NFS_CACHE}" ]; then
+                umount -fv /var/cache/pacman/pkg
+            fi
+            if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+                umount -fv ${TARGET_PREFIX}/home
+            fi
+            umount -fv ${TARGET_PREFIX}/{boot,}
+            exit 1
         fi
-        if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-            umount -fv ${TARGET_PREFIX}/home
-        fi
-        umount -fv ${TARGET_PREFIX}/{boot,}
-        exit 1
+    else
+        pacman -S --noconfirm --needed $(cat /tmp/packages.txt | grep -Ev syslinux)
     fi
-else
-    pacman -S --noconfirm --needed $(cat /tmp/packages.txt | grep -Ev "darkhttpd|grub|gummi|irssi|nmap|^ntp|pcmciautils|syslinux")
-fi
 }
 
 function make_fstab() {
     genfstab -t UUID -p ${TARGET_PREFIX} >> ${TARGET_PREFIX}/etc/fstab
+}
+
+function enable_multilib() {
     # Only install multilib on workstations, I have no need for it on my Arch "servers".
     if [ "${INSTALL_TYPE}" == "desktop" ] && [ "${CPU}" == "x86_64" ]; then
         sed -i '/#\[multilib\]/,/#Include = \/etc\/pacman.d\/mirrorlist/ s/#//' /etc/pacman.conf
@@ -475,183 +469,202 @@ function make_fstab() {
 }
 
 function build_configuration() {
-# Start building the configuration script
-start_config
+    # Start building the configuration script
+    start_config
 
-# Configure the hostname.
-add_config "echo ${FQDN} > /etc/hostname"
-add_config "hostnamectl set-hostname --static ${FQDN}"
+    # Configure the hostname.
+    add_config "echo ${FQDN} > /etc/hostname"
+    add_config "hostnamectl set-hostname --static ${FQDN}"
 
-# Configure timezone and hwclock
-add_config "echo ${TIMEZONE} > /etc/timezone"
-add_config "ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime"
+    # Configure timezone and hwclock
+    add_config "echo ${TIMEZONE} > /etc/timezone"
+    add_config "ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime"
 
-# Font and font map
-if [ "${INSTALL_TYPE}" != "minimal" ]; then
-    FONT="ter-116b"
-    update_early_hooks consolefont
-else
-    FONT=""
-fi
-update_early_hooks keymap
-add_config "echo KEYMAP=${KEYMAP}      > /etc/vconsole.conf"
-add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
-add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
-add_config "sed -i \"s/#${LANG}/${LANG}/\" /etc/locale.gen"
-add_config "echo LANG=${LANG}             >  /etc/locale.conf"
-add_config "echo LC_COLLATE=${LC_COLLATE} >> /etc/locale.conf"
-add_config "locale-gen"
-add_config 'echo "export EDITOR=nano" >> /etc/profile'
-
-# DO NOT MOVE THIS - It has to be after the early module config ###############
-if [ "${HOSTNAME}" == "archiso" ]; then
-    add_config "depmod -a ${KERNEL_VER}-ARCH"
-    add_config "mkinitcpio -p linux"
-    add_config "hwclock --systohc --utc"
-else
-    add_config "rm /etc/localtime 2>/dev/null"
-fi
-###############################################################################
-
-# Pacman tweaks
-if [ -n "${NFS_CACHE}" ]; then
-    # https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
-    add_config "sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' /etc/pacman.conf"
-fi
-add_config "sed -i 's/#Color/Color/' /etc/pacman.conf"
-
-# F2FS does not currently have a `fsck` tool.
-if [ "${FS}" == "f2fs" ]; then
-    add_config "sed -i 's/keyboard fsck/keyboard/' /etc/mkinitcpio.conf"
-fi
-
-# Add `fstrim` cron job here.
-#  - https://patrick-nagel.net/blog/archives/337
-#  - http://blog.neutrino.es/2013/howto-properly-activate-trim-for-your-ssd-on-linux-fstrim-lvm-and-dmcrypt/
-if [ ${HAS_TRIM} -eq 1 ]; then
-    add_config 'echo "#!/usr/bin/env bash"                  >  /etc/cron.daily/trim'
-    add_config 'echo "$(date -R)  >> /var/log/trim.log"     >> /etc/cron.daily/trim'
-    add_config 'echo "fstrim -v / >> /var/log/trim.log"     >> /etc/cron.daily/trim'
-    if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-        add_config 'echo "fstrim -v /home >> /var/log/trim.log" >> /etc/cron.daily/trim'
+    # Font and font map
+    if [ "${INSTALL_TYPE}" != "minimal" ]; then
+        FONT="ter-116b"
+        update_early_hooks consolefont
+    else
+        FONT=""
     fi
-fi
+    update_early_hooks keymap
+    add_config "echo KEYMAP=${KEYMAP}      > /etc/vconsole.conf"
+    add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
+    add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
+    add_config "sed -i \"s/#${LANG}/${LANG}/\" /etc/locale.gen"
+    add_config "echo LANG=${LANG}             >  /etc/locale.conf"
+    add_config "echo LC_COLLATE=${LC_COLLATE} >> /etc/locale.conf"
+    add_config "locale-gen"
+    add_config 'echo "export EDITOR=nano" >> /etc/profile'
 
-if [ -f netctl ]; then
-    cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
-    add_config "netctl enable mynetwork"
-fi
-
-if [ "${INSTALL_TYPE}" == "desktop" ]; then
-    if [ "${DE}" == "cinnamon" ]; then
-        add_config "systemctl enable lightdm.service"
-        add_config "systemctl enable upower.service"
-        add_config "systemctl enable accounts-daemon.service"
-        add_config "systemctl enable NetworkManager.service"
-        add_config "systemctl enable cups.service"
-    elif [ "${DE}" == "gnome" ]; then
-        add_config "systemctl enable gdm.service"
-        add_config "systemctl enable upower.service"
-        add_config "systemctl enable accounts-daemon.service"
-        add_config "systemctl enable NetworkManager.service"
-        add_config "systemctl enable cups.service"
-    elif [ "${DE}" == "kde" ]; then
-        add_config "systemctl enable kdm.service"
-        add_config "systemctl enable upower.service"
-        add_config "systemctl enable NetworkManager.service"
-        add_config "systemctl enable cups.service"
-    elif [ "${DE}" == "lxde" ]; then
-        add_config "systemctl enable lxdm.service"
-        add_config "systemctl enable upower.service"
-        add_config "systemctl enable NetworkManager.service"
-        add_config "systemctl enable cups.service"
-    elif [ "${DE}" == "mate" ]; then
-        echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
-        add_config "systemctl enable lightdm.service"
-        add_config "systemctl enable upower.service"
-        add_config "systemctl enable accounts-daemon.service"
-        add_config "systemctl enable NetworkManager.service"
-        add_config "systemctl enable cups.service"
-    elif [ "${DE}" == "maui" ]; then
-        echo -e '\n[hawaii]\nSigLevel = Optional TrustAll\nServer = Server = http://archive.maui-project.org/archlinux/$repo/os/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
-        add_config "systemctl enable hawaii"
-        #add_config "systemctl enable lightdm.service"
-        #add_config "systemctl enable upower.service"
-        #add_config "systemctl enable accounts-daemon.service"
-        #add_config "systemctl enable NetworkManager.service"
-        add_config "systemctl enable cups.service"
-    elif [ "${DE}" == "xfce" ]; then
-        add_config "systemctl enable lightdm.service"
-        add_config "systemctl enable upower.service"
-        add_config "systemctl enable NetworkManager.service"
-        add_config "systemctl enable cups.service"
+    # DO NOT MOVE THIS - It has to be after the early module config ###############
+    if [ "${HOSTNAME}" == "archiso" ]; then
+        add_config "depmod -a ${KERNEL_VER}-ARCH"
+        add_config "mkinitcpio -p linux"
+        add_config "hwclock --systohc --utc"
+    else
+        add_config "rm /etc/localtime 2>/dev/null"
     fi
-fi
+    ###############################################################################
 
-if [ -n "${VBOX_GUEST}" ]; then
-    add_config "systemctl enable vboxservice.service"
-    add_config "echo 'vboxguest' >  /etc/modules-load.d/virtualbox-guest.conf"
-    add_config "echo 'vboxsf'    >> /etc/modules-load.d/virtualbox-guest.conf"
-    add_config "echo 'vboxvideo' >> /etc/modules-load.d/virtualbox-guest.conf"
-else
-    add_config "systemctl enable openntpd.service"
-fi
+    # Pacman tweaks
+    if [ -n "${NFS_CACHE}" ]; then
+        # https://wiki.archlinux.org/index.php/Pacman_Tips#Network_shared_pacman_cache
+        add_config "sed -i 's/#CleanMethod = KeepInstalled/CleanMethod = KeepCurrent/' /etc/pacman.conf"
+    fi
+    add_config "sed -i 's/#Color/Color/' /etc/pacman.conf"
 
-if [ "${INSTALL_TYPE}" != "minimal" ]; then
-    add_config "sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /etc/nsswitch.conf"
-    add_config "sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /etc/sudoers"
-    add_config "systemctl start sshdgenkeys.service"
-    add_config "systemctl enable sshd.service"
-    add_config "systemctl enable syslog-ng.service"
-    add_config "systemctl enable cronie.service"
-    # By default the maximum number of watches is set to 8192, which is rather low.
-    # Increasing to ensure Dropbox and MiniDLNA will work correctly.
-    add_config 'echo "fs.inotify.max_user_watches = 131072" >> /etc/sysctl.d/98-fs.inotify.max_user_watches.conf'
+    # F2FS does not currently have a `fsck` tool.
+    if [ "${FS}" == "f2fs" ]; then
+        add_config "sed -i 's/keyboard fsck/keyboard/' /etc/mkinitcpio.conf"
+    fi
+
+    if [ -f netctl ]; then
+        cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
+        add_config "netctl enable mynetwork"
+    fi
 
     if [ "${INSTALL_TYPE}" == "desktop" ]; then
-        add_config "systemctl enable avahi-daemon.service"
-        add_config "systemctl enable rpc-statd.service"
+        if [ "${DE}" == "cinnamon" ]; then
+            add_config "systemctl enable lightdm.service"
+            add_config "systemctl enable upower.service"
+            add_config "systemctl enable accounts-daemon.service"
+            add_config "systemctl enable NetworkManager.service"
+            add_config "systemctl enable cups.service"
+        elif [ "${DE}" == "gnome" ]; then
+            add_config "systemctl enable gdm.service"
+            add_config "systemctl enable upower.service"
+            add_config "systemctl enable accounts-daemon.service"
+            add_config "systemctl enable NetworkManager.service"
+            add_config "systemctl enable cups.service"
+        elif [ "${DE}" == "kde" ]; then
+            add_config "systemctl enable kdm.service"
+            add_config "systemctl enable upower.service"
+            add_config "systemctl enable NetworkManager.service"
+            add_config "systemctl enable cups.service"
+        elif [ "${DE}" == "lxde" ]; then
+            add_config "systemctl enable lxdm.service"
+            add_config "systemctl enable upower.service"
+            add_config "systemctl enable NetworkManager.service"
+            add_config "systemctl enable cups.service"
+        elif [ "${DE}" == "mate" ]; then
+            echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
+            add_config "systemctl enable lightdm.service"
+            add_config "systemctl enable upower.service"
+            add_config "systemctl enable accounts-daemon.service"
+            add_config "systemctl enable NetworkManager.service"
+            add_config "systemctl enable cups.service"
+        elif [ "${DE}" == "maui" ]; then
+            echo -e '\n[hawaii]\nSigLevel = Optional TrustAll\nServer = Server = http://archive.maui-project.org/archlinux/$repo/os/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
+            add_config "systemctl enable hawaii"
+            #add_config "systemctl enable lightdm.service"
+            #add_config "systemctl enable upower.service"
+            #add_config "systemctl enable accounts-daemon.service"
+            #add_config "systemctl enable NetworkManager.service"
+            add_config "systemctl enable cups.service"
+        elif [ "${DE}" == "xfce" ]; then
+            add_config "systemctl enable lightdm.service"
+            add_config "systemctl enable upower.service"
+            add_config "systemctl enable NetworkManager.service"
+            add_config "systemctl enable cups.service"
+        fi
     fi
 
-    if [ "${HOSTNAME}" == "archiso" ]; then
-        add_config "wget http://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz"
-        add_config 'if [ $? -ne 0 ]; then'
-        add_config "    echo \"ERROR! Couldn't downloading packer.tar.gz. Skipping packer install.\""
-        add_config "else"
-        add_config "    cd /usr/local/src"
-        add_config "    tar zxvf packer.tar.gz"
-        add_config "    cd packer"
-        add_config "    makepkg --asroot -s --noconfirm"
-        add_config '    pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`'
-        add_config "    packer -S --noconfirm --noedit tlp"
-        add_config "    mkdir -p /etc/systemd/system/graphical.target.wants/"
-        add_config "    systemctl enable tlp.service"
-        add_config "    systemctl enable tlp-sleep.service"
-        add_config "fi"
-        # Some SATA chipsets can corrupt data when ALPM is enabled. Disable it
-        add_config "sed -i 's/SATA_LINKPWR/#SATA_LINKPWR/' /etc/default/tlp"
-    else
-        add_config "pacman -S --noconfirm packer"
+    if [ "${INSTALL_TYPE}" != "minimal" ]; then
+        add_config "sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /etc/nsswitch.conf"
+        add_config "sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /etc/sudoers"
+        add_config "systemctl start sshdgenkeys.service"
+        add_config "systemctl enable sshd.service"
+        add_config "systemctl enable syslog-ng.service"
+        add_config "systemctl enable cronie.service"
+        # By default the maximum number of watches is set to 8192, which is rather low.
+        # Increasing to ensure Dropbox and MiniDLNA will work correctly.
+        add_config 'echo "fs.inotify.max_user_watches = 131072" >> /etc/sysctl.d/98-fs.inotify.max_user_watches.conf'
+
+        if [ "${INSTALL_TYPE}" == "desktop" ]; then
+            add_config "systemctl enable avahi-daemon.service"
+            add_config "systemctl enable rpc-statd.service"
+        fi
+
+        if [ "${HOSTNAME}" == "archiso" ]; then
+            add_config "wget http://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz"
+            add_config 'if [ $? -ne 0 ]; then'
+            add_config "    echo \"ERROR! Couldn't downloading packer.tar.gz. Skipping packer install.\""
+            add_config "else"
+            add_config "    cd /usr/local/src"
+            add_config "    tar zxvf packer.tar.gz"
+            add_config "    cd packer"
+            add_config "    makepkg --asroot -s --noconfirm"
+            add_config '    pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`'
+            add_config "    packer -S --noconfirm --noedit tlp"
+            add_config "    mkdir -p /etc/systemd/system/graphical.target.wants/"
+            add_config "    systemctl enable tlp.service"
+            add_config "    systemctl enable tlp-sleep.service"
+            add_config "fi"
+            # Some SATA chipsets can corrupt data when ALPM is enabled. Disable it
+            add_config "sed -i 's/SATA_LINKPWR/#SATA_LINKPWR/' /etc/default/tlp"
+        else
+            add_config "pacman -S --noconfirm packer"
+        fi        
+    
+        # Install dot files.
+        rsync -aq skel/ ${TARGET_PREFIX}/etc/skel/
+        rsync -aq skel/ ${TARGET_PREFIX}/root/        
     fi
 
-    # Install dot files.
-    rsync -aq skel/ ${TARGET_PREFIX}/etc/skel/
-    rsync -aq skel/ ${TARGET_PREFIX}/root/
+    if [ -f users.csv ]; then
+        OIFS=${IFS}
+        IFS=$'\n';
+        for USER in `cat users.csv`
+        do
+            _USERNAME=`echo ${USER} | cut -d',' -f1`
+            _PLAINPASSWD=`echo ${USER} | cut -d',' -f2`
+            _CRYPTPASSWD=`openssl passwd -crypt ${_PLAINPASSWD}`
+            _COMMENT=`echo ${USER} | cut -d',' -f3`
+            _EXTRA_GROUPS=`echo ${USER} | cut -d',' -f4`
+
+            if [ "${_EXTRA_GROUPS}" != "" ]; then
+                _GROUPS=${BASE_GROUPS},${_EXTRA_GROUPS}
+            else
+                _GROUPS=${BASE_GROUPS}
+            fi
+            add_config "useradd --password ${_CRYPTPASSWD} --comment \"${_COMMENT}\" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}"
+        done
+        IFS=${OIFS}
+    fi
+
+    PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
+    add_config "usermod --password ${PASSWORD_CRYPT} root"
 
     # Configure the hardware
     add_config "echo 'blacklist pcspkr' > /etc/modprobe.d/blacklist-pcspkr.conf"
 
-    # https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling
-    modprobe -q acpi-cpufreq
-    if [ $? -eq 0 ]; then
-        add_config "echo 'acpi-cpufreq' > /etc/modules-load.d/acpi-cpufreq.conf"
-    else
-        modprobe -q powernow_k8
-        if [ $? -eq 0 ]; then
-            add_config "echo 'powernow_k8' > /etc/modules-load.d/powernow_k8.conf"
+    # Add `fstrim` cron job here.
+    #  - https://patrick-nagel.net/blog/archives/337
+    #  - http://blog.neutrino.es/2013/howto-properly-activate-trim-for-your-ssd-on-linux-fstrim-lvm-and-dmcrypt/
+    if [ ${HAS_TRIM} -eq 1 ]; then
+        add_config 'echo "#!/usr/bin/env bash"                  >  /etc/cron.daily/trim'
+        add_config 'echo "$(date -R)  >> /var/log/trim.log"     >> /etc/cron.daily/trim'
+        add_config 'echo "fstrim -v / >> /var/log/trim.log"     >> /etc/cron.daily/trim'
+        if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+            add_config 'echo "fstrim -v /home >> /var/log/trim.log" >> /etc/cron.daily/trim'
         fi
     fi
 
+    # As of kernel 3.4, the native CPU module is loaded automatically.
+    # - https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling
+    #modprobe -q acpi-cpufreq
+    #if [ $? -eq 0 ]; then
+    #    add_config "echo 'acpi-cpufreq' > /etc/modules-load.d/acpi-cpufreq.conf"
+    #else
+    #    modprobe -q powernow_k8
+    #    if [ $? -eq 0 ]; then
+    #        add_config "echo 'powernow_k8' > /etc/modules-load.d/powernow_k8.conf"
+    #    fi
+    #fi
+    add_config "systemctl enable ntp"
+    add_config "systemctl enable cpupower"
+    
     # Configure PCI/USB device specific stuff
     for BUS in pci usb
     do
@@ -712,30 +725,8 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
             echo " - ${IDENTITY}/${VALUE}.sh not detected, moving on."
         fi
         echo
-    done
-fi
-
-if [ -f users.csv ]; then
-    IFS=$'\n';
-    for USER in `cat users.csv`
-    do
-        _USERNAME=`echo ${USER} | cut -d',' -f1`
-        _PLAINPASSWD=`echo ${USER} | cut -d',' -f2`
-        _CRYPTPASSWD=`openssl passwd -crypt ${_PLAINPASSWD}`
-        _COMMENT=`echo ${USER} | cut -d',' -f3`
-        _EXTRA_GROUPS=`echo ${USER} | cut -d',' -f4`
-
-        if [ "${_EXTRA_GROUPS}" != "" ]; then
-            _GROUPS=${BASE_GROUPS},${_EXTRA_GROUPS}${VBOX_GROUP}
-        else
-            _GROUPS=${BASE_GROUPS}${VBOX_GROUP}
-        fi
-        add_config "useradd --password ${_CRYPTPASSWD} --comment \"${_COMMENT}\" --groups ${_GROUPS} --shell /bin/bash --create-home -g users ${_USERNAME}"
-    done
-fi
-
-PASSWORD_CRYPT=`openssl passwd -crypt ${PASSWORD}`
-add_config "usermod --password ${PASSWORD_CRYPT} root"
+    done        
+    
 }
 
 function apply_configuration() {
@@ -774,6 +765,7 @@ mount_disks
 build_packages
 install_packages
 make_fstab
+enable_multilib
 build_configuration
 apply_configuration
 cleanup
