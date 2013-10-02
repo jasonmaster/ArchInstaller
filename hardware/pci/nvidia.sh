@@ -4,7 +4,7 @@ UNAME_M=`uname -m`
 
 # Uninstall nouveau
 rm /etc/modprobe.d/nouveau.conf
-pacman -Rdds --noconfirm nouveau-dri xf86-video-nouveau mesa-libgl
+pacman -Rdds --noconfirm nouveau-dri xf86-video-nouveau mesa-libgl libtxc_dxtn
 if [ "${UNAME_M}" == "x86_64" ]; then
     pacman -Rdds --noconfirm lib32-nouveau-dri lib32-mesa-libgl
 fi

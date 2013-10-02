@@ -15,7 +15,7 @@ fi
 
 
 # Install nouveau
-pacman -S --noconfirm --needed ${DRI} ${DECODER}
+pacman -S --noconfirm --needed ${DRI} ${DECODER} libtxc_dxtn
 if [ "${UNAME_M}" == "x86_64" ]; then
     pacman -S --noconfirm --needed lib32-${DRI} lib32-mesa-libgl
 fi
