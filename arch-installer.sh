@@ -684,7 +684,7 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
                         echo -e "\n#${DEVICE_ID}\n" >>${TARGET_PREFIX}/usr/local/bin/arch-config.sh
                         grep -Ev "#!" ${DEVICE_CONFIG} >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
                     else
-                        echo " - $[DEVICE_ID} not detected, moving on."
+                        echo " - ${DEVICE_ID} not detected, moving on."
                     fi
                 else
                     echo " - ${DEVICE_CONFIG} is not an executable script, skipping."
