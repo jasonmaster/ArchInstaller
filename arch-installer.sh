@@ -655,6 +655,8 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
     # Configure PCI/USB device specific stuff
     for BUS in pci usb
     do
+        echo "Scanning: ${BUS}"
+        sleep 5
         if [ "${BUS}" == "pci" ]; then
             DEVICE_FINDER="lspci"
         elif [ "${BUS}" == "usb" ]; then
@@ -667,32 +669,70 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
         BUS_WORKS=$?
 
         if [ ${BUS_WORKS} -eq 0 ]; then
+            echo "${BUS} is working."
+            sleep 5
             for DEVICE_CONFIG in hardware/${BUS}/*.sh
             do
+                echo "Checkng ${DEVICE_CONFIG}"
+                sleep 5
                 if [ -x ${DEVICE_CONFIG} ]; then
+                    echo " - ${DEVICE_CONFIG} is executable"
+                    sleep 5
                     DEVICE_ID=`echo ${DEVICE_CONFIG} | cut -f3 -d'/' | cut -d'.' -f1`
+                    echo "Detected ${DEVICE_ID}"
+                    sleep 5
                     FOUND_DEVICE=`${DEVICE_FINDER} -d ${DEVICE_ID}`
+                    echo "Found device : ${FOUND_DEVICE}"
+                    sleep 5
                     if [ -n "${FOUND_DEVICE}" ]; then
                         # Add the hardware script to the configuration script.
+                        echo "Adding ${DEVICE_ID} to config"
+                        sleep 5
+                        echo -e "\n#${DEVICE_ID}\n"
+                        sleep 5
                         echo -e "\n#${DEVICE_ID}\n" >>${TARGET_PREFIX}/usr/local/bin/arch-config.sh
                         grep -Ev "#!" ${DEVICE_CONFIG} >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
+                    else
+                        echo "Device not found."
                     fi
+                else
+                    echo "${DEVICE_CONFIG} is NOT executable, skipping."
                 fi
             done
+            echo
+        else
+            echo "${BUS} is not working."
         fi
     done
-
+    
+    echo "Press any key to continue."
+    read
+    
     # Configure any system specific stuff
     for IDENTITY in Product_Name Version Serial_Number UUID SKU_Number
     do
+        echo "Checking ${IDENTIFY}"
+        sleep 5
         FIELD=`echo ${IDENTITY} | sed 's/_/ /g'`
         VALUE=`dmidecode --type system | grep "${FIELD}" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
+        echo "Field : ${FIELD}"
+        echo "Value : ${VALUE}"
+        sleep 5
         if [ -x hardware/system/${IDENTITY}/${VALUE}.sh ]; then
+            echo "hardware/system/${IDENTITY}/${VALUE}.sh is executable."
+            sleep 5
+            echo "Adding ${IDENTITY} - ${VALUE} to config."
+            sleep 5
             # Add the hardware script to the configuration script.
             echo -e "\n#${IDENTITY} - ${VALUE}\n" >>${TARGET_PREFIX}/usr/local/bin/arch-config.sh
             grep -Ev "#!" hardware/system/${IDENTITY}/${VALUE}.sh >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
+        else
+            echo "hardware/system/${IDENTITY}/${VALUE}.sh is NOT executable."
+            sleep 5
         fi
     done
+    echo "Press any key."
+    read
 fi
 
 if [ -f users.csv ]; then
