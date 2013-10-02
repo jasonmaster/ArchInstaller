@@ -677,23 +677,22 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
                     DEVICE_ID=`echo ${DEVICE_CONFIG} | cut -f3 -d'/' | cut -d'.' -f1`
                     echo " - Detected ${DEVICE_ID}"
                     FOUND_DEVICE=`${DEVICE_FINDER} -d ${DEVICE_ID}`
-                    echo " - Found device : ${FOUND_DEVICE}"
                     if [ -n "${FOUND_DEVICE}" ]; then
                         # Add the hardware script to the configuration script.
-                        echo " - Adding ${DEVICE_ID} to config"
+                        echo " - ${DEVICE_ID} detected, adding to config"
                         echo -e "\n#${DEVICE_ID}\n"
                         echo -e "\n#${DEVICE_ID}\n" >>${TARGET_PREFIX}/usr/local/bin/arch-config.sh
                         grep -Ev "#!" ${DEVICE_CONFIG} >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
                     else
-                        echo " - Device not found."
+                        echo " - $[DEVICE_ID} not detected, moving on."
                     fi
                 else
-                    echo " - ${DEVICE_CONFIG} is not a valid script, skipping."
+                    echo " - ${DEVICE_CONFIG} is not an executable script, skipping."
                 fi
-            done
             echo
+            done
         else
-            echo "${BUS} is not working."
+            echo "${BUS} is NOT working."
         fi
     done
     
@@ -706,20 +705,19 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
         echo "Checking ${IDENTIFY}"
         FIELD=`echo ${IDENTITY} | sed 's/_/ /g'`
         VALUE=`dmidecode --type system | grep "${FIELD}" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
-        echo " - Field : ${FIELD}"
-        echo " - Value : ${VALUE}"
+        echo "  - Checking ${FIELD} for ${VALUE}"
         if [ -x hardware/system/${IDENTITY}/${VALUE}.sh ]; then
             echo " - ${IDENTITY}/${VALUE}.sh was found."
-            echo " - Adding ${IDENTITY} - ${VALUE} to config."
+            echo " - ${IDENTITY} detected, adding to config."
             # Add the hardware script to the configuration script.
             echo -e "\n#${IDENTITY} - ${VALUE}\n" >>${TARGET_PREFIX}/usr/local/bin/arch-config.sh
             grep -Ev "#!" hardware/system/${IDENTITY}/${VALUE}.sh >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
         else
-            echo " - ${IDENTITY}/${VALUE}.sh not found, moving on."
+            echo " - ${IDENTITY}/${VALUE}.sh not detected, moving on."
         fi
         echo
     done
-    echo "Press any key."
+    echo "Press any key to continue."
     read
 fi
 
