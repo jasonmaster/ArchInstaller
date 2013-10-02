@@ -515,9 +515,9 @@ function build_configuration() {
     add_config "sed -i 's/#Color/Color/' /etc/pacman.conf"
 
     # F2FS does not currently have a `fsck` tool.
-    if [ "${FS}" == "f2fs" ]; then
-        add_config "sed -i 's/keyboard fsck/keyboard/' /etc/mkinitcpio.conf"
-    fi
+    #if [ "${FS}" == "f2fs" ]; then
+    #    add_config "sed -i 's/keyboard fsck/keyboard/' /etc/mkinitcpio.conf"
+    #fi
 
     if [ -f netctl ]; then
         cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
