@@ -525,11 +525,6 @@ function build_configuration() {
     fi
     add_config "sed -i 's/#Color/Color/' /etc/pacman.conf"
 
-    # F2FS does not currently have a `fsck` tool.
-    #if [ "${FS}" == "f2fs" ]; then
-    #    add_config "sed -i 's/keyboard fsck/keyboard/' /etc/mkinitcpio.conf"
-    #fi
-
     if [ -f netctl ]; then
         cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
         add_config "netctl enable mynetwork"
@@ -662,17 +657,6 @@ function build_configuration() {
         fi
     fi
 
-    # As of kernel 3.4, the native CPU module is loaded automatically.
-    # - https://wiki.archlinux.org/index.php/CPU_Frequency_Scaling
-    #modprobe -q acpi-cpufreq
-    #if [ $? -eq 0 ]; then
-    #    add_config "echo 'acpi-cpufreq' > /etc/modules-load.d/acpi-cpufreq.conf"
-    #else
-    #    modprobe -q powernow_k8
-    #    if [ $? -eq 0 ]; then
-    #        add_config "echo 'powernow_k8' > /etc/modules-load.d/powernow_k8.conf"
-    #    fi
-    #fi
     add_config "systemctl enable openntpd"
     add_config "systemctl enable cpupower"
     

@@ -5,4 +5,9 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --needed --noconfirm base-devel devtools
+if [ `uname -m` == "x86_64" ]; then
+    DEVEL="multilib-devel"
+else    
+    DEVEL="base-devel"
+fi
+pacman -S --needed --noconfirm ${DEVEL} devtools
