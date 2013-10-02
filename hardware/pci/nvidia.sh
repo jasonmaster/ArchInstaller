@@ -10,6 +10,7 @@ if [ "${UNAME_M}" == "x86_64" ]; then
 fi
 
 # Install nvidia
+#echo -en "\ny\n" | 
 pacman -S --noconfirm --needed nvidia
 if [ "${UNAME_M}" == "x86_64" ]; then
     pacman -S --noconfirm --needed lib32-nvidia-libgl
