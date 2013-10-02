@@ -5,6 +5,6 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --noconfirm --needed aria2 bash-completion colordiff dmidecode \
-glances hexedit htop laptop-detect lesspipe powertop screen tree
+pacman -S --noconfirm --needed aria2 bash-completion colordiff curl ddrescue \
+dmidecode glances hexedit htop laptop-detect lesspipe powertop screen tree
 packer -S --noconfirm --noedit dfc
