@@ -1,2 +1,3 @@
 xorg-server
 xorg-apps
+xf86-video-vesa
