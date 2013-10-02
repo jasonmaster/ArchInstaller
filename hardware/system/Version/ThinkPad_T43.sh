@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-sed -i 's/BAY_POWEROFF_ON_BAT=0/BAY_POWEROFF_ON_BAT=1/' /etc/default/tlp
-
 # Thinkpad T43
 #  - https://communities.bmc.com/communities/blogs/linux/2010/03/16/ubuntu-1004-and-the-t43
 #  - http://pc-freak.net/blog/controlling-fan-with-thinkfan-on-lenovo-thinkpad-r61-on-debian-gnulinux-adjusting-proper-fan-cycling/
