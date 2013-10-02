@@ -675,7 +675,6 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
                 if [ -x ${DEVICE_CONFIG} ]; then
                     echo " - ${DEVICE_CONFIG} is executable"
                     DEVICE_ID=`echo ${DEVICE_CONFIG} | cut -f3 -d'/' | cut -d'.' -f1`
-                    echo " - Detected ${DEVICE_ID}"
                     FOUND_DEVICE=`${DEVICE_FINDER} -d ${DEVICE_ID}`
                     if [ -n "${FOUND_DEVICE}" ]; then
                         # Add the hardware script to the configuration script.
@@ -695,17 +694,14 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
             echo "${BUS} is NOT working."
         fi
     done
-    
-    echo "Press any key to continue."
-    read
-    
+
     # Configure any system specific stuff
     for IDENTITY in Product_Name Version Serial_Number UUID SKU_Number
     do
         echo "Checking ${IDENTIFY}"
         FIELD=`echo ${IDENTITY} | sed 's/_/ /g'`
         VALUE=`dmidecode --type system | grep "${FIELD}" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
-        echo "  - Checking ${FIELD} for ${VALUE}"
+        echo " - Checking ${FIELD} for ${VALUE}"
         if [ -x hardware/system/${IDENTITY}/${VALUE}.sh ]; then
             echo " - ${IDENTITY}/${VALUE}.sh was found."
             echo " - ${IDENTITY} detected, adding to config."
@@ -717,8 +713,6 @@ if [ "${INSTALL_TYPE}" != "minimal" ]; then
         fi
         echo
     done
-    echo "Press any key to continue."
-    read
 fi
 
 if [ -f users.csv ]; then
@@ -745,32 +739,32 @@ add_config "usermod --password ${PASSWORD_CRYPT} root"
 }
 
 function apply_configuration() {
-if [ "${HOSTNAME}" == "archiso" ]; then
-    add_config "syslinux-install_update -iam"
-    arch-chroot ${TARGET_PREFIX} /usr/local/bin/arch-config.sh
-    cp {splash.png,terminus.psf,syslinux.cfg} ${TARGET_PREFIX}/boot/syslinux/
-else
-    /usr/local/bin/arch-config.sh
-fi
+    if [ "${HOSTNAME}" == "archiso" ]; then
+        add_config "syslinux-install_update -iam"
+        arch-chroot ${TARGET_PREFIX} /usr/local/bin/arch-config.sh
+        cp {splash.png,terminus.psf,syslinux.cfg} ${TARGET_PREFIX}/boot/syslinux/
+    else
+        /usr/local/bin/arch-config.sh
+    fi
 }
 
 function cleanup() {
-swapoff -a && sync
-if [ -n "${NFS_CACHE}" ]; then
-    addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,relatime,noauto,x-systemd.automount,x-systemd.device-timeout=5s 0 0" ${TARGET_PREFIX}/etc/fstab
+    swapoff -a && sync
+    if [ -n "${NFS_CACHE}" ]; then
+        addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,relatime,noauto,x-systemd.automount,x-systemd.device-timeout=5s 0 0" ${TARGET_PREFIX}/etc/fstab
+        if [ "${HOSTNAME}" == "archiso" ]; then
+            umount -fv /var/cache/pacman/pkg
+        fi
+    fi
+
     if [ "${HOSTNAME}" == "archiso" ]; then
-        umount -fv /var/cache/pacman/pkg
+        if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+            umount -fv ${TARGET_PREFIX}/home
+        fi
+        umount -fv ${TARGET_PREFIX}/{boot,}
     fi
-fi
 
-if [ "${HOSTNAME}" == "archiso" ]; then
-    if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-        umount -fv ${TARGET_PREFIX}/home
-    fi
-    umount -fv ${TARGET_PREFIX}/{boot,}
-fi
-
-echo "All done!"
+    echo "All done!"
 }
 
 if [ "${HOSTNAME}" == "archiso" ]; then
