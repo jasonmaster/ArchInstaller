@@ -1,5 +1,2 @@
-xorg
+xorg-server
 xorg-apps
-libtxc_dxtn
-libva-intel-driver
-libva-vdpau-driver
