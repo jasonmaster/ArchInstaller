@@ -8,7 +8,7 @@ DDX="xf86-video-nouveau"
 DECODER="libva-vdpau-driver"
 
 # Uninstall nvidia
-pacman -Rdds --noconfirm nvidia 
+pacman -Rns --noconfirm nvidia
 if [ "${UNAME_M}" == "x86_64" ]; then
     pacman -Rdds --noconfirm lib32-nvidia-libgl
 fi
