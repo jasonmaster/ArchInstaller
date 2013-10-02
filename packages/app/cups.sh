@@ -5,10 +5,19 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --needed --noconfirm `cat ../desktop/packages-cups.txt`
-
-if [ `uname -m` == "x86_64" ]; then
-    pacman -S --needed --noconfirm "lib32-libcups"
+CUPS=""
+if [ -f ../desktop/packages-cups.txt ]; then
+    CUPS="../desktop/packages-cups.txt"
+elif [ -f desktop/packages-cups.txt ]; then
+    CUPS="desktop/packages-cups.txt"
 fi
 
-systemctl enable cups.service
+if [ -z "${CUPS}" ]; then
+    pacman -S --needed --noconfirm `cat ${CUPS}`
+
+    if [ `uname -m` == "x86_64" ]; then
+        pacman -S --needed --noconfirm "lib32-libcups"
+    fi
+
+    systemctl enable cups.service
+fi

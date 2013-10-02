@@ -7,5 +7,3 @@ foomatic-filters
 ghostscript
 gsfonts
 gutenprint
-hplip
-splix
