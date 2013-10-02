@@ -224,6 +224,11 @@ if [ "${DE}" != "none" ] && [ "${DE}" != "cinnamon" ] && [ "${DE}" != "gnome" ] 
     exit 1
 fi
 
+if [ "${DE}" == "maui" ] && [ `uname -m` != "x86_64" ]; then
+    echo "ERROR! Maui is only available for x86_64."
+    exit 1
+fi
+
 LANG_TEST=`grep ${LANG} /etc/locale.gen`
 if [ $? -ne 0 ]; then
     echo "ERROR! The language you specified, '${LANG}', is not recognised."
@@ -394,11 +399,11 @@ function mount_disks() {
     fi
 
     echo "==> Mounting filesystems"
-    mount ${MOUNT_OPTS} /dev/${ROOT_PARTITION} ${TARGET_PREFIX} >/dev/null
+    mount -t ${FS} ${MOUNT_OPTS} /dev/${ROOT_PARTITION} ${TARGET_PREFIX} >/dev/null
     mkdir -p ${TARGET_PREFIX}/{boot,home}
-    mount /dev/${DSK}1 ${TARGET_PREFIX}/boot >/dev/null
+    mount -t ext2 /dev/${DSK}1 ${TARGET_PREFIX}/boot >/dev/null
     if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-        mount ${MOUNT_OPTS} /dev/${DSK}4 ${TARGET_PREFIX}/home >/dev/null
+        mount -t ${FS} ${MOUNT_OPTS} /dev/${DSK}4 ${TARGET_PREFIX}/home >/dev/null
     fi
 }
 
@@ -422,9 +427,15 @@ function build_packages() {
                 MATE_CHECK=`grep "\[mate\]" /etc/pacman.conf`
                 if [ $? -ne 0 ]; then
                     echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
-                fi
+                fi                        
+            elif [ "${DE}" == "maui" ]; then
+                MAUI_CHECK=`grep "\[hawaii\]" /etc/pacman.conf`
+                if [ $? -ne 0 ]; then
+                    echo -e '\n[hawaii]\nSigLevel = Optional TrustAll\nServer = http://archive.maui-project.org/archlinux/$repo/os/$arch' >> /etc/pacman.conf
+                fi                                        
             fi
-            # maui is based on Wayland/Weston
+            
+            # Chain the DE packages.
             if [ "${DE}" == "maui" ]; then
                 cat packages/desktop/packages-wayland.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
             else
