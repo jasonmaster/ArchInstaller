@@ -5,5 +5,10 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --needed --noconfirm id3v2 mp3gain vorbisgain
-packer -S --noedit --noconfirm qtgain aacgain-cvs
+IS_INSTALLED=$(pacman -Qqm `basename ${0} .sh`)
+if [ $? -ne 0 ]; then
+    pacman -S --needed --noconfirm id3v2 mp3gain vorbisgain
+    packer -S --noedit --noconfirm $(basename ${0} .sh) aacgain-cvs
+else
+    echo "$(basename ${0} .sh) is already installed."
+fi

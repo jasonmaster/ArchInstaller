@@ -5,7 +5,12 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-packer -S --noedit --noconfirm makemkv
-if [ `uname -m` == "x86_64" ]; then
-    pacman -S --noedit --noconfirm lib32-glibc
+IS_INSTALLED=$(pacman -Qqm `basename ${0} .sh`)
+if [ $? -ne 0 ]; then
+    packer -S --noedit --noconfirm $(basename ${0} .sh)
+    if [ `uname -m` == "x86_64" ]; then
+        pacman -S --needed --noconfirm lib32-glibc
+    fi
+else
+    echo "$(basename ${0} .sh) is already installed."
 fi

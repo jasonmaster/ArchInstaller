@@ -5,5 +5,10 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-./jre6.sh
-packer -S --noedit --noconfirm hdf-java
+IS_INSTALLED=$(pacman -Qqm `basename ${0} .sh`)
+if [ $? -ne 0 ]; then
+    ./jre6.sh
+    packer -S --noedit --noconfirm $(basename ${0} .sh)
+else
+    echo "$(basename ${0} .sh) is already installed."
+fi

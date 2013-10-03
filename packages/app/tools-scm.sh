@@ -6,4 +6,8 @@ if [ `id -u` -ne 0 ]; then
 fi
 
 pacman -S --needed --noconfirm cvs bzr git mercurial subversion
-packer -S --noedit --noconfirm bzr-fastimport
+
+IS_INSTALLED=$(pacman -Qqm bzr-fastimport)
+if [ $? -ne 0 ]; then
+    packer -S --noedit --noconfirm bzr-fastimport
+fi

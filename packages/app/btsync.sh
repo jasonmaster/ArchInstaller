@@ -5,8 +5,14 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-packer -S --noedit --noconfirm btsync
-systemctl --system daemon-reload
+IS_INSTALLED=$(pacman -Qqm `basename ${0} .sh`)
+if [ $? -ne 0 ]; then
+    packer -S --noedit --noconfirm $(basename ${0} .sh)
+    systemctl --system daemon-reload
+
+else
+    echo "$(basename ${0} .sh) is already installed."
+fi
 
 #Configuration is located at /etc/btsync.conf and contains sample data.
 #The corresponding systemd-unit is 'btsync.service'

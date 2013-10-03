@@ -5,5 +5,10 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-packer -S --noedit --noconfirm dropbox
-echo "fs.inotify.max_user_watches = 131072" > /etc/sysctl.d/98-fs.inotify.max_user_watches.conf
+IS_INSTALLED=$(pacman -Qqm `basename ${0} .sh`)
+if [ $? -ne 0 ]; then
+    packer -S --noedit --noconfirm $(basename ${0} .sh)
+    echo "fs.inotify.max_user_watches = 131072" > /etc/sysctl.d/98-fs.inotify.max_user_watches.conf
+else
+    echo "$(basename ${0} .sh) is already installed."
+fi

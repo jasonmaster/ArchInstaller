@@ -16,4 +16,7 @@ else
 fi
 
 pacman -S --needed --noconfirm wine wine-mono wine_gecko winetricks samba ${PKGS}
-packer -S --noedit --noconfirm ttf-ms-fonts
+IS_INSTALLED=$(pacman -Qqm ttf-ms-fonts)
+if [ $? -ne 0 ]; then
+    packer -S --noedit --noconfirm ttf-ms-fonts
+fi

@@ -5,5 +5,10 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-./jdk6.sh
-packer -S --noedit --noconfirm android-sdk-platform-tools android-apktool
+IS_INSTALLED=$(pacman -Qqm android-sdk-platform-tools)
+if [ $? -ne 0 ]; then
+    ./jdk6.sh
+    packer -S --noedit --noconfirm android-sdk-platform-tools android-apktool
+else
+    echo "$(basename ${0} .sh) is already installed."
+fi

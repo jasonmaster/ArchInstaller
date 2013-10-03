@@ -5,4 +5,9 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-packer -S --noedit --noconfirm skypetab-ng-git
+IS_INSTALLED=$(pacman -Qqm `basename ${0} .sh`tab-ng-git)
+if [ $? -ne 0 ]; then
+    packer -S --noedit --noconfirm $(basename ${0} .sh)tab-ng-git
+else
+    echo "$(basename ${0} .sh) is already installed."
+fi

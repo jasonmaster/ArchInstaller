@@ -5,11 +5,13 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-./jre6.sh
-packer -S --noedit --noconfirm ipmiview
-wget -c ftp://ftp.supermicro.com/CDR-0010_2.10_IPMI_Server_Managment/res/smcc.ico -O /opt/SUPERMICRO/IPMIView/smcc.ico
+IS_INSTALLED=$(pacman -Qqm `basename ${0} .sh`)
+if [ $? -ne 0 ]; then
+    ./jre6.sh
+    packer -S --noedit --noconfirm $(basename ${0} .sh)
+    wget -c ftp://ftp.supermicro.com/CDR-0010_2.10_IPMI_Server_Managment/res/smcc.ico -O /opt/SUPERMICRO/IPMIView/smcc.ico
 
-cat << DESKTOP > /usr/share/applications/ipmiview.desktop
+    cat << DESKTOP > /usr/share/applications/ipmiview.desktop
 [Desktop Entry]
 Version=1.0
 Exec=/opt/IPMIView/IPMIView20.sh
@@ -21,3 +23,7 @@ Terminal=false
 Type=Application
 Categories=System;
 DESKTOP
+else
+    echo "$(basename ${0} .sh) is already installed."
+fi
+

@@ -8,5 +8,8 @@ fi
 pacman -S --needed --noconfirm firefox firefox-i18n-en-gb flashplugin
 
 if [ `uname -m` == "x86_64" ]; then
-    packer -S --noedit --noconfirm lib32-flashplugin
+    IS_INSTALLED=$(pacman -Qqm lib32-flashplugin)
+    if [ $? -ne 0 ]; then
+        packer -S --noedit --noconfirm lib32-flashplugin
+    fi
 fi
