@@ -8,7 +8,7 @@ fi
 if [ -z "${1}" ] || [ ! -f ${1} ]; then
     echo "ERROR! You must provide an installation profile."
     echo "       Creating an app list."
-    ls -1 --color=never packages/app/* | grep -Ev ^_
+    ls -1 --color=never packages/app/* | grep -v _pac
     exit 1
 fi
 
