@@ -5,4 +5,4 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --needed --noconfirm hexchat enchant
+pacman -S --needed --noconfirm $(basename ${0} .sh)
