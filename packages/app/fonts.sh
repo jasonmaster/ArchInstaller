@@ -8,12 +8,15 @@ fi
 TTF=""
 if [ -f ../desktop/packages-ttf.txt ]; then
     TTF="../desktop/packages-ttf.txt"
-elif [ -f desktop/packages-ttf.txt ]; then
-    TTF="desktop/packages-ttf.txt"
+elif [ -f packages/desktop/packages-ttf.txt ]; then
+    TTF="packages/desktop/packages-ttf.txt"
 fi
 
-if [ -z "${TTF}" ]; then
-    pacman -S --needed --noconfirm `cat ../desktop/packages-ttf.txt`
-    packer -S --noedit --noconfirm ttf-ms-fonts ttf-unifont
+if [ -f ${TTF} ]; then
+    pacman -S --needed --noconfirm `cat ${TTF}`
+    IS_INSTALLED=$(pacman -Qqm ttf-ms-fonts)
+    if [ $? -ne 0 ]; then
+        packer -S --noedit --noconfirm ttf-ms-fonts ttf-unifont
+    fi
     fc-cache -f -v
 fi

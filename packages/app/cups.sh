@@ -8,11 +8,14 @@ fi
 CUPS=""
 if [ -f ../desktop/packages-cups.txt ]; then
     CUPS="../desktop/packages-cups.txt"
-elif [ -f desktop/packages-cups.txt ]; then
-    CUPS="desktop/packages-cups.txt"
+elif [ -f packages/desktop/packages-cups.txt ]; then
+    CUPS="packages/desktop/packages-cups.txt"
 fi
 
-if [ -z "${CUPS}" ]; then
+pwd
+echo "${CUPS}"
+
+if [ -f ${CUPS} ]; then
     pacman -S --needed --noconfirm `cat ${CUPS}`
 
     if [ `uname -m` == "x86_64" ]; then
@@ -20,4 +23,6 @@ if [ -z "${CUPS}" ]; then
     fi
 
     systemctl enable cups.service
+else
+    echo "Something went wrong."
 fi
