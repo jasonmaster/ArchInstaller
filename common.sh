@@ -111,61 +111,6 @@ check_cpu() {
     cecho "${CPU}"
 }
 
-check_vga() {
-    # Determine video chipset.
-    # TODO 
-    #  - Detect proprietary nVidia and ATI/AMD and prevent clobbering them.
-    #  - Unichrome (or whatever) support.
-    #  - Query sysfs with `systool -m i915 -av`
-    ncecho " [x] Detecting video chipset "
-    if [ -f /sys/kernel/debug/dri/0/i915_capabilities ]; then
-        cecho Intel
-        VIDEO_KMS="i915"
-        VIDEO_DRI="intel-dri"
-        VIDEO_DDX="xf86-video-intel"
-        VIDEO_DECODER="libva-intel-driver"
-        VIDEO_MODPROBE=""
-        #"options i915 modeset=1 i915_enable_rc6=1 i915_enable_fbc=1 i915.lvds_downclock=1 i915.semaphores=1"
-        #TODO - Check for fbc support.
-    elif [ -f /sys/kernel/debug/dri/0/radeon_pm_info ] || [ -f /sys/kernel/debug/dri/0/radeon_sa_info ]; then
-        cecho AMD/ATI
-        VIDEO_KMS="radeon"
-        VIDEO_DRI="ati-dri"
-        VIDEO_DDX="xf86-video-ati"
-        VIDEO_DECODER="libva-vdpau-driver"
-        VIDEO_MODPROBE=""
-        #"options radeon modeset=1"
-        # TODO - Add `radeon.pcie_gen2=1` if the card is PCIe.
-        # http://wiki.x.org/wiki/RadeonFeature#Linux_kernel_parameters
-    elif [ -f /sys/kernel/debug/dri/0/vbios.rom ]; then
-        cecho Nvidia
-        VIDEO_KMS="nouveau"
-        VIDEO_DRI="nouveau-dri"
-        VIDEO_DDX="xf86-video-nouveau"
-        VIDEO_DECODER="libva-vdpau-driver"
-        VIDEO_MODPROBE=""
-        #"options nouveau modeset=1"
-    else
-        local VGA=`lspci | grep VGA | tr "[:upper:]" "[:lower:]"`
-        echo ${VGA} | grep -q "virtualbox"
-        if [ $? -eq 0 ]; then
-            cecho VirtualBox
-            VIDEO_DRI=""
-            VIDEO_DDX="virtualbox-guest-modules"
-            VIDEO_KMS="vboxvideo"
-            VIDEO_DECODER=""
-            VIDEO_MODPROBE=""
-        else
-            cecho VESA
-            VIDEO_DRI=""
-            VIDEO_DDX="xf86-video-vesa"
-            VIDEO_KMS=""
-            VIDEO_DECODER=""
-            VIDEO_MODPROBE=""
-        fi
-    fi
-}
-
 replaceinfile() {
     SEARCH=${1}
     REPLACE=${2}
@@ -343,12 +288,6 @@ cpan_install() {
 pip_install() {
     ncecho " [x] Installing (pip)  ${1} "
     pip install ${1} >>"$log" 2>&1 &
-    pid=$!;progress $pid
-}
-
-rc_d() {
-    ncecho " [x] rc.d ${1} ${2} "
-    rc.d ${1} ${2} >>"$log" 2>&1 &
     pid=$!;progress $pid
 }
 
