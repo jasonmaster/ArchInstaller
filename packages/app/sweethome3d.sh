@@ -5,10 +5,13 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-IS_INSTALLED=$(pacman -Qqm `basename ${0} .sh`)
+CORE_PKG=$(basename ${0} .sh)
+MORE_PKGS=""
+
+IS_INSTALLED=$(pacman -Qqm ${CORE_PKG})
 if [ $? -ne 0 ]; then
     ./jre6.sh
-    packer -S --noedit --noconfirm $(basename ${0} .sh)
+    packer -S --noedit --noconfirm ${CORE_PKG} ${MORE_PKGS}
 else
-    echo "$(basename ${0} .sh) is already installed."
+    echo "${CORE_PKG} is already installed."
 fi

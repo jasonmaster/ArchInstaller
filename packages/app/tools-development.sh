@@ -5,9 +5,12 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
+CORE_PKG="devtools"
+
 if [ `uname -m` == "x86_64" ]; then
-    DEVEL="multilib-devel"
+    MORE_PKGS="multilib-devel"
 else    
-    DEVEL="base-devel"
+    MORE_PKGS="base-devel"
 fi
-pacman -S --needed --noconfirm ${DEVEL} devtools
+
+pacman -S --needed --noconfirm ${CORE_PKG} ${MORE_PKGS}

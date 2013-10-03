@@ -5,7 +5,11 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --needed --noconfirm sound-juicer
+CORE_PKG=$(basename ${0} .sh)
+MORE_PKGS=""
+
+pacman -S --needed --noconfirm ${CORE_PKG} ${MORE_PKGS}
+
 # TODO
 #  - Do this for all users
 # Use the 'standard' preset by default. This preset should generally be

@@ -5,4 +5,7 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --needed --noconfirm remmina freerdp nxproxy
+CORE_PKG=$(basename ${0} .sh)
+MORE_PKGS="freerdp nxproxy"
+
+pacman -S --needed --noconfirm ${CORE_PKG} ${MORE_PKGS}

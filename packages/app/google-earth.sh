@@ -5,10 +5,12 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-IS_INSTALLED=$(pacman -Qqm `basename ${0} .sh`)
-if [ $? -ne 0 ]; then
-    packer -S --noedit --noconfirm $(basename ${0} .sh)
-else
-    echo "$(basename ${0} .sh) is already installed."
-fi
+CORE_PKG=$(basename ${0} .sh)
+MORE_PKGS=""
 
+IS_INSTALLED=$(pacman -Qqm ${CORE_PKG})
+if [ $? -ne 0 ]; then
+    packer -S --noedit --noconfirm ${CORE_PKG} ${MORE_PKGS}
+else
+    echo "${CORE_PKG} is already installed."
+fi

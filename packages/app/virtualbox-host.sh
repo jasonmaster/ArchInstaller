@@ -5,8 +5,10 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-# Install
-pacman -S --needed --noconfirm virtualbox virtualbox-host-modules
+CORE_PKG=$(basename ${0} .sh)
+MORE_PKGS="${CORE_PKG}-host-modules"
+pacman -S --needed --noconfirm ${CORE_PKG} ${MORE_PKGS}
+
 IS_INSTALLED=$(pacman -Qqm virtualbox-ext-oracle)
 if [ $? -ne 0 ]; then
     packer -S --noedit --noconfirm virtualbox-ext-oracle

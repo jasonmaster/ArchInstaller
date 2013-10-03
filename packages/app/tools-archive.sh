@@ -5,5 +5,8 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --noconfirm --needed arj cabextract bzip2 gzip lha lzo2 lzop rpmextract \
-sharutils tar unace unrar unzip uudeview xz zip
+CORE_PKG=""
+MORE_PKGS="arj cabextract bzip2 gzip lha lzo2 lzop rpmextract sharutils tar \
+unace unrar unzip uudeview xz zip"
+
+pacman -S --needed --noconfirm ${CORE_PKG} ${MORE_PKGS}

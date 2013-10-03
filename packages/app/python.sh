@@ -5,5 +5,8 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --needed --noconfirm python-pip python-setuptools python-virtualenv
-pacman -S --needed --noconfirm python2-pip python2-distribute python2-virtualenv python-virtualenvwrapper
+CORE_PKG=$(basename ${0} .sh)
+MORE_PKGS="python-pip python-setuptools python-virtualenv \
+python2-pip python2-distribute python2-virtualenv python-virtualenvwrapper"
+
+pacman -S --needed --noconfirm ${CORE_PKG} ${MORE_PKGS}

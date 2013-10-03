@@ -5,10 +5,16 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-IS_INSTALLED=$(pacman -Qqm `basename ${0} .sh`)
+CORE_PKG=$(basename ${0} .sh)
+MORE_PKGS="id3v2 mp3gain vorbisgain"
+
+
+pacman -S --needed --noconfirm ${MORE_PKGS}
+
+IS_INSTALLED=$(pacman -Qqm ${CORE_PKG})
 if [ $? -ne 0 ]; then
-    pacman -S --needed --noconfirm id3v2 mp3gain vorbisgain
-    packer -S --noedit --noconfirm $(basename ${0} .sh) aacgain-cvs
+    packer -S --noedit --noconfirm ${CORE_PKG} aacgain-cvs
+    
 else
-    echo "$(basename ${0} .sh) is already installed."
+    echo "${CORE_PKG} is already installed."
 fi

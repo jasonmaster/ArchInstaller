@@ -5,8 +5,11 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --noconfirm --needed aria2 bash-completion colordiff curl ddrescue \
-dmidecode glances hexedit htop laptop-detect lesspipe powertop screen tree
+CORE_PKG=""
+MORE_PKGS="aria2 bash-completion colordiff curl ddrescue dmidecode glances \
+hexedit htop laptop-detect lesspipe powertop screen tree"
+
+pacman -S --needed --noconfirm ${CORE_PKG} ${MORE_PKGS}
 
 IS_INSTALLED=$(pacman -Qqm dfc)
 if [ $? -ne 0 ]; then

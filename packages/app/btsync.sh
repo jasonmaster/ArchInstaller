@@ -5,14 +5,17 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-IS_INSTALLED=$(pacman -Qqm `basename ${0} .sh`)
-if [ $? -ne 0 ]; then
-    packer -S --noedit --noconfirm $(basename ${0} .sh)
-    systemctl --system daemon-reload
+CORE_PKG=$(basename ${0} .sh)
+MORE_PKGS=""
 
+IS_INSTALLED=$(pacman -Qqm ${CORE_PKG})
+if [ $? -ne 0 ]; then
+    packer -S --noedit --noconfirm ${CORE_PKG} ${MORE_PKGS}
 else
-    echo "$(basename ${0} .sh) is already installed."
+    echo "${CORE_PKG} is already installed."
 fi
+
+systemctl --system daemon-reload
 
 #Configuration is located at /etc/btsync.conf and contains sample data.
 #The corresponding systemd-unit is 'btsync.service'

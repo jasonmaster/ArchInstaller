@@ -5,4 +5,7 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --needed --noconfirm banshee gstreamer0.10-good-plugins gstreamer0.10-ugly-plugins gstreamer0.10-ffmpeg
+CORE_PKG=$(basename ${0} .sh)
+MORE_PKGS="gstreamer0.10-good-plugins gstreamer0.10-ugly-plugins gstreamer0.10-ffmpeg"
+
+pacman -S --needed --noconfirm ${CORE_PKG} ${MORE_PKGS}

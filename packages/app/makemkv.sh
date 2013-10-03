@@ -5,12 +5,15 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-IS_INSTALLED=$(pacman -Qqm `basename ${0} .sh`)
+CORE_PKG=$(basename ${0} .sh)
+MORE_PKGS="lib32-glibc"
+
+IS_INSTALLED=$(pacman -Qqm ${CORE_PKG})
 if [ $? -ne 0 ]; then
-    packer -S --noedit --noconfirm $(basename ${0} .sh)
+    packer -S --noedit --noconfirm ${CORE_PKG}
     if [ `uname -m` == "x86_64" ]; then
-        pacman -S --needed --noconfirm lib32-glibc
+        pacman -S --needed --noconfirm ${MORE_PKGS}
     fi
 else
-    echo "$(basename ${0} .sh) is already installed."
+    echo "${CORE_PKG} is already installed."
 fi

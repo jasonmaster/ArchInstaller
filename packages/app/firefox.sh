@@ -5,7 +5,10 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --needed --noconfirm firefox firefox-i18n-en-gb flashplugin
+CORE_PKG=$(basename ${0} .sh)
+MORE_PKGS="${CORE_PKG}-i18n-en-gb flashplugin"
+
+pacman -S --needed --noconfirm ${CORE_PKG} ${MORE_PKGS}
 
 if [ `uname -m` == "x86_64" ]; then
     IS_INSTALLED=$(pacman -Qqm lib32-flashplugin)

@@ -5,4 +5,7 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --needed --noconfirm zim scrot python2-gtkspell
+CORE_PKG=$(basename ${0} .sh)
+MORE_PKGS="scrot python2-gtkspell"
+
+pacman -S --needed --noconfirm ${CORE_PKG} ${MORE_PKGS}

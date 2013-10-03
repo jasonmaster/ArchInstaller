@@ -12,17 +12,17 @@ elif [ -f packages/desktop/packages-cups.txt ]; then
     CUPS="packages/desktop/packages-cups.txt"
 fi
 
-pwd
-echo "${CUPS}"
-
 if [ -f ${CUPS} ]; then
     pacman -S --needed --noconfirm `cat ${CUPS}`
 
     if [ `uname -m` == "x86_64" ]; then
-        pacman -S --needed --noconfirm "lib32-libcups"
+        IS_INSTALLED=$(pacman -Qqm lib32-libcups)
+        if [ $? -ne 0 ]; then    
+            pacman -S --needed --noconfirm lib32-libcups
+        fi
     fi
-
-    systemctl enable cups.service
 else
     echo "Something went wrong."
 fi
+
+systemctl enable cups.service

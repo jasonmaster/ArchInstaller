@@ -5,13 +5,15 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --needed --noconfirm artwiz-fonts libreoffice-calc libreoffice-common \
-libreoffice-gnome libreoffice-impress libreoffice-math libreoffice-writer \
-libreoffice-en-GB ttf-dejavu unoconv
-pacman -S --needed --noconfirm hunspell-en hyphen-en mythes-en
+CORE_PKG=""
+MORE_PKGS="artwiz-fonts libreoffice-calc libreoffice-common libreoffice-gnome \
+libreoffice-impress libreoffice-math libreoffice-writer libreoffice-en-GB \
+ttf-dejavu unoconv hunspell-en hyphen-en mythes-en"
 
 # If you want the database tool uncomment this.
-#pacman -S --needed --noconfirm libreoffice-base
+#MORE_PKGS="${MORE_PKS} libreoffice-base"
 
 # If you want the drawing tool uncomment this.
-#pacman -S --needed --noconfirm libreoffice-draw
+#MORE_PKGS="${MORE_PKS} libreoffice-draw"
+
+pacman -S --needed --noconfirm ${CORE_PKG} ${MORE_PKGS}

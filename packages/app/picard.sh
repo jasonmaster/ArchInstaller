@@ -5,8 +5,12 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-pacman -S --needed --noconfirm picard libdiscid chromaprint
-IS_INSTALLED=$(pacman -Qqm `basename ${0} .sh`-plugins)
+CORE_PKG=$(basename ${0} .sh)
+MORE_PKGS="libdiscid chromaprint"
+
+pacman -S --needed --noconfirm ${CORE_PKG} ${MORE_PKGS}
+
+IS_INSTALLED=$(pacman -Qqm ${CORE_PKG}-plugins)
 if [ $? -ne 0 ]; then
-    packer -S --noedit --noconfirm $(basename ${0} .sh-plugins)
+    packer -S --noedit --noconfirm ${CORE_PKG}-plugins
 fi
