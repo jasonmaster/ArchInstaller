@@ -13,6 +13,9 @@ if [ "${UNAME_M}" == "x86_64" ]; then
     pacman -Rdds --noconfirm lib32-nvidia-libgl
 fi
 
+if [ -f /etc/X11/xorg.conf ]; then
+    mv /etc/X11/xorg.conf /etc/X11/xorg.conf.`date +%y%m%d-%H%M`
+fi
 
 # Install nouveau
 pacman -S --noconfirm --needed ${DRI} ${DECODER} libtxc_dxtn
