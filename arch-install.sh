@@ -525,11 +525,6 @@ function build_configuration() {
     fi
     add_config "sed -i 's/#Color/Color/' /etc/pacman.conf"
 
-    if [ -f netctl ]; then
-        cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
-        add_config "netctl enable mynetwork"
-    fi
-
     if [ "${INSTALL_TYPE}" == "desktop" ]; then
         if [ "${DE}" == "cinnamon" ]; then
             add_config "systemctl enable lightdm.service"
@@ -537,22 +532,26 @@ function build_configuration() {
             add_config "systemctl enable accounts-daemon.service"
             add_config "systemctl enable NetworkManager.service"
             add_config "systemctl enable cups.service"
+            add_config "systemctl enable bluetooth.service"
         elif [ "${DE}" == "gnome" ]; then
             add_config "systemctl enable gdm.service"
             add_config "systemctl enable upower.service"
             add_config "systemctl enable accounts-daemon.service"
             add_config "systemctl enable NetworkManager.service"
             add_config "systemctl enable cups.service"
+            add_config "systemctl enable bluetooth.service"
         elif [ "${DE}" == "kde" ]; then
             add_config "systemctl enable kdm.service"
             add_config "systemctl enable upower.service"
             add_config "systemctl enable NetworkManager.service"
             add_config "systemctl enable cups.service"
+            add_config "systemctl enable bluetooth.service"
         elif [ "${DE}" == "lxde" ]; then
             add_config "systemctl enable lxdm.service"
             add_config "systemctl enable upower.service"
             add_config "systemctl enable NetworkManager.service"
             add_config "systemctl enable cups.service"
+            add_config "systemctl enable bluetooth.service"
         elif [ "${DE}" == "mate" ]; then
             echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
             add_config "systemctl enable lightdm.service"
@@ -560,20 +559,23 @@ function build_configuration() {
             add_config "systemctl enable accounts-daemon.service"
             add_config "systemctl enable NetworkManager.service"
             add_config "systemctl enable cups.service"
+            add_config "systemctl enable bluetooth.service"
         elif [ "${DE}" == "maui" ]; then
             echo -e '\n[hawaii]\nSigLevel = Optional TrustAll\nServer = Server = http://archive.maui-project.org/archlinux/$repo/os/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
             add_config "systemctl enable hawaii"
-            #add_config "systemctl enable lightdm.service"
-            #add_config "systemctl enable upower.service"
-            #add_config "systemctl enable accounts-daemon.service"
-            #add_config "systemctl enable NetworkManager.service"
             add_config "systemctl enable cups.service"
         elif [ "${DE}" == "xfce" ]; then
             add_config "systemctl enable lightdm.service"
             add_config "systemctl enable upower.service"
             add_config "systemctl enable NetworkManager.service"
             add_config "systemctl enable cups.service"
+            add_config "systemctl enable bluetooth.service"
         fi
+    fi
+
+    if [ -f netctl ]; then
+        cp netctl ${TARGET_PREFIX}/etc/netctl/mynetwork
+        add_config "netctl enable mynetwork"
     fi
 
     if [ "${INSTALL_TYPE}" != "minimal" ]; then
@@ -681,7 +683,6 @@ function build_configuration() {
             do
                 echo " - Checkng ${DEVICE_CONFIG}"
                 if [ -x ${DEVICE_CONFIG} ]; then
-                    echo " - ${DEVICE_CONFIG} is executable"
                     DEVICE_ID=`echo ${DEVICE_CONFIG} | cut -f3 -d'/' | cut -d'.' -f1`
                     FOUND_DEVICE=`${DEVICE_FINDER} -d ${DEVICE_ID}`
                     if [ -n "${FOUND_DEVICE}" ]; then
@@ -696,7 +697,6 @@ function build_configuration() {
                     echo " - ${DEVICE_CONFIG} is not an executable script, skipping."
                 fi
             echo
-            done
         else
             echo "${BUS} is NOT working."
         fi
@@ -710,7 +710,6 @@ function build_configuration() {
         VALUE=`dmidecode --type system | grep "${FIELD}" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
         echo " - Checking ${FIELD} for ${VALUE}"
         if [ -x hardware/system/${IDENTITY}/${VALUE}.sh ]; then
-            echo " - ${IDENTITY}/${VALUE}.sh was found."
             echo " - ${IDENTITY} detected, adding to config."
             # Add the hardware script to the configuration script.
             echo -e "\n#${IDENTITY} - ${VALUE}\n" >>${TARGET_PREFIX}/usr/local/bin/arch-config.sh
