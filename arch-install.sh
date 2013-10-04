@@ -461,7 +461,7 @@ function install_packages() {
         pacman -S --noconfirm --needed $(cat packages/base/packages-base.txt)
         echo "EXTRA install will start now"
         read
-        pacman -S --noconfirm --needed $(cat /tmp/packages.txt | grep -Ev syslinux)
+        pacman -S --noconfirm --needed $(cat /tmp/packages.txt | grep -Ev "ipw2|syslinux")
     fi
 }
 
