@@ -34,17 +34,11 @@ if [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]; then
         echo " - Exitting now to prevent untold chaos."
         exit 1
     fi
-elif [ "${CPU}" == "armv6l" ]; then
-    #if [ "${HOSTNAME}" != "alarmpi" ]; then
-    #    echo "PARACHUTE DEPLOYED! This script is not running from a supported Arch Linux ARM distro."
-        #echo " - Exitting now to prevent untold chaos."
-        #exit 1
-    #else
-        DSK="mmcblk0"
-        TARGET_PREFIX=""
-    #fi
+elif [ "${CPU}" == "armv6l" ] || [ "${CPU}" == "armv7l" ]; then
+    DSK="mmcblk0"
+    TARGET_PREFIX=""
 else
-    echo "ERROR! `basename ${0}` is designed for armv6l, i686, x86_64 platforms only."
+    echo "ERROR! `basename ${0}` is designed for armv6l, armv7l, i686, x86_64 platforms only."
     echo " - Contributions welcome - https://github.com/flexiondotorg/ArchInstaller/"
     exit 1
 fi
@@ -456,11 +450,7 @@ function install_packages() {
         fi
     else
         pacman -Rs --noconfirm heirloom-mailx
-        echo "BASE Install will start now"
-        read
         pacman -S --noconfirm --needed $(cat packages/base/packages-base.txt)
-        echo "EXTRA install will start now"
-        read
         pacman -S --noconfirm --needed $(cat /tmp/packages.txt | grep -Ev "ipw2|syslinux")
     fi
 }
