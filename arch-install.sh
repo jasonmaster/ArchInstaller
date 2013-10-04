@@ -644,7 +644,7 @@ function build_configuration() {
         fi
     fi
 
-    add_config "systemctl enable ntp"
+    add_config "systemctl enable ntpd"
     add_config "systemctl enable cpupower"
 
     # Configure PCI/USB device specific stuff
