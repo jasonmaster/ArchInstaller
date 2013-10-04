@@ -7,7 +7,7 @@ DRI="intel-dri"
 DDX="xf86-video-intel"
 DECODER="libva-intel-driver"
 
-pacman -S --noconfirm --needed ${DRI} ${DECODER} libtxc_dxtn
+pacman -S --noconfirm --needed ${DRI} ${DDX} ${DECODER} libtxc_dxtn
 if [ "${UNAME_M}" == "x86_64" ]; then
     pacman -S --noconfirm --needed lib32-${DRI} lib32-mesa-libgl
 fi
