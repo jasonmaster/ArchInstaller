@@ -25,6 +25,8 @@ INSTALL_TYPE="desktop"
 TARGET_PREFIX="/mnt"
 CPU=`uname -m`
 DE="none"
+HAS_TRIM=0
+HAS_SSD=0
 
 if [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]; then
     if [ "${HOSTNAME}" != "archiso" ]; then
@@ -33,14 +35,14 @@ if [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]; then
         exit 1
     fi
 elif [ "${CPU}" == "armv6l" ]; then
-    if [ "${HOSTNAME}" != "alarmpi" ]; then
-        echo "PARACHUTE DEPLOYED! This script is not running from a supported Arch Linux ARM distro."
-        echo " - Exitting now to prevent untold chaos."
-        exit 1
-    else
+    #if [ "${HOSTNAME}" != "alarmpi" ]; then
+    #    echo "PARACHUTE DEPLOYED! This script is not running from a supported Arch Linux ARM distro."
+        #echo " - Exitting now to prevent untold chaos."
+        #exit 1
+    #else
         DSK="mmcblk0"
         TARGET_PREFIX=""
-    fi
+    #fi
 else
     echo "ERROR! `basename ${0}` is designed for armv6l, i686, x86_64 platforms only."
     echo " - Contributions welcome - https://github.com/flexiondotorg/ArchInstaller/"
@@ -76,7 +78,7 @@ function usage() {
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
     echo "  -n : The hostname to use. Defaults to '${FQDN}'"
-    echo "  -r : The computer role. Defaults to '${INSTALL_TYPE}'. Can be 'desktop', 'server', 'minimal'."
+    echo "  -r : The computer role. Defaults to '${INSTALL_TYPE}'. Can be 'desktop' or 'server'."
     echo "  -t : The timezone to use. Defaults to '${TIMEZONE}'. See '/usr/share/zoneinfo/' for options."
     echo
     echo "User provisioning"
@@ -136,9 +138,6 @@ if [ "${HOSTNAME}" == "archiso" ]; then
             HAS_TRIM=0
             HAS_SSD=1
         fi
-    else
-        HAS_TRIM=0
-        HAS_SSD=0
     fi
 
     MOUNT_OPTS="-o relatime"
@@ -180,8 +179,7 @@ if [ "${HOSTNAME}" == "archiso" ]; then
                     HAS_TRIM=0;;
         "reiserfs") MKFS="mkfs.reiserfs --format 3.6 -f -q"
                     MKFS_L="-l"
-                    HAS_TRIM=0
-                    ;;
+                    HAS_TRIM=0;;
         "xfs")    MKFS="mkfs.xfs -f -q";;
         *) echo "ERROR! Filesystem ${FS} is not supported."
            echo " - See `basename ${0}` -h"
@@ -214,7 +212,7 @@ if [ ! -f /usr/share/zoneinfo/${TIMEZONE} ]; then
     exit 1
 fi
 
-if [ "${INSTALL_TYPE}" != "desktop" ] && [ "${INSTALL_TYPE}" != "server" ] && [ "${INSTALL_TYPE}" != "minimal" ]; then
+if [ "${INSTALL_TYPE}" != "desktop" ] && [ "${INSTALL_TYPE}" != "server" ]; then
     echo "ERROR! '${INSTALL_TYPE}' is not a supported computer role."
     exit 1
 fi
@@ -320,7 +318,6 @@ read
 
 # Install dmidecode and determine the current (not running) Kernel version
 pacman -Syy --noconfirm --needed dmidecode
-KERNEL_VER=`pacman -Si linux | grep Version | cut -d':' -f2 | sed 's/ //g'`
 
 function format_disks() {
     echo "==> Clearing partition table on /dev/${DSK}"
@@ -409,38 +406,34 @@ function mount_disks() {
 
 function build_packages() {
     # Chain packages
-    cat packages/base/packages-base.txt > /tmp/packages.txt
-
-    if [ "${INSTALL_TYPE}" != "minimal" ]; then
-        cat packages/base/packages-extra.txt >> /tmp/packages.txt
-        if [ "${DE}" != "none" ] && [ "${INSTALL_TYPE}" == "desktop" ]; then
-            if [ "${DE}" == "kde" ]; then
-                if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
-                    LOCALE_KDE=`echo ${LOCALE} | tr '[:upper:]' '[:lower:]'`
-                elif [ "${LOCALE}" == "en_US" ]; then
-                    LOCALE_KDE="en_gb"
-                else
-                    LOCALE_KDE=`echo ${LOCALE} | cut -d\_ -f1`
-                fi
-                echo "kde-l10n-${LOCALE_KDE}" >> packages/desktop/packages-kde.txt
-            elif [ "${DE}" == "mate" ]; then
-                MATE_CHECK=`grep "\[mate\]" /etc/pacman.conf`
-                if [ $? -ne 0 ]; then
-                    echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
-                fi                        
-            elif [ "${DE}" == "maui" ]; then
-                MAUI_CHECK=`grep "\[hawaii\]" /etc/pacman.conf`
-                if [ $? -ne 0 ]; then
-                    echo -e '\n[hawaii]\nSigLevel = Optional TrustAll\nServer = http://archive.maui-project.org/archlinux/$repo/os/$arch' >> /etc/pacman.conf
-                fi                                        
-            fi
-            
-            # Chain the DE packages.
-            if [ "${DE}" == "maui" ]; then
-                cat packages/desktop/packages-wayland.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
+    cat packages/base/packages-extra.txt > /tmp/packages.txt
+    if [ "${DE}" != "none" ] && [ "${INSTALL_TYPE}" == "desktop" ]; then
+        if [ "${DE}" == "kde" ]; then
+            if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
+                LOCALE_KDE=`echo ${LOCALE} | tr '[:upper:]' '[:lower:]'`
+            elif [ "${LOCALE}" == "en_US" ]; then
+                LOCALE_KDE="en_gb"
             else
-                cat packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
+                LOCALE_KDE=`echo ${LOCALE} | cut -d\_ -f1`
             fi
+            echo "kde-l10n-${LOCALE_KDE}" >> packages/desktop/packages-kde.txt
+        elif [ "${DE}" == "mate" ]; then
+            MATE_CHECK=`grep "\[mate\]" /etc/pacman.conf`
+            if [ $? -ne 0 ]; then
+                echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
+            fi
+        elif [ "${DE}" == "maui" ]; then
+            MAUI_CHECK=`grep "\[hawaii\]" /etc/pacman.conf`
+            if [ $? -ne 0 ]; then
+                echo -e '\n[hawaii]\nSigLevel = Optional TrustAll\nServer = http://archive.maui-project.org/archlinux/$repo/os/$arch' >> /etc/pacman.conf
+            fi
+        fi
+
+        # Chain the DE packages.
+        if [ "${DE}" == "maui" ]; then
+            cat packages/desktop/packages-wayland.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
+        else
+            cat packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
         fi
     fi
 }
@@ -448,7 +441,7 @@ function build_packages() {
 function install_packages() {
     # Install packages
     if [ "${HOSTNAME}" == "archiso" ]; then
-        pacstrap -c ${TARGET_PREFIX} $(cat /tmp/packages.txt)
+        pacstrap -c ${TARGET_PREFIX} $(cat packages/base/packages-base.txt /tmp/packages.txt)
         if [ $? -ne 0 ]; then
             echo "ERROR! 'pacstrap' failed. Cleaning up and exitting."
             swapoff -a
@@ -462,6 +455,12 @@ function install_packages() {
             exit 1
         fi
     else
+        pacman -Rs --noconfirm heirloom-mailx
+        echo "BASE Install will start now"
+        read
+        pacman -S --noconfirm --needed $(cat packages/base/packages-base.txt)
+        echo "EXTRA install will start now"
+        read
         pacman -S --noconfirm --needed $(cat /tmp/packages.txt | grep -Ev syslinux)
     fi
 }
@@ -492,12 +491,9 @@ function build_configuration() {
     add_config "ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime"
 
     # Font and font map
-    if [ "${INSTALL_TYPE}" != "minimal" ]; then
-        FONT="ter-116b"
-        update_early_hooks consolefont
-    else
-        FONT=""
-    fi
+    FONT="ter-116b"
+    update_early_hooks consolefont
+
     update_early_hooks keymap
     add_config "echo KEYMAP=${KEYMAP}      > /etc/vconsole.conf"
     add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
@@ -510,6 +506,7 @@ function build_configuration() {
 
     # DO NOT MOVE THIS - It has to be after the early module config ###############
     if [ "${HOSTNAME}" == "archiso" ]; then
+        KERNEL_VER=`pacman -Si linux | grep Version | cut -d':' -f2 | sed 's/ //g'`
         add_config "depmod -a ${KERNEL_VER}-ARCH"
         add_config "mkinitcpio -p linux"
         add_config "hwclock --systohc --utc"
@@ -578,47 +575,45 @@ function build_configuration() {
         add_config "netctl enable mynetwork"
     fi
 
-    if [ "${INSTALL_TYPE}" != "minimal" ]; then
-        add_config "sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /etc/nsswitch.conf"
-        add_config "sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /etc/sudoers"
-        add_config "systemctl start sshdgenkeys.service"
-        add_config "systemctl enable sshd.service"
-        add_config "systemctl enable syslog-ng.service"
-        add_config "systemctl enable cronie.service"
-        # By default the maximum number of watches is set to 8192, which is rather low.
-        # Increasing to ensure Dropbox and MiniDLNA will work correctly.
-        add_config 'echo "fs.inotify.max_user_watches = 131072" >> /etc/sysctl.d/98-fs.inotify.max_user_watches.conf'
+    add_config "sed -i 's/hosts: files dns/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /etc/nsswitch.conf"
+    add_config "sed -i '/%wheel ALL=(ALL) ALL/s/^#//' /etc/sudoers"
+    add_config "systemctl start sshdgenkeys.service"
+    add_config "systemctl enable sshd.service"
+    add_config "systemctl enable syslog-ng.service"
+    add_config "systemctl enable cronie.service"
+    # By default the maximum number of watches is set to 8192, which is rather low.
+    # Increasing to ensure Dropbox and MiniDLNA will work correctly.
+    add_config 'echo "fs.inotify.max_user_watches = 131072" >> /etc/sysctl.d/98-fs.inotify.max_user_watches.conf'
 
-        if [ "${INSTALL_TYPE}" == "desktop" ]; then
-            add_config "systemctl enable avahi-daemon.service"
-            add_config "systemctl enable rpc-statd.service"
-        fi
-
-        if [ "${HOSTNAME}" == "archiso" ]; then
-            add_config "wget http://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz"
-            add_config 'if [ $? -ne 0 ]; then'
-            add_config "    echo \"ERROR! Couldn't downloading packer.tar.gz. Skipping packer install.\""
-            add_config "else"
-            add_config "    cd /usr/local/src"
-            add_config "    tar zxvf packer.tar.gz"
-            add_config "    cd packer"
-            add_config "    makepkg --asroot -s --noconfirm"
-            add_config '    pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`'
-            add_config "    packer -S --noconfirm --noedit tlp"
-            add_config "    mkdir -p /etc/systemd/system/graphical.target.wants/"
-            add_config "    systemctl enable tlp.service"
-            add_config "    systemctl enable tlp-sleep.service"
-            add_config "fi"
-            # Some SATA chipsets can corrupt data when ALPM is enabled. Disable it
-            add_config "sed -i 's/SATA_LINKPWR/#SATA_LINKPWR/' /etc/default/tlp"
-        else
-            add_config "pacman -S --noconfirm packer"
-        fi        
-    
-        # Install dot files.
-        rsync -aq skel/ ${TARGET_PREFIX}/etc/skel/
-        rsync -aq skel/ ${TARGET_PREFIX}/root/        
+    if [ "${INSTALL_TYPE}" == "desktop" ]; then
+        add_config "systemctl enable avahi-daemon.service"
+        add_config "systemctl enable rpc-statd.service"
     fi
+
+    if [ "${HOSTNAME}" == "archiso" ]; then
+        add_config "wget http://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz"
+        add_config 'if [ $? -ne 0 ]; then'
+        add_config "    echo \"ERROR! Couldn't downloading packer.tar.gz. Skipping packer install.\""
+        add_config "else"
+        add_config "    cd /usr/local/src"
+        add_config "    tar zxvf packer.tar.gz"
+        add_config "    cd packer"
+        add_config "    makepkg --asroot -s --noconfirm"
+        add_config '    pacman -U --noconfirm `ls -1t /usr/local/src/packer/*.pkg.tar.xz | head -1`'
+        add_config "    packer -S --noconfirm --noedit tlp"
+        add_config "    mkdir -p /etc/systemd/system/graphical.target.wants/"
+        add_config "    systemctl enable tlp.service"
+        add_config "    systemctl enable tlp-sleep.service"
+        add_config "fi"
+        # Some SATA chipsets can corrupt data when ALPM is enabled. Disable it
+        add_config "sed -i 's/SATA_LINKPWR/#SATA_LINKPWR/' /etc/default/tlp"
+    else
+        add_config "pacman -S --needed --noconfirm packer"
+    fi
+
+    # Install dot files.
+    rsync -aq skel/ ${TARGET_PREFIX}/etc/skel/
+    rsync -aq skel/ ${TARGET_PREFIX}/root/
 
     if [ -f users.csv ]; then
         OIFS=${IFS}
@@ -659,9 +654,9 @@ function build_configuration() {
         fi
     fi
 
-    add_config "systemctl enable openntpd"
+    add_config "systemctl enable ntp"
     add_config "systemctl enable cpupower"
-    
+
     # Configure PCI/USB device specific stuff
     for BUS in pci usb
     do
@@ -696,29 +691,30 @@ function build_configuration() {
                 else
                     echo " - ${DEVICE_CONFIG} is not an executable script, skipping."
                 fi
-            echo
+            done
         else
             echo "${BUS} is NOT working."
         fi
     done
 
-    # Configure any system specific stuff
-    for IDENTITY in Product_Name Version Serial_Number UUID SKU_Number
-    do
-        echo "Checking ${IDENTIFY}"
-        FIELD=`echo ${IDENTITY} | sed 's/_/ /g'`
-        VALUE=`dmidecode --type system | grep "${FIELD}" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
-        echo " - Checking ${FIELD} for ${VALUE}"
-        if [ -x hardware/system/${IDENTITY}/${VALUE}.sh ]; then
-            echo " - ${IDENTITY} detected, adding to config."
-            # Add the hardware script to the configuration script.
-            echo -e "\n#${IDENTITY} - ${VALUE}\n" >>${TARGET_PREFIX}/usr/local/bin/arch-config.sh
-            grep -Ev "#!" hardware/system/${IDENTITY}/${VALUE}.sh >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
-        else
-            echo " - ${IDENTITY}/${VALUE}.sh not detected, moving on."
-        fi
-        echo
-    done    
+    if [ "${HOSTNAME}" == "archiso" ]; then
+        # Configure any system specific stuff
+        for IDENTITY in Product_Name Version Serial_Number UUID SKU_Number
+        do
+            echo "Checking ${IDENTIFY}"
+            FIELD=`echo ${IDENTITY} | sed 's/_/ /g'`
+            VALUE=`dmidecode --type system | grep "${FIELD}" | cut -f2 -d':' | sed s'/^ //' | sed s'/ $//' | sed 's/ /_/g'`
+            echo " - Checking ${FIELD} for ${VALUE}"
+            if [ -x hardware/system/${IDENTITY}/${VALUE}.sh ]; then
+                echo " - ${IDENTITY} detected, adding to config."
+                # Add the hardware script to the configuration script.
+                echo -e "\n#${IDENTITY} - ${VALUE}\n" >>${TARGET_PREFIX}/usr/local/bin/arch-config.sh
+                grep -Ev "#!" hardware/system/${IDENTITY}/${VALUE}.sh >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
+            else
+                echo " - ${IDENTITY}/${VALUE}.sh not detected, moving on."
+            fi
+        done
+    fi
 }
 
 function apply_configuration() {
@@ -752,11 +748,14 @@ function cleanup() {
 
 if [ "${HOSTNAME}" == "archiso" ]; then
     format_disks
+    mount_disks
 fi
-mount_disks
+
 build_packages
 install_packages
-make_fstab
+if [ "${HOSTNAME}" == "archiso" ]; then
+    make_fstab
+fi
 enable_multilib
 build_configuration
 apply_configuration

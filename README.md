@@ -30,7 +30,6 @@ should be run from the [Arch Linux install ISO](https://www.archlinux.org/downlo
     * XFCE
   * Automated hardware detection and driver installation. See below.  
   * Installations can be sped up via the use of an NFS cache. See below.
-  * Optional "minimal" installation is available which just install the base OS.
   * Power management *"out of the box"*.
   * Adheres to the Arch principle of K.I.S.S.
 

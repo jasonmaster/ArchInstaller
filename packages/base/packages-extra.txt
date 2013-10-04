@@ -3,6 +3,7 @@ avahi
 b43-fwcutter
 bluez-firmware
 ca-certificates
+cpupower
 dialog
 hwids
 ifplugd
@@ -11,11 +12,17 @@ ipw2200-fw
 linux-firmware
 nss-mdns
 nss-myhostname
+ntp
 openssh
 openssl
+sudo
+syslinux
 syslog-ng
 terminus-font
+tzdata
+wget
 wireless-regdb
 wireless_tools
 wpa_supplicant
 zd1211-firmware
+

@@ -1,8 +1,2 @@
 base
 base-devel
-cpupower
-openntpd
-sudo
-syslinux
-tzdata
-wget
