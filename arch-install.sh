@@ -482,9 +482,7 @@ function build_configuration() {
 
     # Font and font map
     FONT="ter-116b"
-    update_early_hooks consolefont
 
-    update_early_hooks keymap
     add_config "echo KEYMAP=${KEYMAP}      > /etc/vconsole.conf"
     add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
     add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
@@ -496,6 +494,8 @@ function build_configuration() {
 
     # DO NOT MOVE THIS - It has to be after the early module config ###############
     if [ "${HOSTNAME}" == "archiso" ]; then
+        update_early_hooks consolefont
+        update_early_hooks keymap
         KERNEL_VER=`pacman -Si linux | grep Version | cut -d':' -f2 | sed 's/ //g'`
         add_config "depmod -a ${KERNEL_VER}-ARCH"
         add_config "mkinitcpio -p linux"
@@ -650,7 +650,7 @@ function build_configuration() {
     # Configure PCI/USB device specific stuff
     for BUS in pci usb
     do
-        echo "Scanning: ${BUS}"
+        echo "Checking ${BUS} bus"
         if [ "${BUS}" == "pci" ]; then
             DEVICE_FINDER="lspci"
         elif [ "${BUS}" == "usb" ]; then
@@ -663,7 +663,7 @@ function build_configuration() {
         BUS_WORKS=$?
 
         if [ ${BUS_WORKS} -eq 0 ]; then
-            echo "${BUS} is working."
+            echo " - Detected ${BUS} bus"
             for DEVICE_CONFIG in hardware/${BUS}/*:*.sh
             do
                 echo " - Checkng ${DEVICE_CONFIG}"
@@ -683,7 +683,7 @@ function build_configuration() {
                 fi
             done
         else
-            echo "${BUS} is NOT working."
+            echo " - ${BUS} is not present."
         fi
     done
 

@@ -15,6 +15,7 @@ nss-myhostname
 ntp
 openssh
 openssl
+rsync
 sudo
 syslinux
 syslog-ng
