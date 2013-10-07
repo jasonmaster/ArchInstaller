@@ -1,1 +1,1 @@
-nouveau.sh
+nvidia.sh

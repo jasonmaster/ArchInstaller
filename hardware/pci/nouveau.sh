@@ -17,6 +17,10 @@ if [ -f /etc/X11/xorg.conf ]; then
     mv /etc/X11/xorg.conf /etc/X11/xorg.conf.`date +%y%m%d-%H%M`
 fi
 
+if [ -f /etc/modprobe.d/blacklist-nouveau.conf ]; then
+    rm -f /etc/modprobe.d/blacklist-nouveau.conf
+fi
+
 # Install nouveau
 pacman -S --noconfirm --needed ${DRI} ${DDX} ${DECODER} libtxc_dxtn
 if [ "${UNAME_M}" == "x86_64" ]; then

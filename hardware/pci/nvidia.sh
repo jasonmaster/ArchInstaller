@@ -29,4 +29,5 @@ Section "Device"
 EndSection
 XORG
 
+echo "blacklist nouveau" > /etc/modprobe.d/blacklist-nouveau.conf
 echo "options nvidia NVreg_EnableMSI=1" > /etc/modprobe.d/nvidia.conf
