@@ -68,7 +68,7 @@ function usage() {
         echo "  -f : The filesystem to use. 'bfs', 'btrfs', 'ext{2,3,4}', 'f2fs, 'jfs', 'nilfs2', 'ntfs', 'reiserfs' and 'xfs' are supported. Defaults to '${FS}'."
     fi
     echo "  -c : The NFS export to mount and use as the pacman cache."
-    echo "  -e : The desktop environment to install. Defaults to '${DE}'. Can be 'none', 'cinnamon', 'gnome', 'kde', 'lxde', 'mate', 'maui' or 'xfce'"
+    echo "  -e : The desktop environment to install. Defaults to '${DE}'. Can be 'none', 'cinnamon', 'gnome', 'kde', 'lxde', 'mate' or 'xfce'"
     echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
     echo "  -n : The hostname to use. Defaults to '${FQDN}'"
@@ -211,13 +211,8 @@ if [ "${INSTALL_TYPE}" != "desktop" ] && [ "${INSTALL_TYPE}" != "server" ]; then
     exit 1
 fi
 
-if [ "${DE}" != "none" ] && [ "${DE}" != "cinnamon" ] && [ "${DE}" != "gnome" ] && [ "${DE}" != "kde" ] && [ "${DE}" != "lxde" ] && [ "${DE}" != "mate" ] && [ "${DE}" != "maui" ] && [ "${DE}" != "xfce" ]; then
+if [ "${DE}" != "none" ] && [ "${DE}" != "cinnamon" ] && [ "${DE}" != "gnome" ] && [ "${DE}" != "kde" ] && [ "${DE}" != "lxde" ] && [ "${DE}" != "mate" ] && [ "${DE}" != "xfce" ]; then
     echo "ERROR! '${DE}' is not a supported desktop environment."
-    exit 1
-fi
-
-if [ "${DE}" == "maui" ] && [ `uname -m` != "x86_64" ]; then
-    echo "ERROR! Maui is only available for x86_64."
     exit 1
 fi
 
@@ -310,8 +305,10 @@ echo "I make no guarantee that the installation of Arch Linux will succeed."
 echo "Press RETURN to try your luck or CTRL-C to cancel."
 read
 
-# Install dmidecode and determine the current (not running) Kernel version
-pacman -Syy --noconfirm --needed dmidecode
+# Install dmidecode
+if [ "${HOSTNAME}" == "archiso" ]; then
+    pacman -Syy --noconfirm --needed dmidecode
+fi
 
 function format_disks() {
     echo "==> Clearing partition table on /dev/${DSK}"
@@ -416,19 +413,10 @@ function build_packages() {
             if [ $? -ne 0 ]; then
                 echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
             fi
-        elif [ "${DE}" == "maui" ]; then
-            MAUI_CHECK=`grep "\[hawaii\]" /etc/pacman.conf`
-            if [ $? -ne 0 ]; then
-                echo -e '\n[hawaii]\nSigLevel = Optional TrustAll\nServer = http://archive.maui-project.org/archlinux/$repo/os/$arch' >> /etc/pacman.conf
-            fi
         fi
 
         # Chain the DE packages.
-        if [ "${DE}" == "maui" ]; then
-            cat packages/desktop/packages-wayland.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
-        else
-            cat packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
-        fi
+        cat packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
     fi
 }
 
@@ -496,6 +484,7 @@ function build_configuration() {
     if [ "${HOSTNAME}" == "archiso" ]; then
         update_early_hooks consolefont
         update_early_hooks keymap
+        # Determine the current (not running) Kernel version
         KERNEL_VER=`pacman -Si linux | grep Version | cut -d':' -f2 | sed 's/ //g'`
         add_config "depmod -a ${KERNEL_VER}-ARCH"
         add_config "mkinitcpio -p linux"
@@ -547,10 +536,6 @@ function build_configuration() {
             add_config "systemctl enable NetworkManager.service"
             add_config "systemctl enable cups.service"
             add_config "systemctl enable bluetooth.service"
-        elif [ "${DE}" == "maui" ]; then
-            echo -e '\n[hawaii]\nSigLevel = Optional TrustAll\nServer = Server = http://archive.maui-project.org/archlinux/$repo/os/$arch' >> ${TARGET_PREFIX}/etc/pacman.conf
-            add_config "systemctl enable hawaii"
-            add_config "systemctl enable cups.service"
         elif [ "${DE}" == "xfce" ]; then
             add_config "systemctl enable lightdm.service"
             add_config "systemctl enable upower.service"

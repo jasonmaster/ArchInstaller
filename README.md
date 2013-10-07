@@ -23,12 +23,11 @@ should be run from the [Arch Linux install ISO](https://www.archlinux.org/downlo
   * Automated installation of your preferred desktop environment, or none at all.
     * Cinnamon
     * GNOME
-    * Hawaii (untested)
     * KDE
     * LXDE
     * MATE
     * XFCE
-  * Automated hardware detection and driver installation. See below.  
+  * Automated hardware detection and driver installation. See below.
   * Installations can be sped up via the use of an NFS cache. See below.
   * Power management *"out of the box"*.
   * Adheres to the Arch principle of K.I.S.S.
