@@ -6,7 +6,7 @@ if [ `id -u` -ne 0 ]; then
 fi
 
 CORE_PKG=""
-MORE_PKGS="arj cabextract bzip2 gzip lha lzo2 lzop rpmextract sharutils tar \
+MORE_PKGS="arj cabextract bzip2 fastjar gzip lha lzo2 lzop rpmextract sharutils tar \
 unace unrar unzip uudeview xz zip"
 
 pacman -S --needed --noconfirm ${CORE_PKG} ${MORE_PKGS}

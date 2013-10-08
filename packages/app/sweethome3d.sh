@@ -10,7 +10,7 @@ MORE_PKGS=""
 
 IS_INSTALLED=$(pacman -Qqm ${CORE_PKG})
 if [ $? -ne 0 ]; then
-    ./jre6.sh
+    ./jre7.sh
     packer -S --noedit --noconfirm ${CORE_PKG} ${MORE_PKGS}
 else
     echo "${CORE_PKG} is already installed."
