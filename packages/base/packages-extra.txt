@@ -2,6 +2,7 @@ alsa-firmware
 avahi
 b43-fwcutter
 bluez-firmware
+btrfs-progs
 ca-certificates
 cpupower
 dialog
@@ -10,6 +11,7 @@ ifplugd
 ipw2100-fw
 ipw2200-fw
 linux-firmware
+nfs-utils
 nss-mdns
 nss-myhostname
 ntp
@@ -21,6 +23,7 @@ syslinux
 syslog-ng
 terminus-font
 tzdata
+unzip
 wget
 wireless-regdb
 wireless_tools
