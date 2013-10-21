@@ -35,7 +35,7 @@ else
     if [ "${CPU}" == "armv6l" ] || [ "${CPU}" == "armv7l" ]; then
         DSK="mmcblk0"
         TARGET_PREFIX=""
-    elif [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]
+    elif [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]; then
         DSK="sda" #FIXME
         TARGET_PREFIX=""
     fi
