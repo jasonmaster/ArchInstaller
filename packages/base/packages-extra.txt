@@ -6,6 +6,8 @@ btrfs-progs
 ca-certificates
 cpupower
 dialog
+dosfstools
+efibootmgr
 hwids
 ifplugd
 ipw2100-fw
