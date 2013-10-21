@@ -6,12 +6,7 @@ if [ `id -u` -ne 0 ]; then
 fi
 
 CORE_PKG=""
-MORE_PKGS="aria2 bash-completion colordiff curl ddrescue dmidecode glances \
+MORE_PKGS="aria2 bash-completion colordiff curl dfc ddrescue dmidecode glances \
 hexedit htop laptop-detect lesspipe powertop screen tree"
 
 pacman -S --needed --noconfirm ${CORE_PKG} ${MORE_PKGS}
-
-IS_INSTALLED=$(pacman -Qqm dfc)
-if [ $? -ne 0 ]; then
-    packer -S --noedit --noconfirm dfc
-fi
