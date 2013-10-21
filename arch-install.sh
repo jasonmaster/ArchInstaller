@@ -28,32 +28,23 @@ DE="none"
 HAS_TRIM=0
 HAS_SSD=0
 
-if [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]; then
-    if [ "${HOSTNAME}" != "archiso" ]; then
-        echo "PARACHUTE DEPLOYED! This script is not running from the Arch Linux install media."
-        echo " - Exitting now to prevent untold chaos."
-        exit 1
-    fi
-elif [ "${CPU}" == "armv6l" ] || [ "${CPU}" == "armv7l" ]; then
-    DSK="mmcblk0"
-    TARGET_PREFIX=""
+if [ "${HOSTNAME}" == "archiso" ]; then
+    MODE="install"
 else
-    echo "ERROR! `basename ${0}` is designed for armv6l, armv7l, i686, x86_64 platforms only."
-    echo " - Contributions welcome - https://github.com/flexiondotorg/ArchInstaller/"
-    exit 1
+    MODE="update"
 fi
 
 function usage() {
     echo
     echo "Usage"
-    if [ "${HOSTANME}" == "archiso" ]; then
+    if [ "${MODE}" == "install" ]; then
         echo "  ${0} -d sda -p bsrh -w P@ssw0rd -b ${PARTITION_TYPE} -f ${FS} -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
     else
         echo "  ${0} -w P@ssw0rd -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
     fi
     echo
     echo "Required parameters"
-    if [ "${HOSTNAME}" == "archiso" ]; then
+    if [ "${MODE}" == "install" ]; then
         echo "  -d : The target device. For example, 'sda'."
         echo "  -p : The partition layout to use. One of: "
         echo "         'bsrh' : /boot, swap, /root and /home"
@@ -63,7 +54,7 @@ function usage() {
     echo "  -w : The root password."
     echo
     echo "Optional parameters"
-    if [ "${HOSTNAME}" == "archiso" ]; then
+    if [ "${MODE}" == "install" ]; then
         echo "  -b : The partition type to use. Defaults to '${PARTITION_TYPE}'. Can be 'msdos' or 'gpt'."
         echo "  -f : The filesystem to use. 'bfs', 'btrfs', 'ext{2,3,4}', 'f2fs, 'jfs', 'nilfs2', 'ntfs', 'reiserfs' and 'xfs' are supported. Defaults to '${FS}'."
     fi
@@ -94,6 +85,10 @@ function usage() {
     exit 1
 }
 
+if [ "${CPU}" != "armv6l" ] && [ "${CPU}" != "armv7l" ] && [ "${CPU}" != "i686" ] && [ "${CPU}" != "x86_64" ]; then
+
+fi
+
 OPTSTRING=b:c:d:e:f:hk:l:n:p:r:t:w:
 while getopts ${OPTSTRING} OPT
 do
@@ -116,7 +111,19 @@ do
 done
 shift "$(( $OPTIND - 1 ))"
 
-if [ "${HOSTNAME}" == "archiso" ]; then
+if [ "${CPU}" == "armv6l" ] || [ "${CPU}" == "armv7l" ]; then
+    DSK="mmcblk0"
+    TARGET_PREFIX=""
+elif [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]
+    DSK="sda"
+    TARGET_PREFIX=""
+else
+    echo "ERROR! `basename ${0}` is designed for armv6l, armv7l, i686, x86_64 platforms only."
+    echo " - Contributions welcome - https://github.com/flexiondotorg/ArchInstaller/"
+    exit 1
+fi
+
+if [ "${MODE}" == "install" ]; then
 
     if [ ! -b /dev/${DSK} ]; then
         echo "ERROR! Target install disk not found."
@@ -254,7 +261,7 @@ fi
 echo
 echo "Installation Summary"
 echo
-if [ "${HOSTNAME}" == "archiso" ]; then
+if [ "${MODE}" == "install" ]; then
     echo " - Installation target : /dev/${DSK}"
     if [ ${HAS_SSD} -eq 1 ]; then
         if [ ${HAS_TRIM} -eq 1 ]; then
@@ -296,7 +303,7 @@ fi
 loadkeys -q ${KEYMAP}
 
 echo
-if [ "${HOSTNAME}" == "archiso" ]; then
+if [ "${MODE}" == "install" ]; then
     echo "WARNING: `basename ${0}` is about to destroy everything on /dev/${DSK}!"
 else
     echo "WARNING: `basename ${0}` is about to start installing!"
@@ -306,7 +313,7 @@ echo "Press RETURN to try your luck or CTRL-C to cancel."
 read
 
 # Install dmidecode
-if [ "${HOSTNAME}" == "archiso" ]; then
+if [ "${MODE}" == "install" ]; then
     pacman -Syy --noconfirm --needed dmidecode
 fi
 
@@ -422,7 +429,7 @@ function build_packages() {
 
 function install_packages() {
     # Install packages
-    if [ "${HOSTNAME}" == "archiso" ]; then
+    if [ "${MODE}" == "install" ]; then
         pacstrap -c ${TARGET_PREFIX} $(cat packages/base/packages-base.txt /tmp/packages.txt)
         if [ $? -ne 0 ]; then
             echo "ERROR! 'pacstrap' failed. Cleaning up and exitting."
@@ -481,7 +488,7 @@ function build_configuration() {
     add_config 'echo "export EDITOR=nano" >> /etc/profile'
 
     # DO NOT MOVE THIS - It has to be after the early module config ###############
-    if [ "${HOSTNAME}" == "archiso" ]; then
+    if [ "${MODE}" == "install" ]; then
         update_early_hooks consolefont
         update_early_hooks keymap
         # Determine the current (not running) Kernel version
@@ -565,7 +572,7 @@ function build_configuration() {
         add_config "systemctl enable rpc-statd.service"
     fi
 
-    if [ "${HOSTNAME}" == "archiso" ]; then
+    if [ "${MODE}" == "install" ]; then
         add_config "wget http://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz"
         add_config 'if [ $? -ne 0 ]; then'
         add_config "    echo \"ERROR! Couldn't downloading packer.tar.gz. Skipping packer install.\""
@@ -672,7 +679,7 @@ function build_configuration() {
         fi
     done
 
-    if [ "${HOSTNAME}" == "archiso" ]; then
+    if [ "${MODE}" == "install" ]; then
         # Configure any system specific stuff
         for IDENTITY in Product_Name Version Serial_Number UUID SKU_Number
         do
@@ -693,7 +700,7 @@ function build_configuration() {
 }
 
 function apply_configuration() {
-    if [ "${HOSTNAME}" == "archiso" ]; then
+    if [ "${MODE}" == "install" ]; then
         add_config "syslinux-install_update -iam"
         arch-chroot ${TARGET_PREFIX} /usr/local/bin/arch-config.sh
         cp {splash.png,terminus.psf,syslinux.cfg} ${TARGET_PREFIX}/boot/syslinux/
@@ -706,12 +713,12 @@ function cleanup() {
     swapoff -a && sync
     if [ -n "${NFS_CACHE}" ]; then
         addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,relatime,noauto,x-systemd.automount,x-systemd.device-timeout=5s 0 0" ${TARGET_PREFIX}/etc/fstab
-        if [ "${HOSTNAME}" == "archiso" ]; then
+        if [ "${MODE}" == "install" ]; then
             umount -fv /var/cache/pacman/pkg
         fi
     fi
 
-    if [ "${HOSTNAME}" == "archiso" ]; then
+    if [ "${MODE}" == "install" ]; then
         if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
             umount -fv ${TARGET_PREFIX}/home
         fi
@@ -721,14 +728,14 @@ function cleanup() {
     echo "All done!"
 }
 
-if [ "${HOSTNAME}" == "archiso" ]; then
+if [ "${MODE}" == "install" ]; then
     format_disks
     mount_disks
 fi
 
 build_packages
 install_packages
-if [ "${HOSTNAME}" == "archiso" ]; then
+if [ "${MODE}" == "install" ]; then
     make_fstab
 fi
 enable_multilib
