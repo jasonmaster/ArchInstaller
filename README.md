@@ -81,7 +81,7 @@ below and automatically execute the corresponding scripts in `hardware/system`.
   * Serial Number
   * UUID
   * SKU Number
-  
+
 The facilities to customise the install any given hardware requirements, right
 down to a specific tweak for a unique computer. See the scripts I've already
 created, they are good references to get you started.
@@ -165,6 +165,7 @@ settings in `arch-install.sh`.
   * UEFI support - waiting for UEFI support in SYSLINUX.
   * Maybe allow locating `/home` on a different disk.
   * Maybe add LVM and LUKS capability to disk partitioning.
+  * Maybe add ZFS support.
   * Investigate zRAM and zSWAP.
 
 ### Power Management TODO

@@ -1,4 +1,5 @@
 accountsservice
+cups-pk-helper
 lightdm-gtk2-greeter
 mate
 mate-extras
@@ -6,5 +7,6 @@ network-manager-applet
 networkmanager
 networkmanager-openvpn
 networkmanager-pptp
+system-config-printer
 terminator
 xdg-user-dirs
