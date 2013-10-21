@@ -32,6 +32,13 @@ if [ "${HOSTNAME}" == "archiso" ]; then
     MODE="install"
 else
     MODE="update"
+    if [ "${CPU}" == "armv6l" ] || [ "${CPU}" == "armv7l" ]; then
+        DSK="mmcblk0"
+        TARGET_PREFIX=""
+    elif [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]
+        DSK="sda" #FIXME
+        TARGET_PREFIX=""
+    fi
 fi
 
 function usage() {
@@ -85,10 +92,6 @@ function usage() {
     exit 1
 }
 
-if [ "${CPU}" != "armv6l" ] && [ "${CPU}" != "armv7l" ] && [ "${CPU}" != "i686" ] && [ "${CPU}" != "x86_64" ]; then
-
-fi
-
 OPTSTRING=b:c:d:e:f:hk:l:n:p:r:t:w:
 while getopts ${OPTSTRING} OPT
 do
@@ -111,13 +114,7 @@ do
 done
 shift "$(( $OPTIND - 1 ))"
 
-if [ "${CPU}" == "armv6l" ] || [ "${CPU}" == "armv7l" ]; then
-    DSK="mmcblk0"
-    TARGET_PREFIX=""
-elif [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]
-    DSK="sda"
-    TARGET_PREFIX=""
-else
+if [ "${CPU}" != "armv6l" ] && [ "${CPU}" != "armv7l" ] && [ "${CPU}" != "i686" ] && [ "${CPU}" != "x86_64" ]; then
     echo "ERROR! `basename ${0}` is designed for armv6l, armv7l, i686, x86_64 platforms only."
     echo " - Contributions welcome - https://github.com/flexiondotorg/ArchInstaller/"
     exit 1
