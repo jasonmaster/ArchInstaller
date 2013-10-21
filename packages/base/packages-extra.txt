@@ -8,17 +8,21 @@ cpupower
 dialog
 dosfstools
 efibootmgr
+f2fs-tools
 hwids
 ifplugd
 ipw2100-fw
 ipw2200-fw
+jfsutils
 linux-firmware
 nfs-utils
+nilfs-utils
 nss-mdns
 nss-myhostname
 ntp
 openssh
 openssl
+reiserfsprogs
 rsync
 sudo
 syslinux
@@ -30,4 +34,5 @@ wget
 wireless-regdb
 wireless_tools
 wpa_supplicant
+xfsprogs
 zd1211-firmware
