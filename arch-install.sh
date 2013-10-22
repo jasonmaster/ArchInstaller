@@ -351,7 +351,6 @@ function install_packages() {
         pacstrap -c ${TARGET_PREFIX} $(cat packages/base/packages-base.txt /tmp/packages.txt)
         if [ $? -ne 0 ]; then
             echo "ERROR! 'pacstrap' failed. Cleaning up and exitting."
-            swapoff -a
             if [ -n "${NFS_CACHE}" ]; then
                 umount -fv /var/cache/pacman/pkg
             fi
@@ -636,7 +635,7 @@ function apply_configuration() {
 }
 
 function cleanup() {
-    swapoff -a && sync
+    sync
     if [ -n "${NFS_CACHE}" ]; then
         addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,relatime,noauto,x-systemd.automount,x-systemd.device-timeout=5s 0 0" ${TARGET_PREFIX}/etc/fstab
         if [ "${MODE}" == "install" ]; then
@@ -650,7 +649,6 @@ function cleanup() {
         fi
         umount -fv ${TARGET_PREFIX}/{boot,}
     fi
-
     echo "All done!"
 }
 
