@@ -679,7 +679,7 @@ if [ "${CPU}" != "armv6l" ] && [ "${CPU}" != "armv7l" ] && [ "${CPU}" != "i686" 
     exit 1
 fi
 
-if [ -z "${PASSWORD}" ]; then
+if [ -z "${PASSWORD}" ] && [ "${MODE}" == "install" ]; then
     echo "ERROR! The 'root' password has not been provided."
     echo " - See `basename ${0}` -h"
     exit 1
