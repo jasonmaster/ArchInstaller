@@ -30,14 +30,17 @@ HAS_SSD=0
 
 if [ "${HOSTNAME}" == "archiso" ]; then
     MODE="install"
+    BASE_ARCH="x86"
 else
     MODE="update"
     if [ "${CPU}" == "armv6l" ] || [ "${CPU}" == "armv7l" ]; then
         DSK="mmcblk0"
         TARGET_PREFIX=""
+        BASE_ARCH="arm"
     elif [ "${CPU}" == "i686" ] || [ "${CPU}" == "x86_64" ]; then
         DSK="sda" #FIXME
         TARGET_PREFIX=""
+        BASE_ARCH="x86"
     fi
 fi
 
@@ -91,227 +94,164 @@ function usage() {
     exit 1
 }
 
-OPTSTRING=b:c:d:e:f:hk:l:n:p:r:t:w:
-while getopts ${OPTSTRING} OPT
-do
-    case ${OPT} in
-        b) PARTITION_TYPE=${OPTARG};;
-        c) NFS_CACHE=${OPTARG};;
-        d) DSK=${OPTARG};;
-        e) DE=${OPTARG};;
-        f) FS=${OPTARG};;
-        h) usage;;
-        k) KEYMAP=${OPTARG};;
-        l) LANG=${OPTARG};;
-        n) FQDN=${OPTARG};;
-        p) PARTITION_LAYOUT=${OPTARG};;
-        r) INSTALL_TYPE=${OPTARG};;
-        t) TIMEZONE=${OPTARG};;
-        w) PASSWORD=${OPTARG};;
-        *) usage;;
-    esac
-done
-shift "$(( $OPTIND - 1 ))"
+function query_disk_subsystem() {
+	if [ "${MODE}" == "install" ]; then
+		if [ ! -b /dev/${DSK} ]; then
+			echo "ERROR! Target install disk not found."
+			echo " - See `basename ${0}` -h"
+			exit 1
+		fi
 
-if [ "${CPU}" != "armv6l" ] && [ "${CPU}" != "armv7l" ] && [ "${CPU}" != "i686" ] && [ "${CPU}" != "x86_64" ]; then
-    echo "ERROR! `basename ${0}` is designed for armv6l, armv7l, i686, x86_64 platforms only."
-    echo " - Contributions welcome - https://github.com/flexiondotorg/ArchInstaller/"
-    exit 1
-fi
+		if [ `cat /sys/block/${DSK}/queue/rotational` == "0" ] && [ `cat /sys/block/${DSK}/removable` == "0" ]; then
+			if [ -n "$(hdparm -I /dev/${DSK} 2>&1 | grep 'TRIM supported')" ]; then
+				HAS_TRIM=1
+				HAS_SSD=1
+			else
+				HAS_TRIM=0
+				HAS_SSD=1
+			fi
+		fi
 
-if [ "${MODE}" == "install" ]; then
+		MOUNT_OPTS="-o relatime"
+		if [ ${HAS_SSD} -eq 1 ]; then
+			# From `man mount` - In case of media with limited number of write cycles
+			# (e.g. some flash drives) "sync" may cause life-cycle shortening.
+			# Therefore use `async` on SSDs.
+			# http://www.blah-blah.ch/it/general/filesystem-performance-ssd/
+			MOUNT_OPTS="${MOUNT_OPTS},async"
+		fi
+		MKFS_L="-L"
 
-    if [ ! -b /dev/${DSK} ]; then
-        echo "ERROR! Target install disk not found."
-        echo " - See `basename ${0}` -h"
-        exit 1
-    fi
+		# TRIM is currently only supported on `btrfs`, `ext3`, `ext4`, `jfs` and `xfs`.
+		# So, disable `fstrim` on filesystems that don't support TRIM, even if the hardware does.
+		case ${FS} in
+			"bfs")      MKFS="mkfs.bfs"
+						MKFS_L="-V"
+						HAS_TRIM=0
+						;;
+			"btrfs")    MKFS="mkfs.btrfs -f"
+						MOUNT_OPTS="${MOUNT_OPTS},compress=lzo"
+						if [ ${HAS_SSD} -eq 1 ]; then
+							MOUNT_OPTS="${MOUNT_OPTS},ssd"
+						fi
+						;;
+			"ext2")     MKFS="mkfs.ext2 -F -m 0 -q"
+						HAS_TRIM=0
+						;;
+			"ext3")     MKFS="mkfs.ext3 -F -m 0 -q";;
+			"ext4")     MKFS="mkfs.ext4 -F -m 0 -q";;
+			"f2fs")     MKFS="mkfs.f2fs"
+						MKFS_L="-l"
+						HAS_TRIM=0
+						;;
+			"jfs")      MKFS="mkfs.jfs -q";;
+			"nilfs2")   MKFS="mkfs.nilfs2 -q"
+						HAS_TRIM=0;;
+			"ntfs")     MKFS="mkfs.ntfs -q"
+						HAS_TRIM=0;;
+			"reiserfs") MKFS="mkfs.reiserfs --format 3.6 -f -q"
+						MKFS_L="-l"
+						HAS_TRIM=0;;
+			"xfs")    MKFS="mkfs.xfs -f -q";;
+			*) echo "ERROR! Filesystem ${FS} is not supported."
+			   echo " - See `basename ${0}` -h"
+			   exit 1
+			   ;;
+		esac
 
-    if [ `cat /sys/block/${DSK}/queue/rotational` == "0" ] && [ `cat /sys/block/${DSK}/removable` == "0" ]; then
-        if [ -n "$(hdparm -I /dev/${DSK} 2>&1 | grep 'TRIM supported')" ]; then
-            HAS_TRIM=1
-            HAS_SSD=1
-        else
-            HAS_TRIM=0
-            HAS_SSD=1
-        fi
-    fi
+		if [ "${PARTITION_TYPE}" != "msdos" ] && [ "${PARTITION_TYPE}" != "gpt" ]; then
+			echo "ERROR! Partition type ${PARTITION_TYPE} is not supported."
+			echo " - See `basename ${0}` -h"
+			exit 1
+		fi
 
-    MOUNT_OPTS="-o relatime"
-    if [ ${HAS_SSD} -eq 1 ]; then
-        # From `man mount` - In case of media with limited number of write cycles
-        # (e.g. some flash drives) "sync" may cause life-cycle shortening.
-        # Therefore use `async` on SSDs.
-        # http://www.blah-blah.ch/it/general/filesystem-performance-ssd/
-        MOUNT_OPTS="${MOUNT_OPTS},async"
-    fi
-    MKFS_L="-L"
+		if [ "${PARTITION_LAYOUT}" != "brh" ] && [ "${PARTITION_LAYOUT}" != "br" ]; then
+			echo "ERROR! I don't know what to do with '${PARTITION_LAYOUT}' partition layout."
+			echo " - See `basename ${0}` -h"
+			exit 1
+		fi
+	fi
+}
 
-    # TRIM is currently only supported on `btrfs`, `ext3`, `ext4`, `jfs` and `xfs`.
-    # So, disable `fstrim` on filesystems that don't support TRIM, even if the hardware does.
-    case ${FS} in
-        "bfs")      MKFS="mkfs.bfs"
-                    MKFS_L="-V"
-                    HAS_TRIM=0
-                    ;;
-        "btrfs")    MKFS="mkfs.btrfs -f"
-                    MOUNT_OPTS="${MOUNT_OPTS},compress=lzo"
-                    if [ ${HAS_SSD} -eq 1 ]; then
-                        MOUNT_OPTS="${MOUNT_OPTS},ssd"
-                    fi
-                    ;;
-        "ext2")     MKFS="mkfs.ext2 -F -m 0 -q"
-                    HAS_TRIM=0
-                    ;;
-        "ext3")     MKFS="mkfs.ext3 -F -m 0 -q";;
-        "ext4")     MKFS="mkfs.ext4 -F -m 0 -q";;
-        "f2fs")     MKFS="mkfs.f2fs"
-                    MKFS_L="-l"
-                    HAS_TRIM=0
-                    ;;
-        "jfs")      MKFS="mkfs.jfs -q";;
-        "nilfs2")   MKFS="mkfs.nilfs2 -q"
-                    HAS_TRIM=0;;
-        "ntfs")     MKFS="mkfs.ntfs -q"
-                    HAS_TRIM=0;;
-        "reiserfs") MKFS="mkfs.reiserfs --format 3.6 -f -q"
-                    MKFS_L="-l"
-                    HAS_TRIM=0;;
-        "xfs")    MKFS="mkfs.xfs -f -q";;
-        *) echo "ERROR! Filesystem ${FS} is not supported."
-           echo " - See `basename ${0}` -h"
-           exit 1
-           ;;
-    esac
+function test_nfs_cache() {
+	if [ -n "${NFS_CACHE}" ]; then
+		echo
+		echo "Testing NFS cache : ${NFS_CACHE}"
+		systemctl start rpc-statd.service >/dev/null
+		mount -t nfs ${NFS_CACHE} /var/cache/pacman/pkg >/dev/null
+		if [ $? -ne 0 ]; then
+			echo "ERROR! Unable to mount ${NFS_CACHE}"
+			echo " - See `basename ${0}` -h"
+			exit 1
+		fi
 
-    if [ "${PARTITION_TYPE}" != "msdos" ] && [ "${PARTITION_TYPE}" != "gpt" ]; then
-        echo "ERROR! Partition type ${PARTITION_TYPE} is not supported."
-        echo " - See `basename ${0}` -h"
-        exit 1
-    fi
+		# Make sure the cache is writeable
+		touch /var/cache/pacman/pkg/cache.test 2>/dev/null
+		if [ $? -ne 0 ]; then
+			echo "ERROR! The NFS cache, ${NFS_CACHE}, is read-only."
+			exit 1
+		else
+			rm /var/cache/pacman/pkg/cache.test 2>/dev/null
+		fi
+	fi
+}
 
-    if [ "${PARTITION_LAYOUT}" != "brh" ] && [ "${PARTITION_LAYOUT}" != "br" ]; then
-        echo "ERROR! I don't know what to do with '${PARTITION_LAYOUT}' partition layout."
-        echo " - See `basename ${0}` -h"
-        exit 1
-    fi
-fi
+function summary() {
+	echo
+	echo "Installation Summary"
+	echo
+	if [ "${MODE}" == "install" ]; then
+		echo " - Installation target : /dev/${DSK}"
+		if [ ${HAS_SSD} -eq 1 ]; then
+			if [ ${HAS_TRIM} -eq 1 ]; then
+				echo " - Disk type           : Solid state with TRIM."
+			else
+				echo " - Disk type           : Solid state without TRIM."
+			fi
+		else
+			echo " - Disk type           : Rotational"
+		fi
+		echo " - Disk label          : ${PARTITION_TYPE}"
+		echo " - Partition layout    : ${PARTITION_LAYOUT}"
+		echo " - File System         : ${FS}"
+	fi
+	echo " - CPU                 : ${CPU}"
+	echo " - Hostname            : ${FQDN}"
+	echo " - Timezone            : ${TIMEZONE}"
+	echo " - Keyboard mapping    : ${KEYMAP}"
+	echo " - Locale              : ${LANG}"
+	if [ -n "${NFS_CACHE}" ]; then
+		echo " - NFS Cache           : ${NFS_CACHE}"
+	fi
 
-if [ -z "${PASSWORD}" ]; then
-    echo "ERROR! The 'root' password has not been provided."
-    echo " - See `basename ${0}` -h"
-    exit 1
-fi
+	echo " - Installation type   : ${INSTALL_TYPE}"
+	echo " - Desktop Environment : ${DE}"
 
-if [ ! -f /usr/share/zoneinfo/${TIMEZONE} ]; then
-    echo "ERROR! I can't find the zone info for '${TIMEZONE}'."
-    echo " - See `basename ${0}` -h"
-    exit 1
-fi
+	if [ -f users.csv ]; then
+		echo " - Provision users     : `cat users.csv | wc -l`"
+	else
+		echo " - Provision users     : DISABLED!"
+	fi
 
-if [ "${INSTALL_TYPE}" != "desktop" ] && [ "${INSTALL_TYPE}" != "server" ]; then
-    echo "ERROR! '${INSTALL_TYPE}' is not a supported computer role."
-    exit 1
-fi
+	if [ -f netctl ]; then
+		echo " - Configure network   : Yes"
+	else
+		echo " - Configure network   : No"
+	fi
+	
+	
+	loadkeys -q ${KEYMAP}
 
-if [ "${DE}" != "none" ] && [ "${DE}" != "cinnamon" ] && [ "${DE}" != "gnome" ] && [ "${DE}" != "kde" ] && [ "${DE}" != "lxde" ] && [ "${DE}" != "mate" ] && [ "${DE}" != "xfce" ]; then
-    echo "ERROR! '${DE}' is not a supported desktop environment."
-    exit 1
-fi
-
-LANG_TEST=`grep ${LANG} /etc/locale.gen`
-if [ $? -ne 0 ]; then
-    echo "ERROR! The language you specified, '${LANG}', is not recognised."
-    echo " - See https://wiki.archlinux.org/index.php/Locale"
-    exit 1
-fi
-
-KEYMAP_TEST=`ls -1 /usr/share/kbd/keymaps/*/*/*${KEYMAP}*`
-if [ $? -ne 0 ]; then
-    echo "ERROR! The keyboard mapping you specified, '${KEYMAP}', is not recognised."
-    echo " - See https://wiki.archlinux.org/index.php/KEYMAP"
-    exit 1
-fi
-
-if [ -n "${NFS_CACHE}" ]; then
-    echo
-    echo "Testing NFS cache : ${NFS_CACHE}"
-    systemctl start rpc-statd.service >/dev/null
-    mount -t nfs ${NFS_CACHE} /var/cache/pacman/pkg >/dev/null
-    if [ $? -ne 0 ]; then
-        echo "ERROR! Unable to mount ${NFS_CACHE}"
-        echo " - See `basename ${0}` -h"
-        exit 1
-    fi
-
-    # Make sure the cache is writeable
-    touch /var/cache/pacman/pkg/cache.test 2>/dev/null
-    if [ $? -ne 0 ]; then
-        echo "ERROR! The NFS cache, ${NFS_CACHE}, is read-only."
-        exit 1
-    else
-        rm /var/cache/pacman/pkg/cache.test 2>/dev/null
-    fi
-fi
-
-echo
-echo "Installation Summary"
-echo
-if [ "${MODE}" == "install" ]; then
-    echo " - Installation target : /dev/${DSK}"
-    if [ ${HAS_SSD} -eq 1 ]; then
-        if [ ${HAS_TRIM} -eq 1 ]; then
-            echo " - Disk type           : Solid state with TRIM."
-        else
-            echo " - Disk type           : Solid state without TRIM."
-        fi
-    else
-        echo " - Disk type           : Rotational"
-    fi
-    echo " - Disk label          : ${PARTITION_TYPE}"
-    echo " - Partition layout    : ${PARTITION_LAYOUT}"
-    echo " - File System         : ${FS}"
-fi
-echo " - CPU                 : ${CPU}"
-echo " - Hostname            : ${FQDN}"
-echo " - Timezone            : ${TIMEZONE}"
-echo " - Keyboard mapping    : ${KEYMAP}"
-echo " - Locale              : ${LANG}"
-if [ -n "${NFS_CACHE}" ]; then
-    echo " - NFS Cache           : ${NFS_CACHE}"
-fi
-
-echo " - Installation type   : ${INSTALL_TYPE}"
-echo " - Desktop Environment : ${DE}"
-
-if [ -f users.csv ]; then
-    echo " - Provision users     : `cat users.csv | wc -l`"
-else
-    echo " - Provision users     : DISABLED!"
-fi
-
-if [ -f netctl ]; then
-    echo " - Configure network   : Yes"
-else
-    echo " - Configure network   : No"
-fi
-
-loadkeys -q ${KEYMAP}
-
-echo
-if [ "${MODE}" == "install" ]; then
-    echo "WARNING: `basename ${0}` is about to destroy everything on /dev/${DSK}!"
-else
-    echo "WARNING: `basename ${0}` is about to start installing!"
-fi
-echo "I make no guarantee that the installation of Arch Linux will succeed."
-echo "Press RETURN to try your luck or CTRL-C to cancel."
-read
-
-# Install dmidecode
-if [ "${MODE}" == "install" ]; then
-    pacman -Syy --noconfirm --needed dmidecode
-fi
+	echo
+	if [ "${MODE}" == "install" ]; then
+		echo "WARNING: `basename ${0}` is about to destroy everything on /dev/${DSK}!"
+	else
+		echo "WARNING: `basename ${0}` is about to start installing!"
+	fi
+	echo "I make no guarantee that the installation of Arch Linux will succeed."
+	echo "Press RETURN to try your luck or CTRL-C to cancel."
+	read
+}
 
 function format_disks() {
     echo "==> Clearing partition table on /dev/${DSK}"
@@ -549,7 +489,7 @@ function build_configuration() {
         add_config "systemctl enable rpc-statd.service"
     fi
 
-    if [ "${MODE}" == "install" ]; then
+    if [ "${BASE_ARCH}" == "x86" ]; then
         add_config "wget http://aur.archlinux.org/packages/pa/packer/packer.tar.gz -O /usr/local/src/packer.tar.gz"
         add_config 'if [ $? -ne 0 ]; then'
         add_config "    echo \"ERROR! Couldn't downloading packer.tar.gz. Skipping packer install.\""
@@ -705,6 +645,81 @@ function cleanup() {
     echo "All done!"
 }
 
+OPTSTRING=b:c:d:e:f:hk:l:n:p:r:t:w:
+while getopts ${OPTSTRING} OPT
+do
+    case ${OPT} in
+        b) PARTITION_TYPE=${OPTARG};;
+        c) NFS_CACHE=${OPTARG};;
+        d) DSK=${OPTARG};;
+        e) DE=${OPTARG};;
+        f) FS=${OPTARG};;
+        h) usage;;
+        k) KEYMAP=${OPTARG};;
+        l) LANG=${OPTARG};;
+        n) FQDN=${OPTARG};;
+        p) PARTITION_LAYOUT=${OPTARG};;
+        r) INSTALL_TYPE=${OPTARG};;
+        t) TIMEZONE=${OPTARG};;
+        w) PASSWORD=${OPTARG};;
+        *) usage;;
+    esac
+done
+shift "$(( $OPTIND - 1 ))"
+
+if [ "${CPU}" != "armv6l" ] && [ "${CPU}" != "armv7l" ] && [ "${CPU}" != "i686" ] && [ "${CPU}" != "x86_64" ]; then
+    echo "ERROR! `basename ${0}` is designed for armv6l, armv7l, i686, x86_64 platforms only."
+    echo " - Contributions welcome - https://github.com/flexiondotorg/ArchInstaller/"
+    exit 1
+fi
+
+if [ -z "${PASSWORD}" ]; then
+    echo "ERROR! The 'root' password has not been provided."
+    echo " - See `basename ${0}` -h"
+    exit 1
+fi
+
+if [ ! -f /usr/share/zoneinfo/${TIMEZONE} ]; then
+    echo "ERROR! I can't find the zone info for '${TIMEZONE}'."
+    echo " - See `basename ${0}` -h"
+    exit 1
+fi
+
+if [ "${INSTALL_TYPE}" != "desktop" ] && [ "${INSTALL_TYPE}" != "server" ]; then
+    echo "ERROR! '${INSTALL_TYPE}' is not a supported computer role."
+    exit 1
+fi
+
+if [ "${DE}" != "none" ] && [ "${DE}" != "cinnamon" ] && [ "${DE}" != "gnome" ] && [ "${DE}" != "kde" ] && [ "${DE}" != "lxde" ] && [ "${DE}" != "mate" ] && [ "${DE}" != "xfce" ]; then
+    echo "ERROR! '${DE}' is not a supported desktop environment."
+    exit 1
+fi
+
+LANG_TEST=`grep ${LANG} /etc/locale.gen`
+if [ $? -ne 0 ]; then
+    echo "ERROR! The language you specified, '${LANG}', is not recognised."
+    echo " - See https://wiki.archlinux.org/index.php/Locale"
+    exit 1
+fi
+
+KEYMAP_TEST=`ls -1 /usr/share/kbd/keymaps/*/*/*${KEYMAP}*`
+if [ $? -ne 0 ]; then
+    echo "ERROR! The keyboard mapping you specified, '${KEYMAP}', is not recognised."
+    echo " - See https://wiki.archlinux.org/index.php/KEYMAP"
+    exit 1
+fi
+
+# Install the requirements
+if [ "${MODE}" == "install" ]; then
+    pacman -Syy --noconfirm --needed dmidecode
+else
+	pacman -Syu --needed --noconfirm
+fi
+
+query_disk_subsystem
+test_nfs_cache
+summary
+
 if [ "${MODE}" == "install" ]; then
     format_disks
     mount_disks
@@ -712,9 +727,11 @@ fi
 
 build_packages
 install_packages
+
 if [ "${MODE}" == "install" ]; then
     make_fstab
 fi
+
 enable_multilib
 build_configuration
 apply_configuration
