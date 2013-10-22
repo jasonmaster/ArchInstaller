@@ -236,8 +236,9 @@ function summary() {
 	else
 		echo " - Configure network   : No"
 	fi
-	
-	
+}
+
+function final_warning() {
 	loadkeys -q ${KEYMAP}
 
 	echo
@@ -731,6 +732,7 @@ fi
 query_disk_subsystem
 test_nfs_cache
 summary
+final_warning
 
 if [ "${MODE}" == "install" ]; then
     format_disks
