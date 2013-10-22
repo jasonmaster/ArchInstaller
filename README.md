@@ -30,6 +30,7 @@ should be run from the [Arch Linux install ISO](https://www.archlinux.org/downlo
   * Automated hardware detection and driver installation. See below.
   * Installations can be sped up via the use of an NFS cache. See below.
   * Power management *"out of the box"*.
+  * Swap is provided via ZSWAP only.
   * Adheres to the Arch principle of K.I.S.S.
 
 ## Limitations
@@ -147,7 +148,6 @@ settings in `arch-install.sh`.
   * Add automated root partition resizing magic to `arch-install.sh` for Raspberry Pi.
     * <http://michael.otacoo.com/manuals/raspberry-pi/>
   * Detect locale for dictionaries in desktop environment installs.
-  * When the script changes something in a user home directory, make that change for all users.
   * Fix Thinkpad T43p hotkeys keys.
     * Run one of the following on system start up.
     * `echo enable,0x00ffffff > /proc/acpi/ibm/hotkey`
@@ -162,11 +162,10 @@ settings in `arch-install.sh`.
     * <http://www.winpe.com/page04.html>
     * <http://blog.burntsushi.net/lenovo-thinkpad-t430-archlinux>
     * <http://worldofgnome.org/speed-up-gnome-in-systemd-distributions/>
-  * UEFI support - waiting for UEFI support in SYSLINUX.
+  * UEFI support - waiting for more complete UEFI support in SYSLINUX.
   * Maybe allow locating `/home` on a different disk.
   * Maybe add LVM and LUKS capability to disk partitioning.
-  * Maybe add ZFS support.
-  * Investigate zRAM and zSWAP.
+  * Maybe add ZFS support.P.
 
 ### Power Management TODO
 

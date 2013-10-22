@@ -45,7 +45,7 @@ function usage() {
     echo
     echo "Usage"
     if [ "${MODE}" == "install" ]; then
-        echo "  ${0} -d sda -p bsrh -w P@ssw0rd -b ${PARTITION_TYPE} -f ${FS} -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
+        echo "  ${0} -d sda -p brh -w P@ssw0rd -b ${PARTITION_TYPE} -f ${FS} -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
     else
         echo "  ${0} -w P@ssw0rd -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
     fi
@@ -54,9 +54,8 @@ function usage() {
     if [ "${MODE}" == "install" ]; then
         echo "  -d : The target device. For example, 'sda'."
         echo "  -p : The partition layout to use. One of: "
-        echo "         'bsrh' : /boot, swap, /root and /home"
-        echo "         'bsr'  : /boot, swap and /root"
-        echo "         'br'   : /boot and /root, no swap."
+        echo "         'brh' : /boot, /root and /home"
+        echo "         'br'   : /boot and /root."
     fi
     echo "  -w : The root password."
     echo
@@ -191,7 +190,7 @@ if [ "${MODE}" == "install" ]; then
         exit 1
     fi
 
-    if [ "${PARTITION_LAYOUT}" != "bsrh" ] && [ "${PARTITION_LAYOUT}" != "bsr" ] && [ "${PARTITION_LAYOUT}" != "br" ]; then
+    if [ "${PARTITION_LAYOUT}" != "brh" ] && [ "${PARTITION_LAYOUT}" != "br" ]; then
         echo "ERROR! I don't know what to do with '${PARTITION_LAYOUT}' partition layout."
         echo " - See `basename ${0}` -h"
         exit 1
@@ -322,21 +321,17 @@ function format_disks() {
     wipefs -a /dev/${DSK} 2>/dev/null
     echo "==> Initialising disk /dev/${DSK}: ${PARTITION_TYPE}"
     parted -s /dev/${DSK} mktable ${PARTITION_TYPE} >/dev/null
-
-    # Calculate common partition sizes.
-    swap_size=`awk '/MemTotal/ {printf( "%.0f\n", $2 / 1000 )}' /proc/meminfo`
     boot_end=$(( 1 + 122 ))
-    swap_end=$(( $boot_end + ${swap_size} ))
     max=$(( $(cat /sys/block/${DSK}/size) * 512 / 1024 / 1024 - 1 ))
 
-    if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+    if [ "${PARTITION_LAYOUT}" == "brh" ]; then
         # If the total space available is less than 'root_max' (in Gb) then make
         # the /root partition half the total disk capcity.
         root_max=24
-        if [ $(( $max )) -le $(( (${root_max} * 1024) + ${swap_size} )) ]; then
-            root_end=$(( $swap_end + ( $max / 2 )  ))
+        if [ $max -le $(( ${root_max} * 1024 )) ]; then
+            root_end=$(( $max / 2 ))
         else
-            root_end=$(( $swap_end + ( $root_max * 1024 ) ))
+            root_end=$(( $root_max * 1024 ))
         fi
     else
         root_end=$max
@@ -344,23 +339,14 @@ function format_disks() {
 
     echo "==> Creating /boot partition"
     parted -a optimal -s /dev/${DSK} unit MiB mkpart primary 1 $boot_end >/dev/null
-
-    if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
-        ROOT_PARTITION="${DSK}3"
-        echo "==> Creating swap partition"
-        parted -a optimal -s /dev/${DSK} unit MiB mkpart primary linux-swap $boot_end $swap_end >/dev/null
-        echo "==> Creating /root partition"
-        parted -a optimal -s /dev/${DSK} unit MiB mkpart primary $swap_end $root_end >/dev/null
-        if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-            echo "==> Creating /home partition"
-            parted -a optimal -s /dev/${DSK} unit MiB mkpart primary $root_end $max >/dev/null
-        fi
-    elif [ "${PARTITION_LAYOUT}" = "br" ]; then
-        ROOT_PARTITION="${DSK}2"
-        echo "==> Creating /root partition"
-        parted -a optimal -s /dev/${DSK} unit MiB mkpart primary $boot_end $root_end >/dev/null
+    ROOT_PARTITION="${DSK}2"
+    echo "==> Creating /root partition"
+    parted -a optimal -s /dev/${DSK} unit MiB mkpart primary $boot_end $root_end >/dev/null
+    if [ "${PARTITION_LAYOUT}" == "brh" ]; then
+        echo "==> Creating /home partition"
+        parted -a optimal -s /dev/${DSK} unit MiB mkpart primary $root_end $max >/dev/null
     fi
-
+    
     echo "==> Setting /dev/${DSK} bootable"
     parted -a optimal -s /dev/${DSK} toggle 1 boot >/dev/null
     if [ "${PARTITION_TYPE}" == "gpt" ]; then
@@ -377,25 +363,19 @@ function format_disks() {
     mkfs.ext2 -F -L boot -m 0 -q /dev/${DSK}1 >/dev/null
     echo "==> Making /root filesystem : ${FS}"
     ${MKFS} ${MKFS_L} root /dev/${ROOT_PARTITION} >/dev/null
-    if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+    if [ "${PARTITION_LAYOUT}" == "brh" ]; then
         echo "==> Making /home filesystem : ${FS}"
-        ${MKFS} ${MKFS_L} home /dev/${DSK}4 >/dev/null
+        ${MKFS} ${MKFS_L} home /dev/${DSK}3 >/dev/null
     fi
 }
 
 function mount_disks() {
-    if [ "${PARTITION_LAYOUT}" == "bsrh" ] || [ "${PARTITION_LAYOUT}" == "bsr" ]; then
-        echo -n "==> "
-        mkswap -f -L swap /dev/${DSK}2
-        swapon /dev/${DSK}2
-    fi
-
     echo "==> Mounting filesystems"
     mount -t ${FS} ${MOUNT_OPTS} /dev/${ROOT_PARTITION} ${TARGET_PREFIX} >/dev/null
     mkdir -p ${TARGET_PREFIX}/{boot,home}
     mount -t ext2 /dev/${DSK}1 ${TARGET_PREFIX}/boot >/dev/null
-    if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
-        mount -t ${FS} ${MOUNT_OPTS} /dev/${DSK}4 ${TARGET_PREFIX}/home >/dev/null
+    if [ "${PARTITION_LAYOUT}" == "brh" ]; then
+        mount -t ${FS} ${MOUNT_OPTS} /dev/${DSK}3 ${TARGET_PREFIX}/home >/dev/null
     fi
 }
 
@@ -434,7 +414,7 @@ function install_packages() {
             if [ -n "${NFS_CACHE}" ]; then
                 umount -fv /var/cache/pacman/pkg
             fi
-            if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+            if [ "${PARTITION_LAYOUT}" == "brh" ]; then
                 umount -fv ${TARGET_PREFIX}/home
             fi
             umount -fv ${TARGET_PREFIX}/{boot,}
@@ -628,7 +608,7 @@ function build_configuration() {
         add_config 'echo "#!/usr/bin/env bash"                  >  /etc/cron.daily/trim'
         add_config 'echo "$(date -R)  >> /var/log/trim.log"     >> /etc/cron.daily/trim'
         add_config 'echo "fstrim -v / >> /var/log/trim.log"     >> /etc/cron.daily/trim'
-        if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+        if [ "${PARTITION_LAYOUT}" == "brh" ]; then
             add_config 'echo "fstrim -v /home >> /var/log/trim.log" >> /etc/cron.daily/trim'
         fi
     fi
@@ -716,7 +696,7 @@ function cleanup() {
     fi
 
     if [ "${MODE}" == "install" ]; then
-        if [ "${PARTITION_LAYOUT}" == "bsrh" ]; then
+        if [ "${PARTITION_LAYOUT}" == "brh" ]; then
             umount -fv ${TARGET_PREFIX}/home
         fi
         umount -fv ${TARGET_PREFIX}/{boot,}
