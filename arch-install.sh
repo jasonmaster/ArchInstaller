@@ -32,7 +32,7 @@ if [ "${HOSTNAME}" == "archiso" ]; then
     MODE="install"
     BASE_ARCH="x86"
 else
-    MODE="update"
+    MODE="update"    
     if [ "${CPU}" == "armv6l" ] || [ "${CPU}" == "armv7l" ]; then
         DSK="mmcblk0"
         TARGET_PREFIX=""
@@ -59,11 +59,14 @@ function usage() {
         echo "  -p : The partition layout to use. One of: "
         echo "         'brh' : /boot, /root and /home"
         echo "         'br'   : /boot and /root."
+		echo "  -w : The root password."        
     fi
-    echo "  -w : The root password."
+
     echo
     echo "Optional parameters"
-    if [ "${MODE}" == "install" ]; then
+    if [ "${MODE}" == "update" ]; then
+		echo "  -w : The root password."
+	else
         echo "  -b : The partition type to use. Defaults to '${PARTITION_TYPE}'. Can be 'msdos' or 'gpt'."
         echo "  -f : The filesystem to use. 'bfs', 'btrfs', 'ext{2,3,4}', 'f2fs, 'jfs', 'nilfs2', 'ntfs', 'reiserfs' and 'xfs' are supported. Defaults to '${FS}'."
     fi
@@ -81,11 +84,6 @@ function usage() {
     echo "The format is:"
     echo
     echo "username,password,comment,extra_groups"
-    echo
-    echo "In the examples below, 'fred' is a sudo'er but 'barney' is not."
-    echo
-    echo "fred,fl1nt5t0n3,Fred Flintstone,wheel"
-    echo "barney,ru88l3,Barney Rubble,"
     echo
     echo "All users are added to the following groups:"
     echo
@@ -336,6 +334,9 @@ function build_packages() {
             MATE_CHECK=`grep "\[mate\]" /etc/pacman.conf`
             if [ $? -ne 0 ]; then
                 echo -e '\n[mate]\nSigLevel = Optional TrustAll\nServer = http://repo.mate-desktop.org/archlinux/$arch' >> /etc/pacman.conf
+                if [ "${MODE}" == "update" ]; then
+					pacman -Syy
+				fi
             fi
         fi
 
@@ -666,6 +667,11 @@ do
     esac
 done
 shift "$(( $OPTIND - 1 ))"
+
+if [ $(id -u) -ne 0 ]; then
+	echo "ERROR! $(basename ${0}) must be run as root."
+	exit 1
+fi
 
 if [ "${CPU}" != "armv6l" ] && [ "${CPU}" != "armv7l" ] && [ "${CPU}" != "i686" ] && [ "${CPU}" != "x86_64" ]; then
     echo "ERROR! `basename ${0}` is designed for armv6l, armv7l, i686, x86_64 platforms only."
