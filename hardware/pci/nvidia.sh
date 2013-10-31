@@ -25,6 +25,7 @@ Section "Device"
    Identifier     "Device0"
    Driver         "nvidia"
    Option         "NoLogo"
+   Option         "RegistryDwords"      "EnableBrightnessControl=1"
    VendorName     "NVIDIA Corporation"
 EndSection
 XORG
