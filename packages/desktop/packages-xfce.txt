@@ -1,4 +1,4 @@
-lightdm-gtk2-greeter
+lightdm-gtk-greeter
 xfce4
 xfce4-goodies
 network-manager-applet

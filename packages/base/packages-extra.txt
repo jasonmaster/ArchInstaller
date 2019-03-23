@@ -35,4 +35,3 @@ wireless-regdb
 wireless_tools
 wpa_supplicant
 xfsprogs
-zd1211-firmware
