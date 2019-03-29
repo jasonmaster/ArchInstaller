@@ -409,6 +409,9 @@ function build_configuration() {
     # Start building the configuration script
     start_config
 
+    # Start building the configuration script
+    start_postinstall
+
     # Configure the hostname.
     add_config "echo ${FQDN} > /etc/hostname"
     add_config "hostnamectl set-hostname --static ${FQDN}"
@@ -420,7 +423,9 @@ function build_configuration() {
     # Font and font map
     FONT="ter-116b"
 
-    add_config "echo KEYMAP=${KEYMAP}      > /etc/vconsole.conf"
+    add_postinstall "# Set keymap to none first, to make sure localectl sets keymap for vconsole and X11."
+    add_postinstall "localectl set-keymap none"
+    add_postinstall "localectl set-keymap ${KEYMAP}"
     add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
     add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
     add_config "sed -i \"s/#${LANG}/${LANG}/\" /etc/locale.gen"
@@ -639,6 +644,8 @@ function build_configuration() {
             fi
         done
     fi
+
+    add_postinstall "systemctl disable arch-postinstall"
 }
 
 function apply_configuration() {
