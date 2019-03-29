@@ -318,9 +318,25 @@ function mount_disks() {
     fi
 }
 
+function chain_package_lists() {
+    # Chain package lists
+    for f in $*; do
+        if [ -r $f ]; then
+            files+="$f "
+        else
+            echo "ERROR! file $f not readable."
+        fi
+    done
+
+    if [ -n "${files}" ]; then
+        # Remove lines starting with #, replace trailing comments introduced by #, remove empty lines
+        cat ${files} | sed '/^#.*$/d' | sed 's/[[:space:]]*#.*$//' | sed '/^[[:space:]]*$/d'
+    fi
+}
+
 function build_packages() {
     # Chain packages
-    cat packages/base/packages-extra.txt > /tmp/packages.txt
+    chain_package_lists packages/base/packages-extra.txt > /tmp/packages.txt
     if [ "${DE}" != "none" ] && [ "${INSTALL_TYPE}" == "desktop" ]; then
         if [ "${DE}" == "kde" ]; then
             if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
@@ -342,14 +358,14 @@ function build_packages() {
         fi
 
         # Chain the DE packages.
-        cat packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
+        chain_package_lists packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
     fi
 }
 
 function install_packages() {
     # Install packages
     if [ "${MODE}" == "install" ]; then
-        pacstrap -c ${TARGET_PREFIX} $(cat packages/base/packages-base.txt /tmp/packages.txt)
+        pacstrap -c ${TARGET_PREFIX} $(chain_package_lists packages/base/packages-base.txt /tmp/packages.txt)
         if [ $? -ne 0 ]; then
             echo "ERROR! 'pacstrap' failed. Cleaning up and exitting."
             if [ -n "${NFS_CACHE}" ]; then
@@ -363,7 +379,7 @@ function install_packages() {
         fi
     else
         pacman -Rs --noconfirm heirloom-mailx
-        pacman -S --noconfirm --needed $(cat packages/base/packages-base.txt)
+        pacman -S --noconfirm --needed $(chain_package_lists packages/base/packages-base.txt)
         if [ "${BASE_ARCH}" == "x86" ]; then
 			pacman -S --noconfirm --needed $(cat /tmp/packages.txt)
         else
