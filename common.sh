@@ -408,7 +408,7 @@ start_postinstall() {
 
         [Install]
         WantedBy=local-fs.target
-        EOF
+EOF
 
     add_config "systemctl enable arch-postinstall"
 

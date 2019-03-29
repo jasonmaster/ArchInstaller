@@ -1,7 +1,7 @@
 alsa-firmware
 avahi
 b43-fwcutter
-bluez-firmware
+#bluez-firmware
 btrfs-progs
 ca-certificates
 cpupower
