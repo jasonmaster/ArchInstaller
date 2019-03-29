@@ -645,6 +645,13 @@ function build_configuration() {
         done
     fi
 
+    if [ "${MODE}" == "install" ]; then
+        proxies="$(set | grep -i -E "^[a-z]*_proxy")"
+        for proxy in $proxies; do
+            add_config "echo export ${proxy} >> /etc/profile.d/proxy.sh"
+        done
+    fi
+
     add_postinstall "systemctl disable arch-postinstall"
 }
 
