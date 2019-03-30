@@ -10,6 +10,7 @@ fi
 BASE_GROUPS="adm,audio,disk,lp,optical,storage,video,games,power,scanner,uucp"
 DSK=""
 NFS_CACHE=""
+PKG_CACHE="/var/cache/pacman/pkg"
 FQDN="arch.example.org"
 TIMEZONE="Europe/London"
 KEYMAP="uk"
@@ -176,7 +177,7 @@ function test_nfs_cache() {
 		echo
 		echo "Testing NFS cache : ${NFS_CACHE}"
 		systemctl start rpc-statd.service >/dev/null
-		mount -t nfs ${NFS_CACHE} /var/cache/pacman/pkg >/dev/null
+		mount -t nfs ${NFS_CACHE} ${PKG_CACHE} >/dev/null
 		if [ $? -ne 0 ]; then
 			echo "ERROR! Unable to mount ${NFS_CACHE}"
 			echo " - See `basename ${0}` -h"
@@ -184,12 +185,12 @@ function test_nfs_cache() {
 		fi
 
 		# Make sure the cache is writeable
-		touch /var/cache/pacman/pkg/cache.test 2>/dev/null
+		touch ${PKG_CACHE}/cache.test 2>/dev/null
 		if [ $? -ne 0 ]; then
 			echo "ERROR! The NFS cache, ${NFS_CACHE}, is read-only."
 			exit 1
 		else
-			rm /var/cache/pacman/pkg/cache.test 2>/dev/null
+			rm ${PKG_CACHE}/cache.test 2>/dev/null
 		fi
 	fi
 }
@@ -318,6 +319,12 @@ function mount_disks() {
     fi
 }
 
+function bind_pacman_cache() {
+    echo "==> Bind mounting pacman cache"
+    mkdir -p ${TARGET_PREFIX}${PKG_CACHE}
+    mount --bind ${TARGET_PREFIX}${PKG_CACHE} ${PKG_CACHE}
+}
+
 function chain_package_lists() {
     # Chain package lists
     for f in $*; do
@@ -369,7 +376,7 @@ function install_packages() {
         if [ $? -ne 0 ]; then
             echo "ERROR! 'pacstrap' failed. Cleaning up and exitting."
             if [ -n "${NFS_CACHE}" ]; then
-                umount -fv /var/cache/pacman/pkg
+                umount -fv ${PKG_CACHE}
             fi
             if [ "${PARTITION_LAYOUT}" == "brh" ]; then
                 umount -fv ${TARGET_PREFIX}/home
@@ -668,9 +675,9 @@ function apply_configuration() {
 function cleanup() {
     sync
     if [ -n "${NFS_CACHE}" ]; then
-        addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,relatime,noauto,x-systemd.automount,x-systemd.device-timeout=5s 0 0" ${TARGET_PREFIX}/etc/fstab
+        addlinetofile "${NFS_CACHE} ${PKG_CACHE} nfs defaults,relatime,noauto,x-systemd.automount,x-systemd.device-timeout=5s 0 0" ${TARGET_PREFIX}/etc/fstab
         if [ "${MODE}" == "install" ]; then
-            umount -fv /var/cache/pacman/pkg
+            umount -fv ${PKG_CACHE}
         fi
     fi
 
@@ -767,6 +774,9 @@ final_warning
 if [ "${MODE}" == "install" ]; then
     format_disks
     mount_disks
+    if [ -z "${NFS_CACHE}" ]; then
+        bind_pacman_cache
+    fi
 fi
 
 build_packages
