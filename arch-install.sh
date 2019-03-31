@@ -13,7 +13,7 @@ NFS_CACHE=""
 PKG_CACHE="/var/cache/pacman/pkg"
 FQDN="arch.example.org"
 TIMEZONE="Europe/London"
-KEYMAP="uk"
+DEFAULT_KEYMAP="uk"
 LANG="en_GB.UTF-8"
 LOCALE=`echo ${LANG} | cut -d'.' -f1`
 LC_COLLATE="C"
@@ -49,9 +49,9 @@ function usage() {
     echo
     echo "Usage"
     if [ "${MODE}" == "install" ]; then
-        echo "  ${0} -d sda -p brh -w P@ssw0rd -b ${PARTITION_TYPE} -f ${FS} -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
+        echo "  ${0} -d sda -p brh -w P@ssw0rd -b ${PARTITION_TYPE} -f ${FS} -k ${DEFAULT_KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
     else
-        echo "  ${0} -w P@ssw0rd -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
+        echo "  ${0} -w P@ssw0rd -k ${DEFAULT_KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
     fi
     echo
     echo "Required parameters"
@@ -73,7 +73,7 @@ function usage() {
     fi
     echo "  -c : The NFS export to mount and use as the pacman cache."
     echo "  -e : The desktop environment to install. Defaults to '${DE}'. Can be 'none', 'cinnamon', 'gnome', 'kde', 'lxde', 'mate' or 'xfce'"
-    echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
+    echo "  -k : The keyboard mapping to use. Defaults to '${DEFAULT_KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
     echo "  -n : The hostname to use. Defaults to '${FQDN}'"
     echo "  -r : The computer role. Defaults to '${INSTALL_TYPE}'. Can be 'desktop' or 'server'."
@@ -754,7 +754,10 @@ fi
 
 if [ -z "${KEYMAP}" ]; then
     echo "==> Keyboard mapping not defined, try to determine from install environment"
-    KEYMAP="$(fc -ln 0 | grep "^loadkeys " | tail -1 | awk '{print $2}')"
+    KEYMAP="$(cat ~/.zsh_history | awk -F";" '{print $NF}' | grep "^loadkeys " | tail -1 | awk '{print $2}')"
+    if [ -z "${KEYMAP}" ]; then
+        KEYMAP="${DEFAULT_KEYMAP}"
+    fi
 fi
 KEYMAP_TEST=`ls -1 /usr/share/kbd/keymaps/*/*/*${KEYMAP}*`
 if [ $? -ne 0 ]; then
