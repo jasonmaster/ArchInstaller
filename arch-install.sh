@@ -752,6 +752,10 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+if [ -z "${KEYMAP}" ]; then
+    echo "==> Keyboard mapping not defined, try to determine from install environment"
+    KEYMAP="$(fc -ln 0 | grep "^loadkeys " | tail -1 | awk '{print $2}')"
+fi
 KEYMAP_TEST=`ls -1 /usr/share/kbd/keymaps/*/*/*${KEYMAP}*`
 if [ $? -ne 0 ]; then
     echo "ERROR! The keyboard mapping you specified, '${KEYMAP}', is not recognised."
