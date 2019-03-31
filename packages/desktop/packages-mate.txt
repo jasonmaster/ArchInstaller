@@ -1,6 +1,6 @@
+lightdm-gtk-greeter
 accountsservice
 cups-pk-helper
-lightdm-gtk2-greeter
 mate
 mate-extras
 network-manager-applet

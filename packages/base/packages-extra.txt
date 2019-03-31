@@ -1,7 +1,7 @@
 alsa-firmware
 avahi
 b43-fwcutter
-bluez-firmware
+#bluez-firmware
 btrfs-progs
 ca-certificates
 cpupower
@@ -35,4 +35,3 @@ wireless-regdb
 wireless_tools
 wpa_supplicant
 xfsprogs
-zd1211-firmware

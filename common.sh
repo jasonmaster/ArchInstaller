@@ -398,6 +398,28 @@ add_config() {
     echo "${1}" >> ${TARGET_PREFIX}/usr/local/bin/arch-config.sh
 }
 
+start_postinstall() {
+    cat <<- 'EOF' > ${TARGET_PREFIX}/etc/systemd/system/arch-postinstall.service
+        [Unit]
+        Description=Post Install Script
+
+        [Service]
+        ExecStart=/usr/local/bin/arch-postinstall.sh
+
+        [Install]
+        WantedBy=local-fs.target
+EOF
+
+    add_config "systemctl enable arch-postinstall"
+
+    echo "#!/usr/bin/env bash" > ${TARGET_PREFIX}/usr/local/bin/arch-postinstall.sh
+    chmod +x ${TARGET_PREFIX}/usr/local/bin/arch-postinstall.sh
+}
+
+add_postinstall() {
+    echo "${1}" >> ${TARGET_PREFIX}/usr/local/bin/arch-postinstall.sh
+}
+
 detect_laptop() {
     # Are we a mac?
     if test -d /proc/pmu; then

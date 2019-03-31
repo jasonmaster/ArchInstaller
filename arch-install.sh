@@ -10,9 +10,10 @@ fi
 BASE_GROUPS="adm,audio,disk,lp,optical,storage,video,games,power,scanner,uucp"
 DSK=""
 NFS_CACHE=""
+PKG_CACHE="/var/cache/pacman/pkg"
 FQDN="arch.example.org"
 TIMEZONE="Europe/London"
-KEYMAP="uk"
+DEFAULT_KEYMAP="uk"
 LANG="en_GB.UTF-8"
 LOCALE=`echo ${LANG} | cut -d'.' -f1`
 LC_COLLATE="C"
@@ -48,9 +49,9 @@ function usage() {
     echo
     echo "Usage"
     if [ "${MODE}" == "install" ]; then
-        echo "  ${0} -d sda -p brh -w P@ssw0rd -b ${PARTITION_TYPE} -f ${FS} -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
+        echo "  ${0} -d sda -p brh -w P@ssw0rd -b ${PARTITION_TYPE} -f ${FS} -k ${DEFAULT_KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
     else
-        echo "  ${0} -w P@ssw0rd -k ${KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
+        echo "  ${0} -w P@ssw0rd -k ${DEFAULT_KEYMAP} -l ${LANG} -n ${FQDN} -t ${TIMEZONE}"
     fi
     echo
     echo "Required parameters"
@@ -72,7 +73,7 @@ function usage() {
     fi
     echo "  -c : The NFS export to mount and use as the pacman cache."
     echo "  -e : The desktop environment to install. Defaults to '${DE}'. Can be 'none', 'cinnamon', 'gnome', 'kde', 'lxde', 'mate' or 'xfce'"
-    echo "  -k : The keyboard mapping to use. Defaults to '${KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
+    echo "  -k : The keyboard mapping to use. Defaults to '${DEFAULT_KEYMAP}'. See '/usr/share/kbd/keymaps/' for options."
     echo "  -l : The language to use. Defaults to '${LANG}'. See '/etc/locale.gen' for options."
     echo "  -n : The hostname to use. Defaults to '${FQDN}'"
     echo "  -r : The computer role. Defaults to '${INSTALL_TYPE}'. Can be 'desktop' or 'server'."
@@ -176,7 +177,7 @@ function test_nfs_cache() {
 		echo
 		echo "Testing NFS cache : ${NFS_CACHE}"
 		systemctl start rpc-statd.service >/dev/null
-		mount -t nfs ${NFS_CACHE} /var/cache/pacman/pkg >/dev/null
+		mount -t nfs ${NFS_CACHE} ${PKG_CACHE} >/dev/null
 		if [ $? -ne 0 ]; then
 			echo "ERROR! Unable to mount ${NFS_CACHE}"
 			echo " - See `basename ${0}` -h"
@@ -184,12 +185,12 @@ function test_nfs_cache() {
 		fi
 
 		# Make sure the cache is writeable
-		touch /var/cache/pacman/pkg/cache.test 2>/dev/null
+		touch ${PKG_CACHE}/cache.test 2>/dev/null
 		if [ $? -ne 0 ]; then
 			echo "ERROR! The NFS cache, ${NFS_CACHE}, is read-only."
 			exit 1
 		else
-			rm /var/cache/pacman/pkg/cache.test 2>/dev/null
+			rm ${PKG_CACHE}/cache.test 2>/dev/null
 		fi
 	fi
 }
@@ -318,9 +319,31 @@ function mount_disks() {
     fi
 }
 
+function bind_pacman_cache() {
+    echo "==> Bind mounting pacman cache"
+    mkdir -p ${TARGET_PREFIX}${PKG_CACHE}
+    mount --bind ${TARGET_PREFIX}${PKG_CACHE} ${PKG_CACHE}
+}
+
+function chain_package_lists() {
+    # Chain package lists
+    for f in $*; do
+        if [ -r $f ]; then
+            files+="$f "
+        else
+            echo "ERROR! file $f not readable."
+        fi
+    done
+
+    if [ -n "${files}" ]; then
+        # Remove lines starting with #, replace trailing comments introduced by #, remove empty lines
+        cat ${files} | sed '/^#.*$/d' | sed 's/[[:space:]]*#.*$//' | sed '/^[[:space:]]*$/d'
+    fi
+}
+
 function build_packages() {
     # Chain packages
-    cat packages/base/packages-extra.txt > /tmp/packages.txt
+    chain_package_lists packages/base/packages-extra.txt > /tmp/packages.txt
     if [ "${DE}" != "none" ] && [ "${INSTALL_TYPE}" == "desktop" ]; then
         if [ "${DE}" == "kde" ]; then
             if [ "${LOCALE}" == "pt_BR" ] || [ "${LOCALE}" == "en_GB" ] || [ "${LOCALE}" == "zh_CN" ]; then
@@ -342,18 +365,18 @@ function build_packages() {
         fi
 
         # Chain the DE packages.
-        cat packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
+        chain_package_lists packages/desktop/packages-xorg.txt packages/desktop/packages-${DE}.txt packages/desktop/packages-gst.txt packages/desktop/packages-cups.txt packages/desktop/packages-ttf.txt >> /tmp/packages.txt
     fi
 }
 
 function install_packages() {
     # Install packages
     if [ "${MODE}" == "install" ]; then
-        pacstrap -c ${TARGET_PREFIX} $(cat packages/base/packages-base.txt /tmp/packages.txt)
+        pacstrap -c ${TARGET_PREFIX} $(chain_package_lists packages/base/packages-base.txt /tmp/packages.txt)
         if [ $? -ne 0 ]; then
             echo "ERROR! 'pacstrap' failed. Cleaning up and exitting."
             if [ -n "${NFS_CACHE}" ]; then
-                umount -fv /var/cache/pacman/pkg
+                umount -fv ${PKG_CACHE}
             fi
             if [ "${PARTITION_LAYOUT}" == "brh" ]; then
                 umount -fv ${TARGET_PREFIX}/home
@@ -363,7 +386,7 @@ function install_packages() {
         fi
     else
         pacman -Rs --noconfirm heirloom-mailx
-        pacman -S --noconfirm --needed $(cat packages/base/packages-base.txt)
+        pacman -S --noconfirm --needed $(chain_package_lists packages/base/packages-base.txt)
         if [ "${BASE_ARCH}" == "x86" ]; then
 			pacman -S --noconfirm --needed $(cat /tmp/packages.txt)
         else
@@ -393,6 +416,9 @@ function build_configuration() {
     # Start building the configuration script
     start_config
 
+    # Start building the configuration script
+    start_postinstall
+
     # Configure the hostname.
     add_config "echo ${FQDN} > /etc/hostname"
     add_config "hostnamectl set-hostname --static ${FQDN}"
@@ -404,7 +430,9 @@ function build_configuration() {
     # Font and font map
     FONT="ter-116b"
 
-    add_config "echo KEYMAP=${KEYMAP}      > /etc/vconsole.conf"
+    add_postinstall "# Set keymap to none first, to make sure localectl sets keymap for vconsole and X11."
+    add_postinstall "localectl set-keymap none"
+    add_postinstall "localectl set-keymap ${KEYMAP}"
     add_config "echo FONT=${FONT}         >> /etc/vconsole.conf"
     add_config "echo FONT_MAP=${FONT_MAP} >> /etc/vconsole.conf"
     add_config "sed -i \"s/#${LANG}/${LANG}/\" /etc/locale.gen"
@@ -623,6 +651,15 @@ function build_configuration() {
             fi
         done
     fi
+
+    if [ "${MODE}" == "install" ]; then
+        proxies="$(set | grep -i -E "^[a-z]*_proxy")"
+        for proxy in $proxies; do
+            add_config "echo export ${proxy} >> /etc/profile.d/proxy.sh"
+        done
+    fi
+
+    add_postinstall "systemctl disable arch-postinstall"
 }
 
 function apply_configuration() {
@@ -638,9 +675,9 @@ function apply_configuration() {
 function cleanup() {
     sync
     if [ -n "${NFS_CACHE}" ]; then
-        addlinetofile "${NFS_CACHE} /var/cache/pacman/pkg nfs defaults,relatime,noauto,x-systemd.automount,x-systemd.device-timeout=5s 0 0" ${TARGET_PREFIX}/etc/fstab
+        addlinetofile "${NFS_CACHE} ${PKG_CACHE} nfs defaults,relatime,noauto,x-systemd.automount,x-systemd.device-timeout=5s 0 0" ${TARGET_PREFIX}/etc/fstab
         if [ "${MODE}" == "install" ]; then
-            umount -fv /var/cache/pacman/pkg
+            umount -fv ${PKG_CACHE}
         fi
     fi
 
@@ -715,6 +752,13 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+if [ -z "${KEYMAP}" ]; then
+    echo "==> Keyboard mapping not defined, try to determine from install environment"
+    KEYMAP="$(cat ~/.zsh_history | awk -F";" '{print $NF}' | grep "^loadkeys " | tail -1 | awk '{print $2}')"
+    if [ -z "${KEYMAP}" ]; then
+        KEYMAP="${DEFAULT_KEYMAP}"
+    fi
+fi
 KEYMAP_TEST=`ls -1 /usr/share/kbd/keymaps/*/*/*${KEYMAP}*`
 if [ $? -ne 0 ]; then
     echo "ERROR! The keyboard mapping you specified, '${KEYMAP}', is not recognised."
@@ -737,6 +781,9 @@ final_warning
 if [ "${MODE}" == "install" ]; then
     format_disks
     mount_disks
+    if [ -z "${NFS_CACHE}" ]; then
+        bind_pacman_cache
+    fi
 fi
 
 build_packages

@@ -18,7 +18,7 @@ gnome-screenshot
 gnome-system-log
 gnome-system-monitor
 gksu
-lightdm-gtk3-greeter
+lightdm-gtk-greeter
 nemo
 networkmanager-openvpn
 networkmanager-pptp

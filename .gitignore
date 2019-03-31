@@ -2,3 +2,8 @@
 local.txt
 prime.txt
 users.csv
+
+#
+# IntelliJ Idea
+#
+/.idea/
